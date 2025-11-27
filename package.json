@@ -11,6 +11,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@heroicons/vue": "^2.2.0",
     "@vueuse/core": "^14.0.0",
     "axios": "^1.13.2",
     "dayjs": "^1.11.19",

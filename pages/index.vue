@@ -9,11 +9,12 @@
       >
         AI가 당신의 포트폴리오를 분석하고, 더 나은 방향을 제시합니다
       </p>
-      <button
-        class="bg-primary text-white px-6 py-2.5 sm:px-8 sm:py-3 md:px-10 md:py-4 rounded-lg text-base sm:text-lg md:text-xl font-semibold hover:bg-primary/90 transition"
+      <NuxtLink
+        to="/community"
+        class="inline-block bg-primary text-white px-6 py-2.5 sm:px-8 sm:py-3 md:px-10 md:py-4 rounded-lg text-base sm:text-lg md:text-xl font-semibold hover:bg-primary/90 transition"
       >
         무료로 시작하기
-      </button>
+      </NuxtLink>
     </div>
   </main>
 </template>
