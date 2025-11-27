@@ -1,7 +1,7 @@
 <template>
   <footer class="border-t py-6 bg-white dark:bg-dark">
     <div
-      class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4"
+      class="container mx-auto px-4 flex flex-col-reverse md:flex-row justify-between items-center gap-4"
     >
       <div class="text-gray-600 dark:text-gray-400 text-sm md:text-base">
         © 2025 폴짝. All rights reserved.
@@ -18,7 +18,7 @@
           to="/feedback"
           class="text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
         >
-          피드백
+          서비스 피드백
         </NuxtLink>
       </div>
     </div>

@@ -2,7 +2,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-11-27',
   devtools: { enabled: true },
 
-  modules: ['@nuxtjs/tailwindcss', '@vueuse/nuxt', '@nuxtjs/color-mode', '@pinia/nuxt'],
+  modules: ['@nuxtjs/tailwindcss', '@vueuse/nuxt', '@nuxtjs/color-mode'],
 
   colorMode: {
     classSuffix: '',
@@ -17,4 +17,16 @@ export default defineNuxtConfig({
   },
 
   css: ['~/assets/css/main.css'],
+
+  // 이거 추가!
+  app: {
+    head: {
+      htmlAttrs: {
+        class: 'h-full',
+      },
+      bodyAttrs: {
+        class: 'h-full',
+      },
+    },
+  },
 })
