@@ -10,9 +10,10 @@ datasource db {
 model User {
   id           Int      @id @default(autoincrement())
   publicId     String   @unique             
-  email        String?  @unique
   name         String
+  nickname     String   @unique
   kakaoId      String   @unique
+  refreshToken String?  @db.Text 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

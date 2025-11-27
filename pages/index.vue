@@ -11,7 +11,7 @@
       </p>
       <NuxtLink
         to="/community"
-        class="inline-block bg-primary text-white px-6 py-2.5 sm:px-8 sm:py-3 md:px-10 md:py-4 rounded-lg text-base sm:text-lg md:text-xl font-semibold hover:bg-primary/90 transition"
+        class="inline-block bg-primary text-white px-6 py-2.5 sm:px-8 sm:py-3 md:px-10 md:py-4 rounded-lg text-base sm:text-lg md:text-xl font-semibold hover:bg-primary/90 transition no-underline"
       >
         무료로 시작하기
       </NuxtLink>
