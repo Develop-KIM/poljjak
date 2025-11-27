@@ -8,15 +8,17 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  publicId     String   @unique             
-  name         String
-  nickname     String   @unique
-  kakaoId      String   @unique
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
+  id        Int      @id @default(autoincrement())
+  publicId  String   @unique             
+  name      String
+  nickname  String   @unique
+  kakaoId   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
   refreshTokens RefreshToken[]
+  posts         Post[]
+  comments      Comment[]
 }
 
 model RefreshToken {
@@ -28,4 +30,61 @@ model RefreshToken {
   createdAt DateTime @default(now())
   
   @@index([userId])
+}
+
+model Post {
+  id          Int       @id @default(autoincrement())
+  publicId    String    @unique
+  title       String
+  content     String    @db.Text
+  category    String    @default("all")  // String 타입
+  authorId    Int
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  viewCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  comments    Comment[]
+  files       File[]
+  
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([category])
+}
+
+model Comment {
+  id        Int       @id @default(autoincrement())
+  publicId  String    @unique
+  content   String    @db.Text
+  postId    Int
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  parentId  Int?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  
+  depth     Int       @default(0)
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model File {
+  id           Int      @id @default(autoincrement())
+  originalName String
+  fileName     String   @unique
+  filePath     String
+  fileSize     Int
+  mimeType     String
+  postId       Int
+  post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  
+  @@index([postId])
 }

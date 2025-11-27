@@ -8,7 +8,7 @@
       </div>
 
       <div class="flex gap-6 text-sm md:text-base">
-        <NuxtLink
+        <!-- <NuxtLink
           to="/about"
           class="text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
         >
@@ -19,7 +19,7 @@
           class="text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
         >
           서비스 피드백
-        </NuxtLink>
+        </NuxtLink> -->
       </div>
     </div>
   </footer>

@@ -5,7 +5,6 @@ export default defineEventHandler(async (event) => {
 
   if (refreshToken) {
     try {
-      // RefreshToken 테이블에서 삭제
       await prisma.refreshToken.deleteMany({
         where: { token: refreshToken },
       })
