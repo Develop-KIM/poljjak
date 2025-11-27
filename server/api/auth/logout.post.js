@@ -5,15 +5,16 @@ export default defineEventHandler(async (event) => {
 
   if (refreshToken) {
     try {
-      await prisma.user.updateMany({
-        where: { refreshToken },
-        data: { refreshToken: null },
+      // RefreshToken 테이블에서 삭제
+      await prisma.refreshToken.deleteMany({
+        where: { token: refreshToken },
       })
     } catch (error) {
       console.error('토큰 삭제 실패:', error)
     }
   }
 
+  deleteCookie(event, 'accessToken')
   deleteCookie(event, 'refreshToken')
 
   return { success: true }

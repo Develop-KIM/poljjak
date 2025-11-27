@@ -6,7 +6,7 @@ const KAKAO_TOKEN_URL = 'https://kauth.kakao.com/oauth/token'
 const KAKAO_USER_INFO_URL = 'https://kapi.kakao.com/v2/user/me'
 
 export default defineEventHandler(async (event) => {
-  const { code, platform } = await readBody(event) // platform 추가
+  const { code, platform } = await readBody(event)
 
   if (!code) {
     throw createError({
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
       refreshToken: tokens.refreshToken,
       user: {
         publicId: user.publicId,
-        name: user.name,
+        name: user.nickname || user.name,
       },
     }
   } catch (error) {
@@ -122,9 +122,12 @@ async function generateAuthTokens(user) {
     publicId: user.publicId,
   })
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { refreshToken },
+  await prisma.refreshToken.create({
+    data: {
+      token: refreshToken,
+      userId: user.id,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
   })
 
   return { accessToken, refreshToken }
