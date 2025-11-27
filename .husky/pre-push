@@ -1,0 +1,10 @@
+if git diff --name-only @{upstream}..HEAD 2>/dev/null | grep -q "^server/"; then
+  echo "서버 변경 감지 - 테스트 실행 중"
+  pnpm test || { 
+    echo "테스트 실패"
+    exit 1
+  }
+  echo "테스트 통과"
+else
+  echo "서버 변경사항 없음 - 테스트 스킵"
+fi
