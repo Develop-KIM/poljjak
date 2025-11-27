@@ -1,14 +1,5 @@
 <template>
-  <div>
-    <h1>Welcome to the Home Page</h1>
-    <p>This is the main landing page of the application.</p>
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-primary">폴짝</h1>
   </div>
 </template>
-
-<script setup>
-
-</script>
-
-<style lang="scss" scoped>
-
-</style>
