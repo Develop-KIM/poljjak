@@ -18,7 +18,6 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  // 이거 추가!
   app: {
     head: {
       htmlAttrs: {

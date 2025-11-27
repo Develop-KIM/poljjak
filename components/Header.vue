@@ -10,14 +10,16 @@
         >
           커뮤니티
         </NuxtLink>
-        <button
-          @click="toggleDark"
-          class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          aria-label="테마 전환"
-        >
-          <SunIcon v-if="!isDark" class="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          <MoonIcon v-else class="w-5 h-5 text-gray-700 dark:text-gray-300" />
-        </button>
+        <ClientOnly>
+          <button
+            @click="toggleDark"
+            class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label="테마 전환"
+          >
+            <SunIcon v-if="!isDark" class="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            <MoonIcon v-else class="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          </button>
+        </ClientOnly>
       </div>
     </nav>
   </header>
