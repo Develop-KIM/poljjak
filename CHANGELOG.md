@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Develop-KIM/poljjak/compare/v1.0.0...v1.0.1) (2025-11-27)
+
+
+### Bug Fixes
+
+* 헤더모드  수정 ([a5fdb80](https://github.com/Develop-KIM/poljjak/commit/a5fdb8048cdf9da335f9c472dd9971ea753b293a))
+
 # 1.0.0 (2025-11-27)
 
 
