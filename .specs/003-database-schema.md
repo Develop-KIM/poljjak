@@ -35,17 +35,22 @@ server/db/
 
 카카오 OAuth로 가입한 회원. Supabase Auth의 `auth.users`와 1:1 매핑.
 
-| 컬럼          | 타입                             | 설명                                |
-| ------------- | -------------------------------- | ----------------------------------- |
-| id            | uuid PK                          | `auth.users.id`와 동일값            |
-| kakao_id      | text UNIQUE NOT NULL             | 카카오 회원 고유 ID                 |
-| nickname      | text NOT NULL                    | 카카오 닉네임                       |
-| email         | text                             | 카카오 제공 이메일 (nullable)       |
-| avatar_url    | text                             | 프로필 사진 URL (nullable)          |
-| last_login_at | timestamp                        | 마지막 로그인 시각. 로그인마다 갱신 |
-| created_at    | timestamp NOT NULL DEFAULT now() |                                     |
-| updated_at    | timestamp NOT NULL DEFAULT now() |                                     |
-| deleted_at    | timestamp                        | 탈퇴 신청일. 30일 후 실제 삭제 처리 |
+| 컬럼                    | 타입                             | 설명                                       |
+| ----------------------- | -------------------------------- | ------------------------------------------ |
+| id                      | uuid PK                          | `auth.users.id`와 동일값                   |
+| kakao_id                | text UNIQUE NOT NULL             | 카카오 회원 고유 ID                        |
+| nickname                | text NOT NULL                    | 카카오 닉네임 (온보딩에서 변경 가능)       |
+| email                   | text                             | 카카오 제공 이메일 (nullable)              |
+| avatar_url              | text                             | 프로필 사진 URL. null이면 기본 이미지 사용 |
+| job_type                | enum nullable                    | 직종. 온보딩 Step 2에서 설정               |
+| onboarding_completed_at | timestamp                        | null이면 미완료 → `/onboarding` 리다이렉트 |
+| last_login_at           | timestamp                        | 마지막 로그인 시각. 로그인마다 갱신        |
+| created_at              | timestamp NOT NULL DEFAULT now() |                                            |
+| updated_at              | timestamp NOT NULL DEFAULT now() |                                            |
+| deleted_at              | timestamp                        | 탈퇴 신청일. 30일 후 실제 삭제 처리        |
+
+`job_type` enum:
+`'frontend' | 'backend' | 'fullstack' | 'mobile' | 'designer' | 'data' | 'devops' | 'pm' | 'other'`
 
 ### analyses
 
