@@ -1,45 +1,97 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Camera, ChevronRight } from '@lucide/vue'
+import { ref, computed, watch } from 'vue'
+import { Camera, Check, X, Loader2 } from '@lucide/vue'
 
 definePageMeta({ layout: false })
 
+// ── 단계 ──────────────────────────────────────────────
 const step = ref<1 | 2>(1)
+
+// ── Step 1: 프로필 ────────────────────────────────────
 const nickname = ref('김개발')
 const avatarPreview = ref<string | null>(null)
-const selectedJob = ref<string | null>(null)
+const imageError = ref<string | null>(null)
 
-const jobs = [
-  { value: 'frontend', label: '프론트엔드', icon: '💻' },
-  { value: 'backend', label: '백엔드', icon: '🖥️' },
-  { value: 'fullstack', label: '풀스택', icon: '⚡' },
-  { value: 'mobile', label: 'iOS / Android', icon: '📱' },
-  { value: 'designer', label: 'UI/UX 디자이너', icon: '🎨' },
-  { value: 'data', label: '데이터 엔지니어', icon: '📊' },
-  { value: 'devops', label: 'DevOps / 인프라', icon: '🔧' },
-  { value: 'pm', label: '기획 / PM', icon: '📋' },
-  { value: 'other', label: '기타', icon: '✨' },
-]
+const NICKNAME_REGEX = /^[가-힣a-zA-Z0-9]{2,15}$/
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
-const canProceed = computed(() => nickname.value.trim().length >= 2)
+// 닉네임 중복 체크 상태
+type CheckState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+const checkState = ref<CheckState>('idle')
+const checkTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+
+const nicknameHint = computed(() => {
+  switch (checkState.value) {
+    case 'available':
+      return '사용할 수 있는 닉네임이에요'
+    case 'taken':
+      return '이미 사용 중인 닉네임이에요'
+    case 'invalid':
+      return '한글·영문·숫자만 2~15자로 입력해주세요'
+    default:
+      return null
+  }
+})
+
+const nicknameHintColor = computed(() => {
+  if (checkState.value === 'available') return 'text-emerald-600'
+  if (checkState.value === 'taken' || checkState.value === 'invalid') return 'text-destructive'
+  return ''
+})
+
+// 닉네임 변경 시 500ms 디바운스로 중복 체크
+watch(nickname, (val) => {
+  if (checkTimer.value) clearTimeout(checkTimer.value)
+  if (!val.trim()) {
+    checkState.value = 'idle'
+    return
+  }
+  if (!NICKNAME_REGEX.test(val)) {
+    checkState.value = 'invalid'
+    return
+  }
+
+  checkState.value = 'checking'
+  checkTimer.value = setTimeout(() => {
+    // 3차 구현에서 GET /api/users/check-nickname?nickname={val} 호출
+    checkState.value = 'available' // 정적 UI 임시값
+  }, 500)
+})
+
+const canProceed = computed(() => checkState.value === 'available')
 
 function handleAvatarChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
+  if (file.size > MAX_IMAGE_BYTES) {
+    imageError.value = '이미지 크기가 10MB를 초과해요'
+    return
+  }
+  imageError.value = null
   avatarPreview.value = URL.createObjectURL(file)
 }
 
-function goNext() {
-  if (!canProceed.value) return
-  step.value = 2
-}
+// ── Step 2: 직종 ──────────────────────────────────────
+const selectedJob = ref<'developer' | 'designer' | null>(null)
 
+const jobs = [
+  {
+    value: 'developer' as const,
+    label: '개발자',
+    desc: '프론트엔드·백엔드·풀스택·모바일 등',
+    emoji: '💻',
+  },
+  {
+    value: 'designer' as const,
+    label: '디자이너',
+    desc: 'UI/UX·그래픽·제품 디자인 등',
+    emoji: '🎨',
+  },
+]
+
+// ── 완료 ──────────────────────────────────────────────
 function handleComplete() {
-  // 3차 구현에서 API 연동 (onboarding_completed_at 기록)
-  navigateTo('/')
-}
-
-function handleSkip() {
+  // 3차 구현에서 PATCH /api/users/me (onboarding_completed_at, job_type 저장)
   navigateTo('/')
 }
 </script>
@@ -49,19 +101,10 @@ function handleSkip() {
     <!-- 헤더 -->
     <header class="flex h-16 items-center justify-between px-5 md:px-8">
       <span class="text-lg font-black text-foreground">폴짝</span>
-      <!-- 진행 표시 -->
-      <div class="flex items-center gap-2">
-        <span
-          class="text-sm font-semibold"
-          :class="step === 1 ? 'text-primary' : 'text-muted-foreground/40'"
-          >1</span
-        >
+      <div class="flex items-center gap-2 text-sm font-semibold">
+        <span :class="step === 1 ? 'text-primary' : 'text-muted-foreground/40'">1</span>
         <div class="h-px w-8 bg-border" />
-        <span
-          class="text-sm font-semibold"
-          :class="step === 2 ? 'text-primary' : 'text-muted-foreground/40'"
-          >2</span
-        >
+        <span :class="step === 2 ? 'text-primary' : 'text-muted-foreground/40'">2</span>
       </div>
     </header>
 
@@ -75,23 +118,15 @@ function handleSkip() {
           </p>
 
           <!-- 프로필 이미지 -->
-          <div class="mt-8 flex justify-center">
+          <div class="mt-8 flex flex-col items-center gap-2">
             <label class="group relative cursor-pointer">
-              <div class="size-24 overflow-hidden rounded-full bg-accent">
+              <div class="size-24 overflow-hidden rounded-full border-2 border-border bg-accent">
                 <img
-                  v-if="avatarPreview"
-                  :src="avatarPreview"
+                  :src="avatarPreview ?? '/images/default-avatar.svg'"
                   alt="프로필 이미지"
                   class="h-full w-full object-cover"
                 />
-                <img
-                  v-else
-                  src="/images/default-avatar.svg"
-                  alt="기본 프로필 이미지"
-                  class="h-full w-full object-cover"
-                />
               </div>
-              <!-- 호버 오버레이 -->
               <div
                 class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
               >
@@ -104,32 +139,43 @@ function handleSkip() {
                 @change="handleAvatarChange"
               />
             </label>
+            <p class="text-xs text-muted-foreground">클릭해서 변경 · jpg, png, webp · 10MB 이하</p>
+            <p v-if="imageError" class="text-xs text-destructive">{{ imageError }}</p>
           </div>
-          <p class="mt-2 text-center text-xs text-muted-foreground">클릭해서 사진 변경</p>
 
           <!-- 닉네임 -->
           <div class="mt-8">
-            <label class="text-sm font-bold text-foreground">
-              닉네임
-              <span class="ml-1 font-normal text-muted-foreground">(2~20자)</span>
-            </label>
-            <AppInput
-              v-model="nickname"
-              class="mt-2"
-              placeholder="닉네임을 입력해주세요"
-              :maxlength="20"
-            />
-            <p
-              v-if="nickname.trim().length > 0 && nickname.trim().length < 2"
-              class="mt-1.5 text-xs text-destructive"
-            >
-              닉네임은 2자 이상이어야 해요
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-bold text-foreground">닉네임</label>
+              <span class="text-xs text-muted-foreground">{{ nickname.length }}/15</span>
+            </div>
+
+            <div class="relative mt-2">
+              <AppInput v-model="nickname" placeholder="한글·영문·숫자 2~15자" :maxlength="15" />
+              <!-- 체크 상태 아이콘 -->
+              <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2
+                  v-if="checkState === 'checking'"
+                  class="size-4 animate-spin text-muted-foreground"
+                />
+                <Check v-else-if="checkState === 'available'" class="size-4 text-emerald-500" />
+                <X
+                  v-else-if="checkState === 'taken' || checkState === 'invalid'"
+                  class="size-4 text-destructive"
+                />
+              </div>
+            </div>
+
+            <p v-if="nicknameHint" class="mt-1.5 text-xs" :class="nicknameHintColor">
+              {{ nicknameHint }}
+            </p>
+            <p v-else class="mt-1.5 text-xs text-muted-foreground">
+              한글·영문·숫자만 사용 가능, 특수문자·공백 불가
             </p>
           </div>
 
-          <AppButton class="mt-8 w-full" size="lg" :disabled="!canProceed" @click="goNext">
+          <AppButton class="mt-8 w-full" size="lg" :disabled="!canProceed" @click="step = 2">
             다음
-            <ChevronRight class="size-4" />
           </AppButton>
         </div>
 
@@ -140,12 +186,12 @@ function handleSkip() {
             포트폴리오 분석에 더 맞는 피드백을 드릴게요.
           </p>
 
-          <div class="mt-8 grid grid-cols-3 gap-2.5">
+          <div class="mt-8 grid grid-cols-2 gap-3">
             <button
               v-for="job in jobs"
               :key="job.value"
               type="button"
-              class="flex flex-col items-center gap-2 rounded-xl border-2 px-2 py-4 transition-colors"
+              class="flex flex-col items-center gap-3 rounded-xl border-2 px-4 py-7 transition-colors"
               :class="
                 selectedJob === job.value
                   ? 'border-primary bg-accent'
@@ -153,22 +199,25 @@ function handleSkip() {
               "
               @click="selectedJob = job.value"
             >
-              <span class="text-2xl">{{ job.icon }}</span>
-              <span
-                class="text-center text-xs font-semibold leading-4"
-                :class="selectedJob === job.value ? 'text-primary' : 'text-foreground'"
-              >
-                {{ job.label }}
-              </span>
+              <span class="text-4xl">{{ job.emoji }}</span>
+              <div class="text-center">
+                <p
+                  class="font-black"
+                  :class="selectedJob === job.value ? 'text-primary' : 'text-foreground'"
+                >
+                  {{ job.label }}
+                </p>
+                <p class="mt-1 text-xs leading-5 text-muted-foreground">{{ job.desc }}</p>
+              </div>
             </button>
           </div>
 
-          <AppButton class="mt-8 w-full" size="lg" @click="handleComplete"> 시작하기 </AppButton>
+          <AppButton class="mt-8 w-full" size="lg" @click="handleComplete"> 시작하기 🎉 </AppButton>
 
           <button
             type="button"
             class="mt-4 w-full text-center text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
-            @click="handleSkip"
+            @click="handleComplete"
           >
             나중에 설정할게요
           </button>

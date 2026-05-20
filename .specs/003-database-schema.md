@@ -49,8 +49,8 @@ server/db/
 | updated_at              | timestamp NOT NULL DEFAULT now() |                                            |
 | deleted_at              | timestamp                        | 탈퇴 신청일. 30일 후 실제 삭제 처리        |
 
-`job_type` enum:
-`'frontend' | 'backend' | 'fullstack' | 'mobile' | 'designer' | 'data' | 'devops' | 'pm' | 'other'`
+`job_type` enum: `'developer' | 'designer'`
+(개발자·디자이너 2종. 마이페이지에서 변경 가능. 온보딩 건너뛰면 null)
 
 ### analyses
 
