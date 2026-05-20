@@ -199,8 +199,8 @@ function handleWrite() {
     <div v-else class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <PostCard
         v-for="post in currentPosts"
-        :key="post.id"
         :id="post.id"
+        :key="post.id"
         :category="post.category"
         :title="post.title"
         :excerpt="post.excerpt"

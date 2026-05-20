@@ -2,15 +2,25 @@
 import { ref, computed, watch } from 'vue'
 import { ChevronDown, UserRound, LogOut, Menu, X } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
-import { useAuthStore } from '~/stores/auth'
 
 const route = useRoute()
+const { user, isLoggedIn, signOut } = useAuth()
 const authStore = useAuthStore()
 
 const profileOpen = ref(false)
 const profileRef = ref<HTMLElement | null>(null)
 const mobileMenuOpen = ref(false)
 const showLoginModal = ref(false)
+
+// ?login=1 쿼리 파라미터로 로그인 모달 자동 오픈 (auth 미들웨어에서 전달)
+const routeQuery = useRoute().query
+watch(
+  () => routeQuery.login,
+  (v) => {
+    if (v === '1') showLoginModal.value = true
+  },
+  { immediate: true }
+)
 
 onClickOutside(profileRef, () => {
   profileOpen.value = false
@@ -35,22 +45,27 @@ function isActive(path: string): boolean {
   return route.path.startsWith(path)
 }
 
-function handleLogout() {
+async function handleLogout() {
   profileOpen.value = false
   mobileMenuOpen.value = false
   authStore.clear()
-  navigateTo('/')
+  await signOut()
 }
 
 const userInitial = computed(
   () =>
-    authStore.user?.user_metadata?.full_name?.[0]?.toUpperCase() ??
-    authStore.user?.email?.[0]?.toUpperCase() ??
+    authStore.profile?.nickname?.[0]?.toUpperCase() ??
+    user.value?.user_metadata?.full_name?.[0]?.toUpperCase() ??
+    user.value?.email?.[0]?.toUpperCase() ??
     'U'
 )
 
 const userName = computed(
-  () => authStore.user?.user_metadata?.full_name ?? authStore.user?.email ?? '사용자'
+  () =>
+    authStore.profile?.nickname ??
+    user.value?.user_metadata?.full_name ??
+    user.value?.email ??
+    '사용자'
 )
 </script>
 
@@ -94,12 +109,12 @@ const userName = computed(
         <div class="flex items-center gap-2">
           <!-- 데스크탑에서만 표시 -->
           <div class="hidden md:flex md:items-center md:gap-2">
-            <template v-if="authStore.isLoggedIn">
+            <template v-if="isLoggedIn">
               <NotificationPopover />
             </template>
           </div>
 
-          <div v-if="authStore.isLoggedIn" ref="profileRef" class="relative hidden md:block">
+          <div v-if="isLoggedIn" ref="profileRef" class="relative hidden md:block">
             <button
               type="button"
               class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100"
@@ -237,7 +252,7 @@ const userName = computed(
             <!-- 하단: 로그인 / 프로필 -->
             <div class="mt-auto border-t border-border px-4 py-5">
               <!-- 로그인 상태 -->
-              <template v-if="authStore.isLoggedIn">
+              <template v-if="isLoggedIn">
                 <div class="flex items-center gap-3">
                   <div
                     class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"

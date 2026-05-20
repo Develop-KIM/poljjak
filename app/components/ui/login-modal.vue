@@ -16,6 +16,19 @@ withDefaults(
 const emit = defineEmits<{
   close: []
 }>()
+
+const { signInWithKakao } = useAuth()
+const pending = ref(false)
+
+async function handleLogin() {
+  pending.value = true
+  try {
+    await signInWithKakao()
+    // OAuth 리다이렉트 발생 — 이후 코드는 실행되지 않음
+  } catch {
+    pending.value = false
+  }
+}
 </script>
 
 <template>
@@ -66,18 +79,28 @@ const emit = defineEmits<{
             <!-- 카카오 로그인 버튼 -->
             <button
               type="button"
-              class="mt-7 flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#FEE500] py-3.5 text-sm font-bold text-[#191919] transition-opacity hover:opacity-90 active:opacity-80"
+              :disabled="pending"
+              class="mt-7 flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#FEE500] py-3.5 text-sm font-bold text-[#191919] transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-60"
+              @click="handleLogin"
             >
-              <!-- 카카오 말풍선 아이콘 -->
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                <path
-                  fill-rule="evenodd"
-                  clip-rule="evenodd"
-                  d="M9 1.5C4.858 1.5 1.5 4.134 1.5 7.375c0 2.1 1.347 3.938 3.375 4.988l-.862 3.212a.188.188 0 0 0 .284.205l3.75-2.475A8.42 8.42 0 0 0 9 13.25c4.142 0 7.5-2.634 7.5-5.875S13.142 1.5 9 1.5z"
-                  fill="#191919"
+              <template v-if="pending">
+                <div
+                  class="size-4 animate-spin rounded-full border-2 border-[#191919]/30 border-t-[#191919]"
                 />
-              </svg>
-              카카오로 시작하기
+                잠시만요...
+              </template>
+              <template v-else>
+                <!-- 카카오 말풍선 아이콘 -->
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M9 1.5C4.858 1.5 1.5 4.134 1.5 7.375c0 2.1 1.347 3.938 3.375 4.988l-.862 3.212a.188.188 0 0 0 .284.205l3.75-2.475A8.42 8.42 0 0 0 9 13.25c4.142 0 7.5-2.634 7.5-5.875S13.142 1.5 9 1.5z"
+                    fill="#191919"
+                  />
+                </svg>
+                카카오로 시작하기
+              </template>
             </button>
 
             <!-- 안내 문구 -->
