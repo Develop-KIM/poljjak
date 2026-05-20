@@ -38,7 +38,8 @@ function addImages(e: Event) {
 }
 
 function removeImage(index: number) {
-  URL.revokeObjectURL(imageFiles.value[index].preview)
+  const item = imageFiles.value[index]
+  if (item) URL.revokeObjectURL(item.preview)
   imageFiles.value.splice(index, 1)
 }
 

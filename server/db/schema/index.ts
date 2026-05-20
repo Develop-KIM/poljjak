@@ -1,3 +1,8 @@
-// 도메인별 스키마 파일들을 여기서 re-export
-// 예: export * from './users'
-//     export * from './posts'
+export * from './users'
+export * from './analyses'
+export * from './posts'
+export * from './comments'
+export * from './likes'
+export * from './chats'
+export * from './notifications'
+export * from './reports'
