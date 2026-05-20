@@ -16,8 +16,12 @@
     "db:studio": "drizzle-kit studio",
     "prepare": "husky"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "lint-staged": {
     "*.{vue,ts}": [
+      "eslint --fix",
       "prettier --write"
     ],
     "*.{css,md}": "prettier --write"
