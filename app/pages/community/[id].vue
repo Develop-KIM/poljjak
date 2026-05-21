@@ -515,7 +515,7 @@ async function deletePost() {
               </template>
               <AppButton v-else variant="outline" size="sm" :loading="dmPending" @click="handleDM">
                 <Send class="size-3.5" />
-                DM 보내기
+                1:1 채팅
               </AppButton>
             </div>
           </div>
