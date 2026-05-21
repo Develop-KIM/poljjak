@@ -255,6 +255,11 @@ const tabs = [
   { key: 'comments' as const, label: '내 댓글', shortLabel: '댓글' },
   { key: 'likes' as const, label: '좋아요한 글', shortLabel: '좋아요' },
 ]
+
+function selectTab(key: typeof activeTab.value) {
+  activeTab.value = key
+  pages.value[key] = 1
+}
 </script>
 
 <template>
@@ -344,10 +349,7 @@ const tabs = [
             ? 'bg-primary/[0.07] text-primary'
             : 'bg-white text-muted-foreground hover:bg-slate-50 hover:text-foreground'
         "
-        @click="
-          activeTab = tab.key
-          pages[tab.key] = 1
-        "
+        @click="selectTab(tab.key)"
       >
         <!-- 모바일: 짧은 라벨, 데스크탑: 전체 라벨 -->
         <span class="sm:hidden">{{ tab.shortLabel }}</span>
