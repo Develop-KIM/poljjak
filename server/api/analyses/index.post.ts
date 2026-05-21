@@ -16,38 +16,43 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'PDF 파일을 첨부해주세요' })
   }
 
-  const filePart = parts.find((p) => p.name === 'file')
+  const fileParts = parts.filter((p) => p.name === 'file')
   const notePart = parts.find((p) => p.name === 'additionalNote')
 
-  if (!filePart?.data) {
+  if (fileParts.length === 0) {
     throw createError({ statusCode: 400, statusMessage: 'PDF 파일을 첨부해주세요' })
   }
-  if (filePart.type !== 'application/pdf') {
-    throw createError({ statusCode: 400, statusMessage: 'PDF 파일만 업로드할 수 있어요' })
-  }
-  if (filePart.data.length > MAX_FILE_BYTES) {
-    throw createError({ statusCode: 400, statusMessage: '파일 크기가 10MB를 초과해요' })
+
+  for (const fp of fileParts) {
+    if (fp.type !== 'application/pdf') {
+      throw createError({ statusCode: 400, statusMessage: 'PDF 파일만 업로드할 수 있어요' })
+    }
+    if (fp.data.length > MAX_FILE_BYTES) {
+      throw createError({ statusCode: 400, statusMessage: `${fp.filename ?? '파일'} 크기가 10MB를 초과해요` })
+    }
   }
 
   const additionalNote = notePart?.data?.toString('utf8')?.trim()
 
-  // PDF 텍스트 추출 + Storage 업로드 (빠름, 즉시 처리)
-  const [text, pdfUrl] = await Promise.all([
-    extractPdfText(filePart.data),
+  // 모든 PDF 텍스트 추출 + 첫 번째 파일 Storage 업로드
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  const firstFile = fileParts[0]!
+
+  const [texts, pdfUrl] = await Promise.all([
+    Promise.all(fileParts.map((fp) => extractPdfText(fp.data))),
     (async () => {
-      const supabase = createClient(
-        process.env.SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      )
       const filename = `${user.id}/${Date.now()}.pdf`
       const { error } = await supabase.storage
         .from('portfolios')
-        .upload(filename, filePart.data, { contentType: 'application/pdf' })
+        .upload(filename, firstFile.data, { contentType: 'application/pdf' })
       if (error) return ''
       const { data } = supabase.storage.from('portfolios').getPublicUrl(filename)
       return data.publicUrl
     })(),
   ])
+
+  // 여러 파일이면 구분선으로 텍스트 합치기
+  const text = texts.join('\n\n--- 다음 파일 ---\n\n')
 
   // pending 상태로 즉시 저장 후 응답 반환
   const [analysis] = await db

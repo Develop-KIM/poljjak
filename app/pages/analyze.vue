@@ -7,7 +7,7 @@ import type { AnalysisResult } from '~~/server/utils/clova'
 const authStore = useAuthStore()
 const toast = useToastStore()
 
-const uploadedFile = ref<File | null>(null)
+const uploadedFiles = ref<File[]>([])
 const additionalNote = ref('')
 const showLoginModal = ref(false)
 const analyzing = ref(false)
@@ -39,7 +39,7 @@ function stopStepAnimation() {
 
 const checklist = ['PDF 파일만 가능', '10MB 이하', '최대 50페이지', '텍스트 선택이 가능한 PDF']
 
-const canAnalyze = computed(() => !!uploadedFile.value && !analyzing.value)
+const canAnalyze = computed(() => uploadedFiles.value.length > 0 && !analyzing.value)
 
 onMounted(() => {
   if (!authStore.isLoggedIn) {
@@ -48,7 +48,7 @@ onMounted(() => {
 })
 
 async function handleStartAnalysis() {
-  if (!canAnalyze.value || !uploadedFile.value) return
+  if (!canAnalyze.value || uploadedFiles.value.length === 0) return
 
   if (!authStore.isLoggedIn) {
     showLoginModal.value = true
@@ -60,7 +60,7 @@ async function handleStartAnalysis() {
 
   try {
     const formData = new FormData()
-    formData.append('file', uploadedFile.value)
+    uploadedFiles.value.forEach((f) => formData.append('file', f))
     if (additionalNote.value.trim()) {
       formData.append('additionalNote', additionalNote.value.trim())
     }
@@ -92,7 +92,7 @@ async function handleStartAnalysis() {
     >
       <div v-if="analyzing" class="flex flex-col items-center justify-center py-24">
         <!-- 파일명 -->
-        <p class="text-sm text-muted-foreground">{{ uploadedFile?.name }}</p>
+        <p class="text-sm text-muted-foreground">{{ uploadedFiles.map(f => f.name).join(', ') }}</p>
 
         <!-- 스피너 -->
         <div class="relative mt-8">
@@ -147,7 +147,22 @@ async function handleStartAnalysis() {
 
       <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
         <AppCard>
-          <PdfUploadDropzone @update:file="uploadedFile = $event" />
+          <!-- 업로드 전 확인 (모바일에서 상단 표시) -->
+          <div class="mb-5 rounded-xl border border-border bg-slate-50/60 p-4 lg:hidden">
+            <h2 class="text-sm font-black text-foreground">업로드 전 확인</h2>
+            <ul class="mt-2 grid gap-2">
+              <li
+                v-for="item in checklist"
+                :key="item"
+                class="flex items-center gap-2 text-xs font-semibold text-foreground"
+              >
+                <CheckCircle2 class="size-4 shrink-0 text-emerald-500" />
+                {{ item }}
+              </li>
+            </ul>
+          </div>
+
+          <PdfUploadDropzone @update:files="uploadedFiles = $event" />
 
           <div class="mt-6">
             <label for="analysis-note" class="text-sm font-bold text-foreground">
@@ -173,7 +188,8 @@ async function handleStartAnalysis() {
           </div>
         </AppCard>
 
-        <div class="grid content-start gap-4">
+        <!-- 데스크탑에서만 우측에 표시 -->
+        <div class="hidden content-start gap-4 lg:grid">
           <AppAlert>
             이미지 스캔 PDF는 텍스트를 추출할 수 없어 분석이 제한됩니다. 텍스트 선택이 가능한 PDF를
             올려주세요.
