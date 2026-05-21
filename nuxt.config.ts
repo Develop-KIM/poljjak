@@ -27,6 +27,7 @@ export default defineNuxtConfig({
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:site', content: '@poljjak' },
         { name: 'twitter:image', content: 'https://poljjak.kr/og-image.svg' },
+        { name: 'naver-site-verification', content: 'e1561b56e2ddc8746966f9f0b04ebbbd4bad31ff' },
       ],
       link: [{ rel: 'icon', type: 'image/png', href: '/images/logo.png' }],
     },
