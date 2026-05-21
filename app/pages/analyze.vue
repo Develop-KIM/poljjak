@@ -147,19 +147,24 @@ async function handleStartAnalysis() {
 
       <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
         <AppCard>
-          <!-- 업로드 전 확인 (모바일에서 상단 표시) -->
-          <div class="mb-5 rounded-xl border border-border bg-slate-50/60 p-4 lg:hidden">
-            <h2 class="text-sm font-black text-foreground">업로드 전 확인</h2>
-            <ul class="mt-2 grid gap-2">
-              <li
-                v-for="item in checklist"
-                :key="item"
-                class="flex items-center gap-2 text-xs font-semibold text-foreground"
-              >
-                <CheckCircle2 class="size-4 shrink-0 text-emerald-500" />
-                {{ item }}
-              </li>
-            </ul>
+          <!-- 모바일 전용: 안내 + 업로드 전 확인 -->
+          <div class="mb-5 grid gap-3 lg:hidden">
+            <AppAlert>
+              이미지 스캔 PDF는 텍스트를 추출할 수 없어 분석이 제한됩니다. 텍스트 선택이 가능한 PDF를 올려주세요.
+            </AppAlert>
+            <div class="rounded-xl border border-border bg-slate-50/60 p-4">
+              <h2 class="text-sm font-black text-foreground">업로드 전 확인</h2>
+              <ul class="mt-2 grid gap-2">
+                <li
+                  v-for="item in checklist"
+                  :key="item"
+                  class="flex items-center gap-2 text-xs font-semibold text-foreground"
+                >
+                  <CheckCircle2 class="size-4 shrink-0 text-emerald-500" />
+                  {{ item }}
+                </li>
+              </ul>
+            </div>
           </div>
 
           <PdfUploadDropzone @update:files="uploadedFiles = $event" />
@@ -180,8 +185,8 @@ async function handleStartAnalysis() {
             />
           </div>
 
-          <div class="mt-6 flex justify-end">
-            <AppButton size="lg" :disabled="!canAnalyze" @click="handleStartAnalysis">
+          <div class="mt-6 lg:flex lg:justify-end">
+            <AppButton size="lg" class="w-full lg:w-auto" :disabled="!canAnalyze" @click="handleStartAnalysis">
               분석 시작
               <ArrowRight class="size-4" />
             </AppButton>
