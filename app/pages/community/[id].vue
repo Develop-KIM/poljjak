@@ -25,6 +25,7 @@ const loginContext = ref('계속하기')
 const showReportDialog = ref(false)
 const pending = ref(true)
 const error = ref<string | null>(null)
+const accessDeniedByAuth = ref(false)
 
 const liked = ref(false)
 const likeCount = ref(0)
@@ -96,16 +97,19 @@ useSeoMeta({
 })
 
 onMounted(async () => {
+  let loadedPost = false
   try {
     const res = await $fetch<{ data: PostDetail }>(`/api/posts/${id}`)
     post.value = res.data
     likeCount.value = res.data.likeCount
     liked.value = res.data.isLiked
     analysisEmbed.value = res.data.analysis ?? null
+    loadedPost = true
   } catch (e: unknown) {
     const err = e as { data?: { statusCode?: number; statusMessage?: string } }
     error.value = err.data?.statusMessage ?? '게시글을 불러오지 못했어요'
     if (err.data?.statusCode === 401) {
+      accessDeniedByAuth.value = true
       loginContext.value = '피드백 보기'
       showLoginModal.value = true
     }
@@ -113,8 +117,10 @@ onMounted(async () => {
     pending.value = false
   }
 
-  $fetch(`/api/posts/${id}/views`, { method: 'POST' }).catch(() => {})
-  fetchComments()
+  if (loadedPost) {
+    $fetch(`/api/posts/${id}/views`, { method: 'POST' }).catch(() => {})
+    fetchComments()
+  }
 })
 
 interface CommentReply {
@@ -175,6 +181,13 @@ function openReply(parentId: string, mentionNickname: string) {
 function closeReply() {
   replyTarget.value = null
   replyContent.value = ''
+}
+
+function handleLoginModalClose() {
+  showLoginModal.value = false
+  if (accessDeniedByAuth.value) {
+    navigateTo('/')
+  }
 }
 
 function renderBody(raw: string): string {
@@ -869,5 +882,5 @@ async function deletePost() {
     :target-id="post?.id ?? ''"
     @close="showReportDialog = false"
   />
-  <LoginModal :open="showLoginModal" :context="loginContext" @close="showLoginModal = false" />
+  <LoginModal :open="showLoginModal" :context="loginContext" @close="handleLoginModalClose" />
 </template>

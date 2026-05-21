@@ -246,6 +246,13 @@ function goPage(p: number) {
           :recruitment-status="post.recruitmentStatus"
           :created-at="post.createdAt"
           :thumbnail-url="post.thumbnailUrl"
+          :requires-auth="post.category === '피드백' && !authStore.isLoggedIn"
+          @auth-required="
+            () => {
+              loginContext = '피드백 보기'
+              showLoginModal = true
+            }
+          "
         />
 
         <!-- 페이지네이션 -->
