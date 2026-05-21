@@ -14,6 +14,7 @@ const profileRef = ref<HTMLElement | null>(null)
 const mobileMenuOpen = ref(false)
 const showLoginModal = ref(false)
 const isChatPage = computed(() => route.path.startsWith('/chat'))
+const displayProfile = computed(() => authStore.displayProfile)
 
 // ?login=1 쿼리 파라미터로 로그인 모달 자동 오픈 (auth 미들웨어에서 전달)
 const routeQuery = useRoute().query
@@ -80,25 +81,25 @@ async function handleLogout() {
 
 const userInitial = computed(
   () =>
-    authStore.profile?.nickname?.[0]?.toUpperCase() ??
+    displayProfile.value?.nickname?.[0]?.toUpperCase() ??
     user.value?.user_metadata?.full_name?.[0]?.toUpperCase() ??
-    user.value?.email?.[0]?.toUpperCase() ??
-    'U'
+    '?'
 )
 
 const userName = computed(
-  () =>
-    authStore.profile?.nickname ??
-    user.value?.user_metadata?.full_name ??
-    user.value?.email ??
-    '사용자'
+  () => displayProfile.value?.nickname ?? user.value?.user_metadata?.full_name ?? '사용자'
 )
 
 const userJobLabel = computed(() => {
-  if (authStore.profile?.jobType === 'developer') return '개발자'
-  if (authStore.profile?.jobType === 'designer') return '디자이너'
+  if (displayProfile.value?.jobType === 'developer') return '개발자'
+  if (displayProfile.value?.jobType === 'designer') return '디자이너'
   return null
 })
+
+function toggleProfileMenu() {
+  if (!displayProfile.value) return
+  profileOpen.value = !profileOpen.value
+}
 </script>
 
 <template>
@@ -177,35 +178,30 @@ const userJobLabel = computed(() => {
             </template>
           </div>
 
-          <div v-if="isLoggedIn" ref="profileRef" class="relative hidden md:block">
+          <div
+            v-if="isLoggedIn && displayProfile"
+            ref="profileRef"
+            class="relative hidden md:block"
+          >
             <button
               type="button"
               class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted"
-              @click="profileOpen = !profileOpen"
+              @click="toggleProfileMenu"
             >
-              <ClientOnly>
-                <div class="size-7 overflow-hidden rounded-full">
-                  <img
-                    v-if="authStore.profile?.avatarUrl"
-                    :src="authStore.profile.avatarUrl"
-                    alt="프로필"
-                    class="h-full w-full object-cover"
-                  />
-                  <div
-                    v-else
-                    class="flex h-full w-full items-center justify-center bg-primary text-xs font-bold text-primary-foreground"
-                  >
-                    {{ userInitial }}
-                  </div>
+              <div class="size-7 overflow-hidden rounded-full">
+                <img
+                  v-if="displayProfile.avatarUrl"
+                  :src="displayProfile.avatarUrl"
+                  alt="프로필"
+                  class="h-full w-full object-cover"
+                />
+                <div
+                  v-else
+                  class="flex h-full w-full items-center justify-center bg-primary text-xs font-bold text-primary-foreground"
+                >
+                  {{ userInitial }}
                 </div>
-                <template #fallback>
-                  <div
-                    class="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground"
-                  >
-                    U
-                  </div>
-                </template>
-              </ClientOnly>
+              </div>
               <ChevronDown
                 class="hidden size-3.5 text-muted-foreground transition-transform duration-150 md:block"
                 :class="{ 'rotate-180': profileOpen }"
@@ -251,7 +247,7 @@ const userJobLabel = computed(() => {
           </div>
 
           <!-- 비로그인 상태: 로그인 버튼 (데스크탑만) -->
-          <template v-else>
+          <template v-else-if="!isLoggedIn">
             <AppButton
               variant="outline"
               size="sm"
@@ -353,31 +349,22 @@ const userJobLabel = computed(() => {
             <!-- 하단: 로그인 / 프로필 -->
             <div class="mt-auto border-t border-border px-4 py-5">
               <!-- 로그인 상태 -->
-              <template v-if="isLoggedIn">
+              <template v-if="isLoggedIn && displayProfile">
                 <div class="flex items-center gap-3">
-                  <ClientOnly>
-                    <div class="size-9 overflow-hidden rounded-full">
-                      <img
-                        v-if="authStore.profile?.avatarUrl"
-                        :src="authStore.profile.avatarUrl"
-                        alt="프로필"
-                        class="h-full w-full object-cover"
-                      />
-                      <div
-                        v-else
-                        class="flex h-full w-full items-center justify-center bg-primary text-sm font-bold text-primary-foreground"
-                      >
-                        {{ userInitial }}
-                      </div>
+                  <div class="size-9 overflow-hidden rounded-full">
+                    <img
+                      v-if="displayProfile.avatarUrl"
+                      :src="displayProfile.avatarUrl"
+                      alt="프로필"
+                      class="h-full w-full object-cover"
+                    />
+                    <div
+                      v-else
+                      class="flex h-full w-full items-center justify-center bg-primary text-sm font-bold text-primary-foreground"
+                    >
+                      {{ userInitial }}
                     </div>
-                    <template #fallback>
-                      <div
-                        class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
-                      >
-                        U
-                      </div>
-                    </template>
-                  </ClientOnly>
+                  </div>
                   <div class="min-w-0">
                     <p class="truncate text-sm font-semibold text-foreground">{{ userName }}</p>
                     <p v-if="userJobLabel" class="mt-0.5 text-xs text-muted-foreground">
@@ -406,7 +393,7 @@ const userJobLabel = computed(() => {
               </template>
 
               <!-- 비로그인 상태 -->
-              <template v-else>
+              <template v-else-if="!isLoggedIn">
                 <AppButton
                   variant="primary"
                   size="md"
