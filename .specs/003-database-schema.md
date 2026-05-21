@@ -33,14 +33,14 @@ server/db/
 
 ### users
 
-카카오 OAuth로 가입한 회원. Supabase Auth의 `auth.users`와 1:1 매핑.
+카카오·구글 OAuth로 가입한 회원. Supabase Auth의 `auth.users`와 1:1 매핑.
 
 | 컬럼                    | 타입                             | 설명                                       |
 | ----------------------- | -------------------------------- | ------------------------------------------ |
 | id                      | uuid PK                          | `auth.users.id`와 동일값                   |
-| kakao_id                | text UNIQUE NOT NULL             | 카카오 회원 고유 ID                        |
-| nickname                | text NOT NULL                    | 카카오 닉네임 (온보딩에서 변경 가능)       |
-| email                   | text                             | 카카오 제공 이메일 (nullable)              |
+| kakao_id                | text UNIQUE NOT NULL             | OAuth provider ID. 기존 컬럼명 유지        |
+| nickname                | text NOT NULL                    | OAuth 닉네임 (온보딩에서 변경 가능)        |
+| email                   | text                             | OAuth 제공 이메일 (nullable)               |
 | avatar_url              | text                             | 프로필 사진 URL. null이면 기본 이미지 사용 |
 | job_type                | enum nullable                    | 직종. 온보딩 Step 2에서 설정               |
 | onboarding_completed_at | timestamp                        | null이면 미완료 → `/onboarding` 리다이렉트 |
@@ -180,7 +180,7 @@ UNIQUE INDEX: (initiator_id, participant_id)
 
 ### reports
 
-신고 접수. MVP에서는 DB 저장만 수행하고, 관리자 페이지와 운영자 이메일 발송은 MVP 이후로 둔다.
+신고 접수. MVP에서는 DB 저장만 수행하고, 관리자 페이지는 MVP 이후로 둔다.
 
 | 컬럼        | 타입                              | 설명         |
 | ----------- | --------------------------------- | ------------ |
@@ -190,6 +190,8 @@ UNIQUE INDEX: (initiator_id, participant_id)
 | target_id   | uuid NOT NULL                     | 신고 대상 ID |
 | reason      | text NOT NULL                     |              |
 | created_at  | timestamp NOT NULL DEFAULT now()  |              |
+
+UNIQUE INDEX: (reporter_id, target_type, target_id)
 
 ---
 

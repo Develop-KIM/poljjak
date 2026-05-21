@@ -14,7 +14,7 @@
 ### 인증
 
 - AC-1: 카카오 로그인 버튼 클릭 → 카카오 동의 → 계정 생성 및 로그인 완료
-- AC-2: 이메일 동의 불가 시 카카오 닉네임만으로 가입 진행
+- AC-2: OAuth 이메일 제공 불가 시 닉네임만으로 가입 진행
 - AC-3: 비로그인 상태에서 쓰기 액션 시도 시 페이지 이동 없이 로그인 모달 표시
 
 ### AI 포트폴리오 분석
@@ -65,7 +65,7 @@
 | ---------- | ---------------------------------- | ---------------------------------- |
 | 프레임워크 | Nuxt 4 + Nitro                     | CLAUDE.md 기준                     |
 | DB         | PostgreSQL 16 + Drizzle ORM        | CLAUDE.md 기준                     |
-| 인증       | Supabase Auth (카카오 OAuth)       | CLAUDE.md 기준, 카카오 소셜 지원   |
+| 인증       | Supabase Auth (카카오·구글 OAuth)  | CLAUDE.md 기준, 소셜 로그인 지원   |
 | 파일 저장  | Supabase Storage                   | CLAUDE.md 기준, PDF + 이미지 저장  |
 | AI         | CLOVA Studio HCX-005               | CLAUDE.md 기준, 한국어 특화 모델   |
 | PDF 파싱   | `pdf-parse`                        | 경량, Node.js 서버에서 텍스트 추출 |
@@ -122,7 +122,7 @@ reports                - 신고 (reporterId, targetType, targetId, reason)
 
 ### Phase 1: 인증
 
-#### T05: Supabase Auth + 카카오 OAuth 설정 (1.5시간)
+#### T05: Supabase Auth + 카카오·구글 OAuth 설정 (1.5시간)
 
 - `server/utils/auth.ts`, 카카오 앱 설정, 환경변수
 - 이메일 없을 시 닉네임 폴백 로직
@@ -253,26 +253,26 @@ reports                - 신고 (reporterId, targetType, targetId, reason)
 
 #### T22: 채팅 DB 스키마 (30분)
 
-- `chat_rooms`, `chat_participants`, `chat_messages` 테이블
+- `chat_rooms`, `messages` 테이블
 - 검증: 마이그레이션 성공, 스키마 확인
 - 의존: T02
 
 #### T23: Supabase Realtime 채팅 서버 (1.5시간)
 
-- `server/utils/realtime.ts` — 채널 설정, 메시지 라우팅, 인증
+- Supabase Realtime 채널 설정, 메시지 라우팅, 인증
 - 채팅방 subscribe/unsubscribe, 메시지 저장 + 실시간 전송
 - 검증: 두 브라우저에서 메시지 전송 시 실시간 수신
 - 의존: T22, T07
 
 #### T24: 채팅 목록 페이지 (45분)
 
-- `pages/chat/index.vue` — 참여 중인 대화방 목록, 최근 메시지 미리보기
+- `app/pages/chat.vue` — 참여 중인 대화방 목록, 최근 메시지 미리보기
 - 검증: DM 보낸 후 채팅 목록에 대화방 표시
 - 의존: T23
 
 #### T25: 채팅방 UI (1.5시간)
 
-- `pages/chat/[roomId].vue` — 메시지 목록, 입력창, 실시간 수신
+- `app/pages/chat.vue` — 메시지 목록, 입력창, 실시간 수신
 - 메시지 삭제 (본인만), 대화방 나가기
 - 검증: 삭제 시 상대방 화면 "삭제된 메시지". 나가기 시 상대방 화면 유지
 - 의존: T23
@@ -358,7 +358,7 @@ T01 → T03 → T04                          T14 → T15 → T16
 
 | 리스크                         | 대응                             |
 | ------------------------------ | -------------------------------- |
-| 카카오 이메일 동의 검수 지연   | 닉네임만으로 가입 폴백 구현      |
+| OAuth 이메일 미제공            | 닉네임만으로 가입 폴백 구현      |
 | `pdf-parse` 특정 PDF 파싱 실패 | 텍스트 0자 감지 → 사용자 안내    |
 | Supabase Storage 버킷 설정     | T08에서 선행 검증 후 T09 진행    |
 | Supabase Realtime 인증 처리    | Supabase JWT 토큰 기반 채널 인증 |

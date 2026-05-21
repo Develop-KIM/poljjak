@@ -9,7 +9,7 @@ withDefaults(
   }>(),
   {
     context: '계속하기',
-    description: '카카오 계정으로 간편하게 시작할 수 있어요.',
+    description: '카카오 또는 구글 계정으로 간편하게 시작할 수 있어요.',
   }
 )
 

@@ -10,6 +10,21 @@ const reportCreateSchema = z.object({
   reason: z.string().min(1, '신고 사유를 선택해주세요').max(100),
 })
 
+function isDuplicateReportError(error: unknown) {
+  const pgError = error as {
+    code?: string
+    constraint_name?: string
+    constraint?: string
+    message?: string
+  }
+  return (
+    pgError.code === '23505' ||
+    pgError.constraint_name === 'reports_reporter_target_unique' ||
+    pgError.constraint === 'reports_reporter_target_unique' ||
+    pgError.message?.includes('reports_reporter_target_unique') === true
+  )
+}
+
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
 
@@ -65,8 +80,8 @@ export default defineEventHandler(async (event) => {
       targetId,
       reason,
     })
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('reports_reporter_target_unique')) {
+  } catch (error: unknown) {
+    if (isDuplicateReportError(error)) {
       throw createError({ statusCode: 409, statusMessage: '이미 신고한 게시물이에요' })
     }
     throw error
