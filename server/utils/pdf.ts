@@ -1,8 +1,13 @@
+import { createRequire } from 'node:module'
+
+const _require = createRequire(import.meta.url)
+
 export async function extractPdfText(buffer: Buffer): Promise<string> {
-  // pdf-parse는 CJS 패키지라 dynamic import로 처리
-  const pdfParse = await import('pdf-parse/lib/pdf-parse.js').catch(() => import('pdf-parse'))
-  const fn = (pdfParse as { default?: typeof pdfParse }).default ?? pdfParse
-  const data = await (fn as (buf: Buffer) => Promise<{ text: string; numpages: number }>)(buffer)
+  const pdfParse = _require('pdf-parse') as (
+    buffer: Buffer
+  ) => Promise<{ text: string; numpages: number }>
+
+  const data = await pdfParse(buffer)
 
   if (data.numpages > 50) {
     throw createError({ statusCode: 400, statusMessage: '50페이지 이하의 PDF만 분석할 수 있어요' })

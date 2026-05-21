@@ -33,7 +33,7 @@ export default defineNuxtConfig({
 
   nitro: {
     externals: {
-      inline: ['pdf-parse'],
+      external: ['pdf-parse'],
     },
   },
 })

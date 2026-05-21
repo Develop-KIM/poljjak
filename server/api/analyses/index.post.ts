@@ -47,8 +47,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // CLOVA 분석
-  const result = await analyzePortfolio(text, additionalNote)
+  // CLOVA 분석 — 직군별 프롬프트 적용
+  const result = await analyzePortfolio(text, user?.jobType ?? null, additionalNote)
 
   // 비로그인 → DB 저장 없이 결과만 반환
   if (!user) {
