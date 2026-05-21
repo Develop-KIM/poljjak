@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { MessageSquare, Heart } from '@lucide/vue'
+import { MessageSquare, Heart, Eye } from '@lucide/vue'
 
 type PostCategory = '피드백' | '프로젝트 모집' | '스터디 모집'
+type RecruitmentStatus = 'open' | 'closed' | null
 
 defineProps<{
   id: string
@@ -11,64 +12,52 @@ defineProps<{
   author: string
   commentCount: number
   likeCount: number
+  viewCount?: number
+  recruitmentStatus?: RecruitmentStatus
   createdAt: string
   thumbnailUrl?: string | null
 }>()
-
-const badgeVariant: Record<PostCategory, 'blue' | 'green' | 'yellow'> = {
-  피드백: 'blue',
-  '프로젝트 모집': 'green',
-  '스터디 모집': 'yellow',
-}
 </script>
 
 <template>
   <NuxtLink
     :to="`/community/${id}`"
-    class="flex h-full flex-col rounded-lg border border-border bg-card transition-colors hover:border-primary/30 hover:bg-slate-50"
+    class="flex flex-col gap-2 border-b border-border py-5 transition-colors first:pt-0 hover:bg-slate-50/60 px-1 -mx-1 rounded-lg"
   >
-    <!-- 썸네일 (피드백은 이미지 없으면 영역 숨김) -->
-    <div
-      v-if="thumbnailUrl || category !== '피드백'"
-      class="aspect-video w-full overflow-hidden rounded-t-lg"
-    >
-      <img
-        v-if="thumbnailUrl"
-        :src="thumbnailUrl"
-        alt=""
-        class="h-full w-full object-cover"
-      />
-      <div
-        v-else
-        class="flex h-full w-full items-center justify-center"
-        :class="category === '프로젝트 모집' ? 'bg-emerald-50' : 'bg-amber-50'"
-      >
+    <!-- 제목 행 -->
+    <div class="flex items-start gap-2.5">
+      <!-- 모집 상태 배지 (project·study만) -->
+      <template v-if="recruitmentStatus !== null && recruitmentStatus !== undefined">
         <span
-          class="text-4xl font-black opacity-20"
-          :class="category === '프로젝트 모집' ? 'text-emerald-600' : 'text-amber-600'"
-        >{{ category[0] }}</span>
-      </div>
+          class="mt-0.5 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold"
+          :class="recruitmentStatus === 'open'
+            ? 'bg-emerald-100 text-emerald-700'
+            : 'bg-slate-100 text-slate-500'"
+        >
+          {{ recruitmentStatus === 'open' ? '모집중' : '모집완료' }}
+        </span>
+      </template>
+      <h3 class="line-clamp-2 font-bold leading-6 text-foreground">{{ title }}</h3>
     </div>
 
-    <div class="flex flex-1 flex-col p-5">
-      <AppBadge :variant="badgeVariant[category]" class="self-start">{{ category }}</AppBadge>
-      <h3 class="mt-3 line-clamp-2 font-semibold leading-6 text-foreground">{{ title }}</h3>
-      <p v-if="excerpt" class="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
-        {{ excerpt }}
-      </p>
-      <div class="mt-auto pt-4 flex items-center justify-between gap-4">
-        <span class="truncate text-sm text-muted-foreground">{{ author }}</span>
-        <div class="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
-          <span class="flex items-center gap-1">
-            <MessageSquare class="size-3.5" />
-            {{ commentCount }}
-          </span>
-          <span class="flex items-center gap-1">
-            <Heart class="size-3.5" />
-            {{ likeCount }}
-          </span>
-          <span>{{ createdAt }}</span>
-        </div>
+    <!-- 본문 발췌 -->
+    <p v-if="excerpt" class="line-clamp-1 text-sm leading-5 text-muted-foreground">
+      {{ excerpt }}
+    </p>
+
+    <!-- 메타 행 -->
+    <div class="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+      <span>{{ author }} · {{ createdAt }}</span>
+      <div class="flex shrink-0 items-center gap-3">
+        <span class="flex items-center gap-1">
+          <Heart class="size-3.5" />{{ likeCount }}
+        </span>
+        <span v-if="viewCount !== undefined" class="flex items-center gap-1">
+          <Eye class="size-3.5" />{{ viewCount }}
+        </span>
+        <span class="flex items-center gap-1">
+          <MessageSquare class="size-3.5" />{{ commentCount }}
+        </span>
       </div>
     </div>
   </NuxtLink>

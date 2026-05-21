@@ -1,11 +1,76 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Camera, ExternalLink, Lock, Unlock, Heart, MessageSquare, ArrowUpRight } from '@lucide/vue'
+import { Camera, Lock, Unlock, Heart, MessageSquare, ArrowUpRight, Pencil, Check, X } from '@lucide/vue'
 
 const showWithdrawDialog = ref(false)
 const withdrawing = ref(false)
 const authStore = useAuthStore()
+const toast = useToastStore()
 const { signOut } = useAuth()
+
+// ── 프로필 수정 ──────────────────────────────────────────
+const editMode = ref(false)
+const editNickname = ref('')
+const editJobType = ref<'developer' | 'designer' | null>(null)
+const editAvatarPreview = ref<string | null>(null)
+const editAvatarFile = ref<File | null>(null)
+const saving = ref(false)
+const avatarInput = ref<HTMLInputElement | null>(null)
+
+function openEdit() {
+  editNickname.value = authStore.profile?.nickname ?? ''
+  editJobType.value = authStore.profile?.jobType ?? null
+  editAvatarPreview.value = null
+  editAvatarFile.value = null
+  editMode.value = true
+}
+
+function cancelEdit() {
+  editMode.value = false
+}
+
+function onAvatarChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  editAvatarFile.value = file
+  editAvatarPreview.value = URL.createObjectURL(file)
+}
+
+async function saveProfile() {
+  if (saving.value) return
+  const nick = editNickname.value.trim()
+  if (!nick || nick.length < 2 || nick.length > 15) {
+    toast.error('닉네임은 2~15자로 입력해주세요')
+    return
+  }
+  saving.value = true
+  try {
+    // 아바타 이미지 먼저 업로드
+    if (editAvatarFile.value) {
+      const fd = new FormData()
+      fd.append('file', editAvatarFile.value)
+      const res = await $fetch<{ data: { avatarUrl: string } }>('/api/uploads/avatar', {
+        method: 'POST',
+        body: fd,
+      })
+      authStore.profile!.avatarUrl = res.data.avatarUrl
+    }
+
+    // 닉네임·직업 업데이트
+    const res = await $fetch<{ data: { nickname: string; jobType: string | null; avatarUrl: string | null } }>(
+      '/api/users/me',
+      { method: 'PATCH', body: { nickname: nick, jobType: editJobType.value } },
+    )
+    await authStore.fetchProfile()
+    toast.success('프로필이 업데이트됐어요')
+    editMode.value = false
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '저장에 실패했어요')
+  } finally {
+    saving.value = false
+  }
+}
 
 async function handleWithdraw() {
   if (withdrawing.value) return
@@ -19,16 +84,15 @@ async function handleWithdraw() {
   }
 }
 
-const profile = authStore.profile
-
-const userInitial = computed(() => profile?.nickname?.[0]?.toUpperCase() ?? 'U')
-
+const profile = computed(() => authStore.profile)
+const userInitial = computed(() => profile.value?.nickname?.[0]?.toUpperCase() ?? 'U')
 const jobTypeLabel = computed(() => {
-  if (profile?.jobType === 'developer') return '개발자'
-  if (profile?.jobType === 'designer') return '디자이너'
+  if (profile.value?.jobType === 'developer') return '개발자'
+  if (profile.value?.jobType === 'designer') return '디자이너'
   return null
 })
 
+// ── 탭 데이터 ────────────────────────────────────────────
 interface AnalysisItem {
   id: string
   title: string
@@ -36,9 +100,6 @@ interface AnalysisItem {
   isPublic: boolean
   status: string
 }
-
-const analyses = ref<AnalysisItem[]>([])
-const analysesPending = ref(false)
 
 interface MyPost {
   id: string
@@ -57,249 +118,445 @@ interface MyComment {
   postTitle: string | null
 }
 
+const analyses = ref<AnalysisItem[]>([])
+const analysesPending = ref(false)
 const myPosts = ref<MyPost[]>([])
 const myPostsPending = ref(false)
 const myComments = ref<MyComment[]>([])
 const myCommentsPending = ref(false)
+const likedPosts = ref<MyPost[]>([])
+const likedPending = ref(false)
+
+const activeTab = ref<'analyses' | 'posts' | 'comments' | 'likes'>('analyses')
+const pages = ref({ analyses: 1, posts: 1, comments: 1, likes: 1 })
+const PAGE_SIZE = 10
+
+function paged<T>(list: T[], tab: keyof typeof pages.value) {
+  const p = pages.value[tab]
+  return list.slice((p - 1) * PAGE_SIZE, p * PAGE_SIZE)
+}
+
+function totalPages(list: { length: number }, tab: keyof typeof pages.value) {
+  return Math.max(1, Math.ceil(list.length / PAGE_SIZE))
+}
+
+function goPage(tab: keyof typeof pages.value, p: number) {
+  pages.value[tab] = p
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 onMounted(async () => {
   analysesPending.value = true
   myPostsPending.value = true
   myCommentsPending.value = true
+  likedPending.value = true
 
-  const [analysesRes, postsRes, commentsRes] = await Promise.allSettled([
+  const [analysesRes, postsRes, commentsRes, likesRes] = await Promise.allSettled([
     $fetch<{ data: AnalysisItem[] }>('/api/analyses'),
     $fetch<{ data: MyPost[] }>('/api/users/me/posts'),
     $fetch<{ data: MyComment[] }>('/api/users/me/comments'),
+    $fetch<{ data: MyPost[] }>('/api/users/me/likes'),
   ])
 
   if (analysesRes.status === 'fulfilled') analyses.value = analysesRes.value.data
   analysesPending.value = false
-
   if (postsRes.status === 'fulfilled') myPosts.value = postsRes.value.data
   myPostsPending.value = false
-
   if (commentsRes.status === 'fulfilled') myComments.value = commentsRes.value.data
   myCommentsPending.value = false
+  if (likesRes.status === 'fulfilled') likedPosts.value = likesRes.value.data
+  likedPending.value = false
 })
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+    year: 'numeric', month: 'long', day: 'numeric',
   })
 }
+
+const tabs = [
+  { key: 'analyses' as const, label: '분석 기록', shortLabel: '분석' },
+  { key: 'posts' as const, label: '내가 쓴 글', shortLabel: '게시글' },
+  { key: 'comments' as const, label: '내 댓글', shortLabel: '댓글' },
+  { key: 'likes' as const, label: '좋아요한 글', shortLabel: '좋아요' },
+]
 </script>
 
 <template>
   <div class="mx-auto max-w-[1120px] px-5 py-8 md:px-8 md:py-10">
-    <!-- 프로필 -->
-    <section>
-      <h1 class="text-2xl font-black text-foreground">마이페이지</h1>
 
-      <div class="mt-6 flex items-center gap-5">
-        <!-- 프로필 사진 -->
-        <label class="group relative cursor-pointer">
-          <div class="size-16 overflow-hidden rounded-full bg-primary">
+    <!-- ── 프로필 카드 ── -->
+    <div class="rounded-2xl border border-border bg-card p-6 md:p-8">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <!-- 아바타 -->
+          <button
+            type="button"
+            class="size-12 shrink-0 overflow-hidden rounded-full bg-primary text-left sm:size-14 md:size-16"
+            @click="openEdit"
+          >
             <img
               v-if="profile?.avatarUrl"
               :src="profile.avatarUrl"
-              alt="프로필 이미지"
+              alt="프로필"
               class="h-full w-full object-cover"
             />
             <div
               v-else
-              class="flex h-full w-full items-center justify-center text-xl font-bold text-primary-foreground"
+              class="flex h-full w-full items-center justify-center text-base font-bold text-primary-foreground sm:text-lg"
             >
               {{ userInitial }}
             </div>
-          </div>
-          <div
-            class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
-          >
-            <Camera class="size-5 text-white" />
-          </div>
-          <input type="file" accept="image/*" class="sr-only" />
-        </label>
+          </button>
 
-        <div>
-          <p class="text-lg font-black text-foreground">{{ profile?.nickname ?? '사용자' }}</p>
-          <div class="mt-0.5 flex items-center gap-2">
-            <p class="text-sm text-muted-foreground">{{ profile?.email ?? '' }}</p>
-            <span
-              v-if="jobTypeLabel"
-              class="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-primary"
-            >
-              {{ jobTypeLabel }}
-            </span>
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <p class="text-lg font-black text-foreground sm:text-xl">{{ profile?.nickname ?? '사용자' }}</p>
+              <span
+                v-if="jobTypeLabel"
+                class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                :class="profile?.jobType === 'developer' ? 'bg-blue-50 text-blue-700' : 'bg-violet-50 text-violet-700'"
+              >
+                {{ jobTypeLabel }}
+              </span>
+            </div>
+            <p class="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">{{ profile?.email ?? '' }}</p>
           </div>
         </div>
+
+        <!-- 우상단 버튼: 모바일은 아이콘만, 데스크탑은 텍스트+아이콘 -->
+        <div class="flex shrink-0 flex-col items-end gap-2">
+          <!-- 모바일: 아이콘 버튼 -->
+          <button
+            type="button"
+            class="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground sm:hidden"
+            @click="openEdit"
+          >
+            <Pencil class="size-3.5" />
+          </button>
+          <!-- 데스크탑: 텍스트 버튼 -->
+          <AppButton variant="outline" size="sm" class="hidden sm:inline-flex" @click="openEdit">
+            <Pencil class="size-3.5" />
+            프로필 수정
+          </AppButton>
+          <button
+            type="button"
+            class="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-destructive hover:underline"
+            @click="showWithdrawDialog = true"
+          >
+            탈퇴하기
+          </button>
+        </div>
       </div>
-    </section>
+    </div>
 
-    <hr class="my-8 border-border" />
+    <!-- ── 탭 ── -->
+    <div class="mt-5 flex overflow-hidden rounded-xl border border-border">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        type="button"
+        class="flex-1 py-3 text-xs font-semibold transition-colors outline-none border-r border-border last:border-r-0 sm:text-sm"
+        :class="activeTab === tab.key
+          ? 'bg-primary/[0.07] text-primary'
+          : 'bg-white text-muted-foreground hover:bg-slate-50 hover:text-foreground'"
+        @click="activeTab = tab.key; pages[tab.key] = 1"
+      >
+        <!-- 모바일: 짧은 라벨, 데스크탑: 전체 라벨 -->
+        <span class="sm:hidden">{{ tab.shortLabel }}</span>
+        <span class="hidden sm:inline">{{ tab.label }}</span>
+      </button>
+    </div>
 
-    <!-- 분석 기록 -->
-    <section>
-      <h2 class="text-lg font-black text-foreground">분석 기록</h2>
+    <!-- ── 탭 콘텐츠 ── -->
+    <div class="mt-4">
 
-      <div v-if="analysesPending" class="mt-4 flex justify-center py-8">
-        <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-      </div>
+      <!-- 분석 기록 -->
+      <template v-if="activeTab === 'analyses'">
+        <div v-if="analysesPending" class="flex justify-center py-12">
+          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+        </div>
 
-      <div v-else-if="analyses.length > 0" class="mt-4 grid gap-3">
-        <div
-          v-for="item in analyses"
-          :key="item.id"
-          class="flex items-center justify-between rounded-lg border border-border bg-card p-4 transition-colors hover:bg-slate-50"
-        >
-          <div class="flex items-center gap-3">
-            <div class="flex size-9 items-center justify-center rounded-lg bg-accent">
-              <span class="text-xs font-bold text-primary">AI</span>
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-foreground">{{ item.title }}</p>
+        <div v-else-if="analyses.length > 0" class="grid gap-2">
+          <NuxtLink
+            v-for="item in paged(analyses, 'analyses')"
+            :key="item.id"
+            :to="`/analysis/${item.id}`"
+            class="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-slate-50"
+          >
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold text-foreground">{{ item.title }}</p>
               <p class="mt-0.5 text-xs text-muted-foreground">{{ formatDate(item.createdAt) }}</p>
             </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <AppBadge :variant="item.isPublic ? 'green' : 'gray'">
-              <Unlock v-if="item.isPublic" class="mr-1 size-3" />
-              <Lock v-else class="mr-1 size-3" />
-              {{ item.isPublic ? '공개' : '비공개' }}
-            </AppBadge>
-            <NuxtLink :to="`/analysis/${item.id}`">
-              <AppButton variant="ghost" size="icon">
-                <ExternalLink class="size-4" />
-              </AppButton>
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
-
-      <AppEmptyState
-        v-else
-        title="아직 분석한 포트폴리오가 없어요"
-        description="PDF 포트폴리오를 올리면 AI가 항목별로 분석해드려요."
-      >
-        <template #action>
-          <NuxtLink to="/analyze">
-            <AppButton>포트폴리오 분석하기</AppButton>
+            <div class="flex shrink-0 items-center gap-2">
+              <AppBadge :variant="item.isPublic ? 'green' : 'gray'">
+                <Unlock v-if="item.isPublic" class="mr-1 size-3" />
+                <Lock v-else class="mr-1 size-3" />
+                {{ item.isPublic ? '공개' : '비공개' }}
+              </AppBadge>
+              <ArrowUpRight class="size-4 text-muted-foreground" />
+            </div>
           </NuxtLink>
-        </template>
-      </AppEmptyState>
-    </section>
 
-    <hr class="my-8 border-border" />
-
-    <!-- 내가 쓴 글 -->
-    <section>
-      <h2 class="text-lg font-black text-foreground">내가 쓴 글</h2>
-
-      <div v-if="myPostsPending" class="mt-4 flex justify-center py-8">
-        <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-      </div>
-
-      <div v-else-if="myPosts.length > 0" class="mt-4 grid gap-2">
-        <NuxtLink
-          v-for="post in myPosts"
-          :key="post.id"
-          :to="`/community/${post.id}`"
-          class="flex items-center justify-between rounded-lg border border-border bg-card p-4 transition-colors hover:bg-slate-50"
-        >
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
-              <AppBadge variant="blue" class="shrink-0">{{ post.category }}</AppBadge>
-              <p class="truncate text-sm font-semibold text-foreground">{{ post.title }}</p>
-            </div>
-            <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
-              <span>{{ post.createdAt }}</span>
-              <span class="flex items-center gap-1">
-                <Heart class="size-3" />
-                {{ post.likeCount }}
-              </span>
-              <span class="flex items-center gap-1">
-                <MessageSquare class="size-3" />
-                {{ post.commentCount }}
-              </span>
-            </div>
-          </div>
-          <ArrowUpRight class="ml-3 size-4 shrink-0 text-muted-foreground" />
-        </NuxtLink>
-      </div>
-
-      <AppEmptyState
-        v-else
-        title="아직 작성한 글이 없어요"
-        description="커뮤니티에서 첫 번째 글을 써보세요."
-      >
-        <template #action>
-          <NuxtLink to="/community?tab=feedback">
-            <AppButton>글 쓰러 가기</AppButton>
-          </NuxtLink>
-        </template>
-      </AppEmptyState>
-    </section>
-
-    <hr class="my-8 border-border" />
-
-    <!-- 내 댓글 -->
-    <section>
-      <h2 class="text-lg font-black text-foreground">내 댓글</h2>
-
-      <div v-if="myCommentsPending" class="mt-4 flex justify-center py-8">
-        <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-      </div>
-
-      <div v-else-if="myComments.length > 0" class="mt-4 grid gap-2">
-        <NuxtLink
-          v-for="comment in myComments"
-          :key="comment.id"
-          :to="comment.postTitle ? `/community/${comment.postId}` : '#'"
-          class="flex items-center justify-between rounded-lg border border-border bg-card p-4 transition-colors"
-          :class="comment.postTitle ? 'hover:bg-slate-50' : 'opacity-60 cursor-default'"
-        >
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm text-foreground">{{ comment.content }}</p>
-            <div class="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
-              <span>{{ comment.createdAt }}</span>
-              <span>·</span>
-              <span class="truncate">{{ comment.postTitle ?? '삭제된 게시글' }}</span>
-            </div>
-          </div>
-          <ArrowUpRight
-            v-if="comment.postTitle"
-            class="ml-3 size-4 shrink-0 text-muted-foreground"
+          <Pagination
+            v-if="totalPages(analyses, 'analyses') > 1"
+            :current="pages.analyses"
+            :total="totalPages(analyses, 'analyses')"
+            @change="goPage('analyses', $event)"
           />
-        </NuxtLink>
-      </div>
-
-      <AppEmptyState
-        v-else
-        title="아직 작성한 댓글이 없어요"
-        description="게시글에 댓글을 달아보세요."
-      />
-    </section>
-
-    <hr class="my-8 border-border" />
-
-    <!-- 계정 -->
-    <section>
-      <h2 class="text-lg font-black text-foreground">계정</h2>
-      <div class="mt-4 flex items-center justify-between rounded-lg border border-border p-4">
-        <div>
-          <p class="text-sm font-semibold text-foreground">회원 탈퇴</p>
-          <p class="mt-0.5 text-xs text-muted-foreground">
-            탈퇴 신청 후 30일이 지나면 계정이 영구 삭제돼요.
-          </p>
         </div>
-        <AppButton variant="destructive" size="sm" @click="showWithdrawDialog = true">
-          탈퇴 신청
-        </AppButton>
-      </div>
-    </section>
+
+        <AppEmptyState
+          v-else
+          title="아직 분석한 포트폴리오가 없어요"
+          description="PDF 포트폴리오를 올리면 AI가 항목별로 분석해드려요."
+        >
+          <template #action>
+            <NuxtLink to="/analyze"><AppButton>포트폴리오 분석하기</AppButton></NuxtLink>
+          </template>
+        </AppEmptyState>
+      </template>
+
+      <!-- 내가 쓴 글 -->
+      <template v-else-if="activeTab === 'posts'">
+        <div v-if="myPostsPending" class="flex justify-center py-12">
+          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+        </div>
+
+        <div v-else-if="myPosts.length > 0" class="grid gap-2">
+          <NuxtLink
+            v-for="post in paged(myPosts, 'posts')"
+            :key="post.id"
+            :to="`/community/${post.id}`"
+            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-slate-50"
+          >
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <AppBadge variant="blue" class="shrink-0">{{ post.category }}</AppBadge>
+                <p class="truncate text-sm font-semibold text-foreground">{{ post.title }}</p>
+              </div>
+              <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
+                <span>{{ post.createdAt }}</span>
+                <span class="flex items-center gap-1"><Heart class="size-3" />{{ post.likeCount }}</span>
+                <span class="flex items-center gap-1"><MessageSquare class="size-3" />{{ post.commentCount }}</span>
+              </div>
+            </div>
+            <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          </NuxtLink>
+
+          <Pagination
+            v-if="totalPages(myPosts, 'posts') > 1"
+            :current="pages.posts"
+            :total="totalPages(myPosts, 'posts')"
+            @change="goPage('posts', $event)"
+          />
+        </div>
+
+        <AppEmptyState
+          v-else
+          title="아직 작성한 글이 없어요"
+          description="커뮤니티에서 첫 번째 글을 써보세요."
+        >
+          <template #action>
+            <NuxtLink to="/community?tab=feedback"><AppButton>글 쓰러 가기</AppButton></NuxtLink>
+          </template>
+        </AppEmptyState>
+      </template>
+
+      <!-- 내 댓글 -->
+      <template v-else-if="activeTab === 'comments'">
+        <div v-if="myCommentsPending" class="flex justify-center py-12">
+          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+        </div>
+
+        <div v-else-if="myComments.length > 0" class="grid gap-2">
+          <NuxtLink
+            v-for="comment in paged(myComments, 'comments')"
+            :key="comment.id"
+            :to="comment.postTitle ? `/community/${comment.postId}` : '#'"
+            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors"
+            :class="comment.postTitle ? 'hover:bg-slate-50' : 'cursor-default opacity-60'"
+          >
+            <div class="min-w-0 flex-1">
+              <p class="text-sm text-foreground line-clamp-2">{{ comment.content }}</p>
+              <div class="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{{ comment.createdAt }}</span>
+                <span>·</span>
+                <span class="truncate">{{ comment.postTitle ?? '삭제된 게시글' }}</span>
+              </div>
+            </div>
+            <ArrowUpRight v-if="comment.postTitle" class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          </NuxtLink>
+
+          <Pagination
+            v-if="totalPages(myComments, 'comments') > 1"
+            :current="pages.comments"
+            :total="totalPages(myComments, 'comments')"
+            @change="goPage('comments', $event)"
+          />
+        </div>
+
+        <AppEmptyState v-else title="아직 작성한 댓글이 없어요" description="게시글에 댓글을 달아보세요." />
+      </template>
+
+      <!-- 좋아요한 글 -->
+      <template v-else-if="activeTab === 'likes'">
+        <div v-if="likedPending" class="flex justify-center py-12">
+          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+        </div>
+
+        <div v-else-if="likedPosts.length > 0" class="grid gap-2">
+          <NuxtLink
+            v-for="post in paged(likedPosts, 'likes')"
+            :key="post.id"
+            :to="`/community/${post.id}`"
+            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-slate-50"
+          >
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <AppBadge variant="blue" class="shrink-0">{{ post.category }}</AppBadge>
+                <p class="truncate text-sm font-semibold text-foreground">{{ post.title }}</p>
+              </div>
+              <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
+                <span>{{ post.createdAt }}</span>
+                <span class="flex items-center gap-1"><Heart class="size-3 text-rose-400" />{{ post.likeCount }}</span>
+                <span class="flex items-center gap-1"><MessageSquare class="size-3" />{{ post.commentCount }}</span>
+              </div>
+            </div>
+            <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          </NuxtLink>
+
+          <Pagination
+            v-if="totalPages(likedPosts, 'likes') > 1"
+            :current="pages.likes"
+            :total="totalPages(likedPosts, 'likes')"
+            @change="goPage('likes', $event)"
+          />
+        </div>
+
+        <AppEmptyState
+          v-else
+          title="아직 좋아요한 글이 없어요"
+          description="마음에 드는 게시글에 좋아요를 눌러보세요."
+        >
+          <template #action>
+            <NuxtLink to="/community?tab=feedback"><AppButton>커뮤니티 보러 가기</AppButton></NuxtLink>
+          </template>
+        </AppEmptyState>
+      </template>
+    </div>
+
   </div>
+
+  <!-- 프로필 수정 모달 -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="editMode"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click.self="cancelEdit"
+      >
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="cancelEdit" />
+        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+          <button
+            type="button"
+            class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+            @click="cancelEdit"
+          >
+            <X class="size-4" />
+          </button>
+
+          <h2 class="text-xl font-black text-foreground">프로필 수정</h2>
+          <p class="mt-1 text-sm text-muted-foreground">커뮤니티에 표시되는 정보를 변경해요.</p>
+
+          <div class="mt-6 flex flex-col gap-5 sm:flex-row sm:gap-6">
+            <!-- 아바타 변경 -->
+            <div class="flex flex-col items-center gap-2">
+              <label class="group relative cursor-pointer">
+                <div class="size-20 overflow-hidden rounded-full bg-primary">
+                  <img
+                    v-if="editAvatarPreview || profile?.avatarUrl"
+                    :src="editAvatarPreview ?? profile?.avatarUrl ?? ''"
+                    alt="프로필"
+                    class="h-full w-full object-cover"
+                  />
+                  <div
+                    v-else
+                    class="flex h-full w-full items-center justify-center text-2xl font-bold text-primary-foreground"
+                  >
+                    {{ userInitial }}
+                  </div>
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Camera class="size-5 text-white" />
+                </div>
+                <input
+                  ref="avatarInput"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  class="sr-only"
+                  @change="onAvatarChange"
+                />
+              </label>
+              <p class="text-xs text-muted-foreground">클릭해서 변경</p>
+            </div>
+
+            <!-- 닉네임·직업 폼 -->
+            <div class="grid flex-1 gap-4">
+              <div>
+                <label class="text-sm font-bold text-foreground">닉네임</label>
+                <input
+                  v-model="editNickname"
+                  type="text"
+                  maxlength="15"
+                  placeholder="2~15자"
+                  class="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label class="text-sm font-bold text-foreground">직업</label>
+                <div class="mt-1.5 flex gap-2">
+                  <button
+                    v-for="opt in [{ value: 'developer', label: '개발자' }, { value: 'designer', label: '디자이너' }]"
+                    :key="opt.value"
+                    type="button"
+                    class="flex-1 rounded-lg border py-2 text-sm font-semibold transition-colors"
+                    :class="editJobType === opt.value
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'"
+                    @click="editJobType = editJobType === opt.value ? null : opt.value as 'developer' | 'designer'"
+                  >
+                    {{ opt.label }}
+                  </button>
+                </div>
+                <p v-if="editJobType" class="mt-1.5 text-right text-xs text-muted-foreground">
+                  클릭하면 선택 해제
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end gap-2">
+            <AppButton variant="outline" @click="cancelEdit">
+              취소
+            </AppButton>
+            <AppButton :disabled="saving" @click="saveProfile">
+              <Check class="size-3.5" />
+              {{ saving ? '저장 중...' : '저장' }}
+            </AppButton>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 
   <!-- 탈퇴 확인 다이얼로그 -->
   <Teleport to="body">
@@ -316,26 +573,16 @@ function formatDate(dateStr: string) {
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
         @click.self="showWithdrawDialog = false"
       >
-        <div
-          class="absolute inset-0 bg-black/40 backdrop-blur-sm"
-          @click="showWithdrawDialog = false"
-        />
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showWithdrawDialog = false" />
         <div class="relative w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
           <h2 class="text-xl font-black text-foreground">정말 탈퇴하시겠어요?</h2>
           <p class="mt-3 text-sm leading-6 text-muted-foreground">
             탈퇴 신청 후 <strong class="text-foreground">30일</strong>이 지나면 계정과 분석 기록,
-            게시글 등 모든 데이터가 영구적으로 삭제돼요. 삭제된 데이터는 복구할 수 없어요.
+            게시글 등 모든 데이터가 영구적으로 삭제돼요.
           </p>
           <div class="mt-6 flex gap-3">
-            <AppButton variant="outline" class="flex-1" @click="showWithdrawDialog = false">
-              취소
-            </AppButton>
-            <AppButton
-              variant="destructive"
-              class="flex-1"
-              :disabled="withdrawing"
-              @click="handleWithdraw"
-            >
+            <AppButton variant="outline" class="flex-1" @click="showWithdrawDialog = false">취소</AppButton>
+            <AppButton variant="destructive" class="flex-1" :disabled="withdrawing" @click="handleWithdraw">
               {{ withdrawing ? '처리 중...' : '탈퇴 신청' }}
             </AppButton>
           </div>

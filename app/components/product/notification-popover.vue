@@ -1,67 +1,41 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Bell, MessageSquare, MessageCircle, Sparkles } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
 import { useAuthStore } from '~/stores/auth'
-
-type NotifType = 'comment' | 'like' | 'dm' | 'analysis'
-
-interface Notification {
-  id: string
-  type: NotifType
-  message: string
-  linkUrl: string
-  isRead: boolean
-  actorAvatarUrl: string | null
-  createdAt: string
-}
+import { useNotificationStore } from '~/stores/notification'
 
 const authStore = useAuthStore()
+const notifStore = useNotificationStore()
 const client = useSupabaseClient()
+
 const open = ref(false)
 const popoverRef = ref<HTMLElement | null>(null)
-const notifications = ref<Notification[]>([])
 
-onClickOutside(popoverRef, () => {
-  open.value = false
-})
-
-const visibleNotifications = computed(() => notifications.value.filter((n) => n.type !== 'dm'))
-const unreadCount = computed(() => visibleNotifications.value.filter((n) => !n.isRead).length)
-
-async function fetchNotifications() {
-  if (!authStore.isLoggedIn) return
-  try {
-    const res = await $fetch<{ data: Notification[] }>('/api/notifications')
-    notifications.value = res.data
-  } catch {
-    // 조용히 실패
-  }
-}
+onClickOutside(popoverRef, () => { open.value = false })
 
 async function markAllRead() {
   try {
     await $fetch('/api/notifications/read-all', { method: 'POST' })
-    notifications.value.forEach((n) => { n.isRead = true })
+    notifStore.markAllBellRead()
   } catch {
     // 조용히 실패
   }
 }
 
-async function handleNotifClick(n: Notification) {
+async function handleNotifClick(n: { id: string; isRead: boolean; linkUrl: string }) {
   if (!n.isRead) {
-    n.isRead = true
+    notifStore.markRead(n.id)
     $fetch(`/api/notifications/${n.id}/read`, { method: 'POST' }).catch(() => {})
   }
   open.value = false
   await navigateTo(n.linkUrl)
 }
 
-// Supabase Realtime — 내 알림 INSERT 구독
 let channel: ReturnType<typeof client.channel> | null = null
 
 onMounted(async () => {
-  await fetchNotifications()
+  await notifStore.fetch()
 
   if (!authStore.profile?.id) return
 
@@ -75,16 +49,12 @@ onMounted(async () => {
         table: 'notifications',
         filter: `user_id=eq.${authStore.profile!.id}`,
       },
-      () => {
-        fetchNotifications()
-      },
+      () => { notifStore.fetch() },
     )
     .subscribe()
 })
 
-onUnmounted(() => {
-  channel?.unsubscribe()
-})
+onUnmounted(() => { channel?.unsubscribe() })
 </script>
 
 <template>
@@ -96,10 +66,10 @@ onUnmounted(() => {
     >
       <Bell class="size-5" />
       <span
-        v-if="unreadCount > 0"
+        v-if="notifStore.bellUnreadCount > 0"
         class="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white"
       >
-        {{ unreadCount > 9 ? '9+' : unreadCount }}
+        {{ notifStore.bellUnreadCount > 9 ? '9+' : notifStore.bellUnreadCount }}
       </span>
     </button>
 
@@ -118,7 +88,7 @@ onUnmounted(() => {
         <div class="flex items-center justify-between border-b border-border px-4 py-3">
           <span class="text-sm font-bold text-foreground">알림</span>
           <button
-            v-if="unreadCount > 0"
+            v-if="notifStore.bellUnreadCount > 0"
             type="button"
             class="text-xs text-primary hover:underline"
             @click="markAllRead"
@@ -127,9 +97,9 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <div v-if="visibleNotifications.length > 0" class="max-h-80 overflow-y-auto py-1">
+        <div v-if="notifStore.bellNotifications.length > 0" class="max-h-80 overflow-y-auto py-1">
           <button
-            v-for="n in visibleNotifications"
+            v-for="n in notifStore.bellNotifications"
             :key="n.id"
             type="button"
             class="flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
@@ -138,17 +108,9 @@ onUnmounted(() => {
           >
             <div
               class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full"
-              :class="
-                n.type === 'dm'
-                  ? 'bg-emerald-50'
-                  : n.type === 'analysis'
-                    ? 'bg-violet-50'
-                    : 'bg-accent'
-              "
+              :class="n.type === 'analysis' ? 'bg-violet-50' : 'bg-accent'"
             >
-              <MessageSquare v-if="n.type === 'comment'" class="size-4 text-primary" />
-              <MessageCircle v-else-if="n.type === 'dm'" class="size-4 text-emerald-500" />
-              <Sparkles v-else-if="n.type === 'analysis'" class="size-4 text-violet-500" />
+              <Sparkles v-if="n.type === 'analysis'" class="size-4 text-violet-500" />
               <MessageSquare v-else class="size-4 text-primary" />
             </div>
             <div class="flex-1">

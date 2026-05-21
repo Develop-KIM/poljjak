@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { ArrowRight, Sparkles, MessageSquare, Users, Zap, Link, Share2,
-  CheckCircle2, Loader2, Lock, ChevronDown } from '@lucide/vue'
+  CheckCircle2, Loader2, Lock, ChevronDown, FileUp, Download } from '@lucide/vue'
 
 const demoStep = ref(0)
 const analysisStep = ref(0)
@@ -147,16 +147,16 @@ onUnmounted(() => {
               <div class="mt-5 grid gap-4 lg:grid-cols-[1fr_200px]">
                 <!-- 왼쪽: 업로드 카드 -->
                 <div class="rounded-xl border border-border bg-card p-5">
-                  <!-- PDF 드롭존 -->
-                  <div class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-accent/30 py-8">
-                    <div class="flex size-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-border">
-                      <svg class="size-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                    </div>
-                    <p class="mt-3 text-sm font-semibold text-foreground">portfolio_2026.pdf</p>
-                    <p class="mt-1 text-xs text-muted-foreground">2.4 MB</p>
-                    <div class="mt-3 flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1">
-                      <CheckCircle2 class="size-3.5 text-emerald-500" />
-                      <span class="text-xs font-semibold text-emerald-600">준비 완료</span>
+                  <!-- PDF 드롭존 (실제 PdfUploadDropzone 빈 상태 재현) -->
+                  <div class="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-200 bg-accent/50 px-6 py-7 text-center">
+                    <span class="mb-3 inline-flex size-12 items-center justify-center rounded-full bg-white text-primary ring-1 ring-blue-100">
+                      <FileUp class="size-6" />
+                    </span>
+                    <span class="text-sm font-bold text-foreground">PDF 포트폴리오를 올려주세요</span>
+                    <span class="mt-1 text-xs text-muted-foreground">파일을 끌어오거나 클릭해서 선택 · 최대 5개</span>
+                    <div class="mt-2.5 flex flex-wrap justify-center gap-1.5">
+                      <AppBadge variant="blue">PDF 전용</AppBadge>
+                      <AppBadge variant="gray">파일당 10MB 이하</AppBadge>
                     </div>
                   </div>
                   <!-- 추가 요청사항 -->
@@ -229,9 +229,12 @@ onUnmounted(() => {
                 <div>
                   <AppBadge variant="green">분석 완료</AppBadge>
                   <h3 class="mt-3 text-xl font-black leading-tight text-foreground">포트폴리오 분석 결과</h3>
-                  <p class="mt-1 text-sm text-muted-foreground">2026년 5월 21일 · 비공개</p>
+                  <p class="mt-1 text-sm text-muted-foreground">2026년 5월 21일</p>
                 </div>
                 <div class="flex shrink-0 flex-wrap gap-2">
+                  <div class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground">
+                    <Download class="size-3.5" /> PDF 저장
+                  </div>
                   <div class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground">
                     <Link class="size-3.5" /> 링크 복사
                   </div>

@@ -1,6 +1,7 @@
 import { index, integer, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 export const postCategoryEnum = pgEnum('post_category', ['feedback', 'project', 'study'])
+export const recruitmentStatusEnum = pgEnum('recruitment_status', ['open', 'closed'])
 
 export const posts = pgTable('posts', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -10,6 +11,8 @@ export const posts = pgTable('posts', {
   body: text('body').notNull(),
   analysisId: uuid('analysis_id'),
   viewCount: integer('view_count').notNull().default(0),
+  // project·study 전용 (feedback은 null)
+  recruitmentStatus: recruitmentStatusEnum('recruitment_status'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),

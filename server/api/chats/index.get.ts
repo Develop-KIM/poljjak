@@ -88,6 +88,8 @@ export default defineEventHandler(async (event) => {
         ? lastMsg.is_deleted ? '삭제된 메시지예요' : lastMsg.content
         : '',
       lastMessageAt: lastMsg ? formatCommunityDate(lastMsg.created_at) : '',
+      // 정렬용 raw timestamp (클라이언트 반환 안 함)
+      _ts: lastMsg ? lastMsg.created_at.getTime() : 0,
       unreadCount: unreadMap.get(room.id) ?? 0,
       sourcePostId: room.sourcePostId ?? null,
       sourcePostTitle: room.sourcePostTitle ?? null,
@@ -95,7 +97,8 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  result.sort((a, b) => (a.lastMessageAt < b.lastMessageAt ? 1 : -1))
+  // 최근 메시지 순 정렬 (raw timestamp 기준)
+  result.sort((a, b) => b._ts - a._ts)
 
-  return { data: result }
+  return { data: result.map(({ _ts, ...r }) => r) }
 })

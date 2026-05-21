@@ -186,7 +186,7 @@ function downloadAsPdf() {
             {{ analysis.title }}
           </h1>
           <p class="mt-2 text-sm text-muted-foreground">
-            {{ createdAtLabel }} · {{ analysis.isPublic ? '공개' : '비공개' }}
+            {{ createdAtLabel }}
           </p>
         </div>
         <div class="flex shrink-0 flex-wrap gap-2">
@@ -245,9 +245,11 @@ function downloadAsPdf() {
 
       <!-- ── 항목별 점수 (접기/펼치기) ── -->
       <section class="mt-8">
+        <!-- print 전용 헤더 (화면에서는 숨김) -->
+        <h2 class="hidden text-xl font-black text-foreground print:block">항목별 점수</h2>
         <button
           type="button"
-          class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-slate-50"
+          class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-slate-50 print:hidden"
           @click="showScores = !showScores"
         >
           <span class="text-base font-bold text-foreground">항목별 점수 보기</span>

@@ -69,9 +69,14 @@
 }
 
 @media print {
-  /* 브라우저 기본 URL·날짜 제거 */
+  /* margin: 0으로 브라우저 기본 날짜·URL 헤더 제거 */
   @page {
-    margin: 16mm;
+    margin: 0;
+  }
+
+  /* 인쇄 시 여백은 콘텐츠 패딩으로 처리 */
+  body {
+    padding: 14mm 16mm;
   }
 
   /* 헤더·푸터·버튼 숨김 */
@@ -83,9 +88,11 @@
     display: none !important;
   }
 
-  /* 점수 섹션 강제 표시 */
+  /* 점수 섹션 강제 표시 — 1열 고정, 간격 확보 */
   [data-print-open] {
-    display: block !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
     opacity: 1 !important;
     transform: none !important;
   }
@@ -93,5 +100,10 @@
   /* 페이지 나눔 방지 */
   .rounded-xl {
     break-inside: avoid;
+  }
+
+  /* 섹션 간 여백 */
+  section {
+    margin-top: 24px;
   }
 }

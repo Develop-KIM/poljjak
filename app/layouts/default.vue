@@ -6,6 +6,7 @@ import { onClickOutside } from '@vueuse/core'
 const route = useRoute()
 const { user, isLoggedIn, signOut } = useAuth()
 const authStore = useAuthStore()
+const notifStore = useNotificationStore()
 
 const profileOpen = ref(false)
 const profileRef = ref<HTMLElement | null>(null)
@@ -118,10 +119,16 @@ const userJobLabel = computed(() => {
             <template v-if="isLoggedIn">
               <NuxtLink
                 to="/chat"
-                class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+                class="relative flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
                 active-class="text-foreground bg-slate-100"
               >
                 <MessageCircle class="size-5" />
+                <span
+                  v-if="notifStore.dmUnreadCount > 0"
+                  class="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white"
+                >
+                  {{ notifStore.dmUnreadCount > 9 ? '9+' : notifStore.dmUnreadCount }}
+                </span>
               </NuxtLink>
               <NotificationPopover />
             </template>
@@ -288,7 +295,7 @@ const userJobLabel = computed(() => {
               <NuxtLink
                 v-if="isLoggedIn"
                 to="/chat"
-                class="flex items-center rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
+                class="flex items-center justify-between rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
                 :class="
                   isActive('/chat')
                     ? 'bg-accent text-primary'
@@ -297,6 +304,12 @@ const userJobLabel = computed(() => {
                 @click="mobileMenuOpen = false"
               >
                 채팅
+                <span
+                  v-if="notifStore.dmUnreadCount > 0"
+                  class="flex size-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white"
+                >
+                  {{ notifStore.dmUnreadCount > 9 ? '9+' : notifStore.dmUnreadCount }}
+                </span>
               </NuxtLink>
             </nav>
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { Send, ArrowLeft } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
+import { useNotificationStore } from '~/stores/notification'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -86,12 +87,27 @@ function scrollToBottom() {
   }
 }
 
+function moveRoomToTop(roomId: string, lastMessage: string) {
+  const idx = rooms.value.findIndex((r) => r.id === roomId)
+  if (idx < 0) return
+  const room = rooms.value[idx]!
+  room.lastMessage = lastMessage
+  room.lastMessageAt = '방금'
+  rooms.value.splice(idx, 1)
+  rooms.value.unshift(room)
+}
+
 async function selectRoom(id: string) {
   if (selectedRoomId.value === id) return
 
   messageChannel?.unsubscribe()
   selectedRoomId.value = id
   await fetchMessages(id)
+
+  // 해당 방 입장 시 DM 알림 읽음 처리
+  $fetch('/api/notifications/read-dm', { method: 'POST' }).then(() => {
+    notifStore.markDmRead()
+  }).catch(() => {})
 
   // Broadcast 방식 — postgres_changes 대신 사용
   await new Promise<void>((resolve) => {
@@ -109,6 +125,7 @@ async function selectRoom(id: string) {
           senderAvatarUrl: msg.senderAvatarUrl,
           createdAt: msg.createdAt,
         })
+        moveRoomToTop(id, msg.content ?? '')
         await nextTick()
         scrollToBottom()
       })
@@ -141,12 +158,8 @@ async function sendMessage() {
       })
     }
 
-    // 채팅방 목록 마지막 메시지 업데이트
-    const room = rooms.value.find((r) => r.id === selectedRoomId.value)
-    if (room) {
-      room.lastMessage = content
-      room.lastMessageAt = '방금'
-    }
+    // 채팅방 목록 마지막 메시지 업데이트 및 최상단으로 이동
+    if (selectedRoomId.value) moveRoomToTop(selectedRoomId.value, content)
     await nextTick()
     scrollToBottom()
   } catch {
@@ -155,6 +168,16 @@ async function sendMessage() {
     sending.value = false
   }
 }
+
+const notifStore = useNotificationStore()
+
+// 다른 방에서 새 DM이 오면(dmUnreadCount 증가) 목록 재조회해서 상단으로 올림
+watch(
+  () => notifStore.dmUnreadCount,
+  (next, prev) => {
+    if (next > prev) fetchRooms()
+  },
+)
 
 onMounted(async () => {
   await fetchRooms()
