@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Camera, ExternalLink, Lock, Unlock } from '@lucide/vue'
+import { Camera, ExternalLink, Lock, Unlock, Heart, MessageSquare, ArrowUpRight } from '@lucide/vue'
 
 const showWithdrawDialog = ref(false)
 const withdrawing = ref(false)
@@ -40,16 +40,47 @@ interface AnalysisItem {
 const analyses = ref<AnalysisItem[]>([])
 const analysesPending = ref(false)
 
+interface MyPost {
+  id: string
+  category: string
+  title: string
+  createdAt: string
+  commentCount: number
+  likeCount: number
+}
+
+interface MyComment {
+  id: string
+  content: string
+  createdAt: string
+  postId: string
+  postTitle: string | null
+}
+
+const myPosts = ref<MyPost[]>([])
+const myPostsPending = ref(false)
+const myComments = ref<MyComment[]>([])
+const myCommentsPending = ref(false)
+
 onMounted(async () => {
   analysesPending.value = true
-  try {
-    const res = await $fetch<{ data: AnalysisItem[] }>('/api/analyses')
-    analyses.value = res.data
-  } catch {
-    // 실패 시 빈 목록 유지
-  } finally {
-    analysesPending.value = false
-  }
+  myPostsPending.value = true
+  myCommentsPending.value = true
+
+  const [analysesRes, postsRes, commentsRes] = await Promise.allSettled([
+    $fetch<{ data: AnalysisItem[] }>('/api/analyses'),
+    $fetch<{ data: MyPost[] }>('/api/users/me/posts'),
+    $fetch<{ data: MyComment[] }>('/api/users/me/comments'),
+  ])
+
+  if (analysesRes.status === 'fulfilled') analyses.value = analysesRes.value.data
+  analysesPending.value = false
+
+  if (postsRes.status === 'fulfilled') myPosts.value = postsRes.value.data
+  myPostsPending.value = false
+
+  if (commentsRes.status === 'fulfilled') myComments.value = commentsRes.value.data
+  myCommentsPending.value = false
 })
 
 function formatDate(dateStr: string) {
@@ -158,6 +189,97 @@ function formatDate(dateStr: string) {
           </NuxtLink>
         </template>
       </AppEmptyState>
+    </section>
+
+    <hr class="my-8 border-border" />
+
+    <!-- 내가 쓴 글 -->
+    <section>
+      <h2 class="text-lg font-black text-foreground">내가 쓴 글</h2>
+
+      <div v-if="myPostsPending" class="mt-4 flex justify-center py-8">
+        <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+      </div>
+
+      <div v-else-if="myPosts.length > 0" class="mt-4 grid gap-2">
+        <NuxtLink
+          v-for="post in myPosts"
+          :key="post.id"
+          :to="`/community/${post.id}`"
+          class="flex items-center justify-between rounded-lg border border-border bg-card p-4 transition-colors hover:bg-slate-50"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <AppBadge variant="blue" class="shrink-0">{{ post.category }}</AppBadge>
+              <p class="truncate text-sm font-semibold text-foreground">{{ post.title }}</p>
+            </div>
+            <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
+              <span>{{ post.createdAt }}</span>
+              <span class="flex items-center gap-1">
+                <Heart class="size-3" />
+                {{ post.likeCount }}
+              </span>
+              <span class="flex items-center gap-1">
+                <MessageSquare class="size-3" />
+                {{ post.commentCount }}
+              </span>
+            </div>
+          </div>
+          <ArrowUpRight class="ml-3 size-4 shrink-0 text-muted-foreground" />
+        </NuxtLink>
+      </div>
+
+      <AppEmptyState
+        v-else
+        title="아직 작성한 글이 없어요"
+        description="커뮤니티에서 첫 번째 글을 써보세요."
+      >
+        <template #action>
+          <NuxtLink to="/community?tab=feedback">
+            <AppButton>글 쓰러 가기</AppButton>
+          </NuxtLink>
+        </template>
+      </AppEmptyState>
+    </section>
+
+    <hr class="my-8 border-border" />
+
+    <!-- 내 댓글 -->
+    <section>
+      <h2 class="text-lg font-black text-foreground">내 댓글</h2>
+
+      <div v-if="myCommentsPending" class="mt-4 flex justify-center py-8">
+        <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+      </div>
+
+      <div v-else-if="myComments.length > 0" class="mt-4 grid gap-2">
+        <NuxtLink
+          v-for="comment in myComments"
+          :key="comment.id"
+          :to="comment.postTitle ? `/community/${comment.postId}` : '#'"
+          class="flex items-center justify-between rounded-lg border border-border bg-card p-4 transition-colors"
+          :class="comment.postTitle ? 'hover:bg-slate-50' : 'opacity-60 cursor-default'"
+        >
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm text-foreground">{{ comment.content }}</p>
+            <div class="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{{ comment.createdAt }}</span>
+              <span>·</span>
+              <span class="truncate">{{ comment.postTitle ?? '삭제된 게시글' }}</span>
+            </div>
+          </div>
+          <ArrowUpRight
+            v-if="comment.postTitle"
+            class="ml-3 size-4 shrink-0 text-muted-foreground"
+          />
+        </NuxtLink>
+      </div>
+
+      <AppEmptyState
+        v-else
+        title="아직 작성한 댓글이 없어요"
+        description="게시글에 댓글을 달아보세요."
+      />
     </section>
 
     <hr class="my-8 border-border" />
