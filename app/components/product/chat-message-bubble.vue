@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Trash2 } from '@lucide/vue'
+
 defineProps<{
   content: string
   isMine: boolean
@@ -7,6 +9,10 @@ defineProps<{
   senderName?: string
   senderAvatarUrl?: string | null
   isDeleted?: boolean
+}>()
+
+const emit = defineEmits<{
+  delete: []
 }>()
 </script>
 
@@ -43,7 +49,18 @@ defineProps<{
       >
         {{ isDeleted ? '삭제된 메시지예요.' : content }}
       </div>
-      <span class="text-xs text-muted-foreground">{{ time }}</span>
+      <div class="flex items-center gap-2">
+        <button
+          v-if="isMine && !isDeleted"
+          type="button"
+          class="text-xs font-semibold text-muted-foreground transition-colors hover:text-destructive"
+          aria-label="메시지 삭제"
+          @click="emit('delete')"
+        >
+          <Trash2 class="size-3.5" />
+        </button>
+        <span class="text-xs text-muted-foreground">{{ time }}</span>
+      </div>
     </div>
   </div>
 </template>

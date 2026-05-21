@@ -14,14 +14,23 @@ export default defineEventHandler(async (event) => {
       participantId: chatRooms.participantId,
       sourcePostId: chatRooms.sourcePostId,
       sourcePostTitle: chatRooms.sourcePostTitle,
+      initiatorLeftAt: chatRooms.initiatorLeftAt,
+      participantLeftAt: chatRooms.participantLeftAt,
     })
     .from(chatRooms)
     .where(or(eq(chatRooms.initiatorId, user.id), eq(chatRooms.participantId, user.id)))
 
-  if (rooms.length === 0) return { data: [] }
+  const visibleRooms = rooms.filter((room) => {
+    const leftAt = room.initiatorId === user.id ? room.initiatorLeftAt : room.participantLeftAt
+    return !leftAt
+  })
 
-  const roomIds = rooms.map((r) => r.id)
-  const otherIds = rooms.map((r) => (r.initiatorId === user.id ? r.participantId : r.initiatorId))
+  if (visibleRooms.length === 0) return { data: [] }
+
+  const roomIds = visibleRooms.map((r) => r.id)
+  const otherIds = visibleRooms.map((r) =>
+    r.initiatorId === user.id ? r.participantId : r.initiatorId
+  )
 
   // 상대방 정보 일괄 조회
   const otherUsers = await db
@@ -73,7 +82,7 @@ export default defineEventHandler(async (event) => {
   const unreadMap = new Map(unreadCounts.map((r) => [r.room_id, Number(r.cnt)]))
 
   // 출처 게시글 삭제 여부 일괄 확인
-  const sourcePostIds = rooms.map((r) => r.sourcePostId).filter(Boolean) as string[]
+  const sourcePostIds = visibleRooms.map((r) => r.sourcePostId).filter(Boolean) as string[]
   const activePosts =
     sourcePostIds.length > 0
       ? await db
@@ -92,7 +101,7 @@ export default defineEventHandler(async (event) => {
 
   const activePostIds = new Set(activePosts.map((p) => p.id))
 
-  const result = rooms.map((room) => {
+  const result = visibleRooms.map((room) => {
     const otherId = room.initiatorId === user.id ? room.participantId : room.initiatorId
     const other = otherMap.get(otherId)
     const lastMsg = lastMsgMap.get(room.id)

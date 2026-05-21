@@ -41,13 +41,16 @@ export default defineEventHandler(async (event) => {
     .limit(1)
 
   if (existing) {
+    const updateData: Partial<typeof chatRooms.$inferInsert> = {
+      initiatorLeftAt: null,
+      participantLeftAt: null,
+    }
     // 게시글 정보가 없으면 업데이트
     if (!existing.sourcePostId && sourcePostId) {
-      await db
-        .update(chatRooms)
-        .set({ sourcePostId, sourcePostTitle: sourcePostTitle ?? null })
-        .where(eq(chatRooms.id, existing.id))
+      updateData.sourcePostId = sourcePostId
+      updateData.sourcePostTitle = sourcePostTitle ?? null
     }
+    await db.update(chatRooms).set(updateData).where(eq(chatRooms.id, existing.id))
     return { data: { id: existing.id } }
   }
 

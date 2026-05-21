@@ -8,6 +8,8 @@ export const chatRooms = pgTable(
     participantId: uuid('participant_id').notNull(),
     sourcePostId: uuid('source_post_id'),
     sourcePostTitle: text('source_post_title'),
+    initiatorLeftAt: timestamp('initiator_left_at'),
+    participantLeftAt: timestamp('participant_left_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (t) => [
@@ -17,15 +19,19 @@ export const chatRooms = pgTable(
   ]
 )
 
-export const messages = pgTable('messages', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  roomId: uuid('room_id').notNull(),
-  senderId: uuid('sender_id').notNull(),
-  content: text('content').notNull(),
-  isDeleted: boolean('is_deleted').notNull().default(false),
-  isRead: boolean('is_read').notNull().default(false),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-}, (t) => [
-  index('messages_room_id_created_at_idx').on(t.roomId, t.createdAt),
-  index('messages_sender_id_idx').on(t.senderId),
-])
+export const messages = pgTable(
+  'messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    roomId: uuid('room_id').notNull(),
+    senderId: uuid('sender_id').notNull(),
+    content: text('content').notNull(),
+    isDeleted: boolean('is_deleted').notNull().default(false),
+    isRead: boolean('is_read').notNull().default(false),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('messages_room_id_created_at_idx').on(t.roomId, t.createdAt),
+    index('messages_sender_id_idx').on(t.senderId),
+  ]
+)

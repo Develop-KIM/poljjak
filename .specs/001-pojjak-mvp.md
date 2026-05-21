@@ -32,12 +32,12 @@
 ### 커뮤니티
 
 - AC-13: 피드백 / 프로젝트 모집 / 스터디 모집 3개 탭 전환 가능
-- AC-14: 비로그인 시 프로젝트·스터디 탭 목록·상세·댓글 열람 가능. 피드백 탭은 로그인 모달
+- AC-14: 비로그인 시 프로젝트·스터디 탭 목록·상세·댓글 열람 가능. 피드백 탭 목록은 열람 가능하되 상세 진입 시 로그인 모달
 - AC-15: 게시글 본문 5000자 초과 시 저장 불가 + 글자 수 카운터 표시
 - AC-16: 본문 내 http/https URL이 클릭 가능한 링크로 렌더링됨. XSS 방지 확인 (script 태그 이스케이프)
 - AC-17: 게시글에 jpg/png/webp/gif 이미지 최대 10장 첨부 가능. 5MB 초과 시 개별 에러
 - AC-18: 댓글 작성·삭제, 좋아요 토글 정상 동작
-- AC-19: 신고 버튼 클릭 → 신고 접수 → 운영자 이메일 수신 확인
+- AC-19: 신고 버튼 클릭 → 신고 접수 → reports 테이블 저장 확인
 
 ### 1:1 채팅
 
@@ -70,7 +70,7 @@
 | AI         | CLOVA Studio HCX-005               | CLAUDE.md 기준, 한국어 특화 모델   |
 | PDF 파싱   | `pdf-parse`                        | 경량, Node.js 서버에서 텍스트 추출 |
 | 실시간     | Supabase Realtime                  | CLAUDE.md 기준, 채팅 + 알림 공용   |
-| 이메일     | Resend                             | 신고 알림 발송, 간단한 API         |
+| 신고       | DB 저장                            | MVP 이후 관리자 페이지에서 처리    |
 | UI         | Tailwind CSS + shadcn-vue + Lucide | CLAUDE.md 기준                     |
 
 ### DB 스키마 (신규 테이블)
@@ -82,8 +82,7 @@ posts                  - 게시글 (userId, category, title, body, analysisId?)
 post_images            - 게시글 이미지 (postId, url, order)
 comments               - 댓글 (postId, userId, body)
 likes                  - 좋아요 (postId, userId) UNIQUE
-chat_rooms             - 채팅방 (id)
-chat_participants      - 참가자 (roomId, userId, leftAt)
+chat_rooms             - 채팅방 (id, initiatorLeftAt, participantLeftAt)
 chat_messages          - 메시지 (roomId, senderId, body, deletedAt)
 notifications          - 알림 (userId, type, targetId, isRead)
 reports                - 신고 (reporterId, targetType, targetId, reason)
@@ -242,11 +241,10 @@ reports                - 신고 (reporterId, targetType, targetId, reason)
 - 검증: 로그인 상태에서 토글 → 카운트 변경. 비로그인 → 모달
 - 의존: T15, T06
 
-#### T21: 신고 기능 + 이메일 알림 (45분)
+#### T21: 신고 기능 (45분)
 
 - `server/api/reports.post.ts` — 신고 저장
-- Resend로 운영자 이메일 발송
-- 검증: 신고 제출 → DB reports 테이블 row 생성 + 이메일 수신
+- 검증: 신고 제출 → DB reports 테이블 row 생성
 - 의존: T15, T07
 
 ---
@@ -389,6 +387,6 @@ T01 → T03 → T04                          T14 → T15 → T16
 
 **시나리오 3 — 비로그인 제한**
 
-1. 비로그인으로 피드백 탭 접근 → 로그인 모달
+1. 비로그인으로 피드백 상세 접근 → 로그인 모달
 2. 프로젝트 탭 열람은 가능
 3. 좋아요 클릭 → 로그인 모달 (CTA "로그인하고 좋아요 누르기")

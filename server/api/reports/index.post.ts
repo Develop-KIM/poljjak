@@ -31,8 +31,9 @@ export default defineEventHandler(async (event) => {
     .where(
       and(
         eq(reports.reporterId, user.id),
-        eq(reports.targetId, targetId),
-      ),
+        eq(reports.targetType, targetType),
+        eq(reports.targetId, targetId)
+      )
     )
     .limit(1)
 

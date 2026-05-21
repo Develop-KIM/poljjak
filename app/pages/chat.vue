@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
-import { Send, ArrowLeft } from '@lucide/vue'
+import { Send, ArrowLeft, LogOut } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useNotificationStore } from '~/stores/notification'
 
@@ -41,6 +41,7 @@ const selectedRoom = computed(() => rooms.value.find((r) => r.id === selectedRoo
 const newMessage = ref('')
 const messageListRef = ref<HTMLElement | null>(null)
 const sending = ref(false)
+const leaving = ref(false)
 const roomsPending = ref(true)
 const messagesPending = ref(false)
 
@@ -131,6 +132,14 @@ async function selectRoom(id: string) {
         await nextTick()
         scrollToBottom()
       })
+      .on('broadcast', { event: 'delete_message' }, (payload) => {
+        const deleted = payload.payload as { id: string }
+        const target = messages.value.find((message) => message.id === deleted.id)
+        if (!target) return
+        target.content = null
+        target.isDeleted = true
+        moveRoomToTop(id, '삭제된 메시지예요')
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') resolve()
       })
@@ -168,6 +177,47 @@ async function sendMessage() {
     newMessage.value = content
   } finally {
     sending.value = false
+  }
+}
+
+async function deleteMessage(messageId: string) {
+  if (!selectedRoomId.value) return
+  const target = messages.value.find((message) => message.id === messageId)
+  if (!target || !target.isMine || target.isDeleted) return
+
+  try {
+    await $fetch(`/api/chats/${selectedRoomId.value}/messages/${messageId}`, { method: 'DELETE' })
+    target.content = null
+    target.isDeleted = true
+    moveRoomToTop(selectedRoomId.value, '삭제된 메시지예요')
+
+    if (messageChannel) {
+      await messageChannel.send({
+        type: 'broadcast',
+        event: 'delete_message',
+        payload: { id: messageId },
+      })
+    }
+  } catch {
+    // 조용히 실패
+  }
+}
+
+async function leaveRoom() {
+  if (!selectedRoomId.value || leaving.value) return
+  const roomId = selectedRoomId.value
+  leaving.value = true
+  try {
+    await $fetch(`/api/chats/${roomId}`, { method: 'DELETE' })
+    rooms.value = rooms.value.filter((room) => room.id !== roomId)
+    messages.value = []
+    selectedRoomId.value = null
+    messageChannel?.unsubscribe()
+    messageChannel = null
+  } catch {
+    // 조용히 실패
+  } finally {
+    leaving.value = false
   }
 }
 
@@ -285,6 +335,15 @@ onUnmounted(() => {
               {{ selectedRoom.sourcePostTitle }} (삭제된 게시글)
             </p>
           </div>
+          <button
+            type="button"
+            class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            :disabled="leaving"
+            aria-label="채팅방 나가기"
+            @click="leaveRoom"
+          >
+            <LogOut class="size-4" />
+          </button>
         </div>
 
         <!-- 메시지 목록 -->
@@ -303,6 +362,7 @@ onUnmounted(() => {
               :sender-name="selectedRoom.otherNickname"
               :sender-avatar-url="msg.senderAvatarUrl ?? selectedRoom.otherAvatarUrl"
               :is-deleted="msg.isDeleted"
+              @delete="deleteMessage(msg.id)"
             />
           </div>
         </div>

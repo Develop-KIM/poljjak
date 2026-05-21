@@ -10,7 +10,11 @@ export default defineEventHandler(async (event) => {
   if (!id) throw createError({ statusCode: 400, statusMessage: '잘못된 요청이에요' })
 
   const [room] = await db
-    .select({ id: chatRooms.id, initiatorId: chatRooms.initiatorId, participantId: chatRooms.participantId })
+    .select({
+      id: chatRooms.id,
+      initiatorId: chatRooms.initiatorId,
+      participantId: chatRooms.participantId,
+    })
     .from(chatRooms)
     .where(eq(chatRooms.id, id))
     .limit(1)
@@ -25,7 +29,10 @@ export default defineEventHandler(async (event) => {
     .safeParse(body)
 
   if (!parsed.success)
-    throw createError({ statusCode: 400, statusMessage: parsed.error.issues[0]?.message ?? '입력값을 확인해주세요' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: parsed.error.issues[0]?.message ?? '입력값을 확인해주세요',
+    })
 
   const [inserted] = await db
     .insert(messages)
@@ -34,16 +41,24 @@ export default defineEventHandler(async (event) => {
 
   if (!inserted) throw createError({ statusCode: 500, statusMessage: '메시지 전송에 실패했어요' })
 
+  await db
+    .update(chatRooms)
+    .set({ initiatorLeftAt: null, participantLeftAt: null })
+    .where(eq(chatRooms.id, id))
+
   // 상대방 알림
   const recipientId = room.initiatorId === user.id ? room.participantId : room.initiatorId
   if (recipientId !== user.id) {
-    await db.insert(notifications).values({
-      userId: recipientId,
-      actorId: user.id,
-      type: 'dm',
-      referenceId: inserted.id,
-      linkUrl: `/chat`,
-    }).catch(() => {})
+    await db
+      .insert(notifications)
+      .values({
+        userId: recipientId,
+        actorId: user.id,
+        type: 'dm',
+        referenceId: inserted.id,
+        linkUrl: `/chat`,
+      })
+      .catch(() => {})
   }
 
   return {
