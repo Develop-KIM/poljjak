@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { ArrowRight, CheckCircle2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
+import type { AnalysisResult } from '~/server/utils/clova'
 
 const authStore = useAuthStore()
 const { hasUsedGuestAnalysis, markGuestAnalysisUsed } = useGuestLimit()
@@ -9,24 +10,53 @@ const { hasUsedGuestAnalysis, markGuestAnalysisUsed } = useGuestLimit()
 const uploadedFile = ref<File | null>(null)
 const additionalNote = ref('')
 const showLoginModal = ref(false)
+const analyzing = ref(false)
+const errorMsg = ref<string | null>(null)
 
 const checklist = ['PDF 파일만 가능', '10MB 이하', '최대 50페이지', '텍스트 선택이 가능한 PDF']
 
-const canAnalyze = computed(() => !!uploadedFile.value)
+const canAnalyze = computed(() => !!uploadedFile.value && !analyzing.value)
 
-function handleStartAnalysis() {
-  if (!canAnalyze.value) return
+async function handleStartAnalysis() {
+  if (!canAnalyze.value || !uploadedFile.value) return
 
   if (!authStore.isLoggedIn && hasUsedGuestAnalysis()) {
     showLoginModal.value = true
     return
   }
 
-  if (!authStore.isLoggedIn) {
-    markGuestAnalysisUsed()
-  }
+  analyzing.value = true
+  errorMsg.value = null
 
-  navigateTo('/analysis/demo')
+  try {
+    const formData = new FormData()
+    formData.append('file', uploadedFile.value)
+    if (additionalNote.value.trim()) {
+      formData.append('additionalNote', additionalNote.value.trim())
+    }
+
+    const res = await $fetch<{ data: { id: string | null; result: AnalysisResult } }>(
+      '/api/analyses',
+      { method: 'POST', body: formData }
+    )
+
+    if (!authStore.isLoggedIn) {
+      markGuestAnalysisUsed()
+    }
+
+    if (res.data.id) {
+      await navigateTo(`/analysis/${res.data.id}`)
+    } else {
+      // 비로그인 게스트 — 결과를 세션 스토리지에 임시 저장 후 demo 페이지로
+      sessionStorage.setItem('guestAnalysisResult', JSON.stringify(res.data.result))
+      await navigateTo('/analysis/demo')
+    }
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string }; message?: string }
+    errorMsg.value = err.data?.statusMessage ?? err.message ?? '분석 중 오류가 발생했어요'
+  } finally {
+    analyzing.value = false
+  }
 }
 </script>
 
@@ -62,10 +92,20 @@ function handleStartAnalysis() {
           />
         </div>
 
+        <p v-if="errorMsg" class="mt-4 text-sm text-destructive">{{ errorMsg }}</p>
+
         <div class="mt-6 flex justify-end">
           <AppButton size="lg" :disabled="!canAnalyze" @click="handleStartAnalysis">
-            분석 시작
-            <ArrowRight class="size-4" />
+            <span v-if="analyzing" class="flex items-center gap-2">
+              <span
+                class="size-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+              />
+              분석 중...
+            </span>
+            <span v-else class="flex items-center gap-2">
+              분석 시작
+              <ArrowRight class="size-4" />
+            </span>
           </AppButton>
         </div>
       </AppCard>

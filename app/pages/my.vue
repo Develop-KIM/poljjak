@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Camera, ExternalLink, Lock, Unlock } from '@lucide/vue'
 
 const showWithdrawDialog = ref(false)
@@ -34,9 +34,31 @@ interface AnalysisItem {
   title: string
   createdAt: string
   isPublic: boolean
+  status: string
 }
 
-const analyses: AnalysisItem[] = []
+const analyses = ref<AnalysisItem[]>([])
+const analysesPending = ref(false)
+
+onMounted(async () => {
+  analysesPending.value = true
+  try {
+    const res = await $fetch<{ data: AnalysisItem[] }>('/api/analyses')
+    analyses.value = res.data
+  } catch {
+    // 실패 시 빈 목록 유지
+  } finally {
+    analysesPending.value = false
+  }
+})
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
 </script>
 
 <template>
@@ -91,7 +113,11 @@ const analyses: AnalysisItem[] = []
     <section>
       <h2 class="text-lg font-black text-foreground">분석 기록</h2>
 
-      <div v-if="analyses.length > 0" class="mt-4 grid gap-3">
+      <div v-if="analysesPending" class="mt-4 flex justify-center py-8">
+        <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+      </div>
+
+      <div v-else-if="analyses.length > 0" class="mt-4 grid gap-3">
         <div
           v-for="item in analyses"
           :key="item.id"
@@ -103,7 +129,7 @@ const analyses: AnalysisItem[] = []
             </div>
             <div>
               <p class="text-sm font-semibold text-foreground">{{ item.title }}</p>
-              <p class="mt-0.5 text-xs text-muted-foreground">{{ item.createdAt }}</p>
+              <p class="mt-0.5 text-xs text-muted-foreground">{{ formatDate(item.createdAt) }}</p>
             </div>
           </div>
           <div class="flex items-center gap-2">

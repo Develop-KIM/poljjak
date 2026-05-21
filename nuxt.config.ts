@@ -27,7 +27,13 @@ export default defineNuxtConfig({
     redirectOptions: {
       login: '/',
       callback: '/auth/confirm',
-      exclude: ['/', '/terms', '/privacy', '/analysis/demo'],
+      exclude: ['/', '/terms', '/privacy', '/analysis/demo', '/analysis/**'],
+    },
+  },
+
+  nitro: {
+    externals: {
+      inline: ['pdf-parse'],
     },
   },
 })
