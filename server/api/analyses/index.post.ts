@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { getAuthUser } from '../../utils/auth'
+import { requireAuth } from '../../utils/auth'
 import { extractPdfText } from '../../utils/pdf'
 import { analyzePortfolio } from '../../utils/clova'
 import { db } from '../../db'
@@ -8,7 +8,7 @@ import { analyses } from '../../db/schema'
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 
 export default defineEventHandler(async (event) => {
-  const user = await getAuthUser(event)
+  const user = await requireAuth(event)
 
   const parts = await readMultipartFormData(event)
   if (!parts) {
@@ -33,27 +33,20 @@ export default defineEventHandler(async (event) => {
   // PDF 텍스트 추출
   const text = await extractPdfText(filePart.data)
 
-  // Supabase Storage 업로드 (로그인 사용자만)
-  let pdfUrl = 'guest'
-  if (user) {
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-    const filename = `${user.id}/${Date.now()}.pdf`
-    const { error } = await supabase.storage.from('portfolios').upload(filename, filePart.data, {
-      contentType: 'application/pdf',
-    })
-    if (!error) {
-      const { data: urlData } = supabase.storage.from('portfolios').getPublicUrl(filename)
-      pdfUrl = urlData.publicUrl
-    }
+  // Supabase Storage 업로드
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  const filename = `${user.id}/${Date.now()}.pdf`
+  let pdfUrl = ''
+  const { error: uploadError } = await supabase.storage
+    .from('portfolios')
+    .upload(filename, filePart.data, { contentType: 'application/pdf' })
+  if (!uploadError) {
+    const { data: urlData } = supabase.storage.from('portfolios').getPublicUrl(filename)
+    pdfUrl = urlData.publicUrl
   }
 
   // CLOVA 분석 — 직군별 프롬프트 적용
-  const result = await analyzePortfolio(text, user?.jobType ?? null, additionalNote)
-
-  // 비로그인 → DB 저장 없이 결과만 반환
-  if (!user) {
-    return { data: { id: null, result } }
-  }
+  const result = await analyzePortfolio(text, user.jobType ?? null, additionalNote)
 
   // DB 저장
   const [analysis] = await db

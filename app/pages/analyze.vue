@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ArrowRight, CheckCircle2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import type { AnalysisResult } from '~/server/utils/clova'
 
 const authStore = useAuthStore()
-const { hasUsedGuestAnalysis, markGuestAnalysisUsed } = useGuestLimit()
 
 const uploadedFile = ref<File | null>(null)
 const additionalNote = ref('')
@@ -17,10 +16,17 @@ const checklist = ['PDF 파일만 가능', '10MB 이하', '최대 50페이지', 
 
 const canAnalyze = computed(() => !!uploadedFile.value && !analyzing.value)
 
+// 직접 URL 진입 시 비로그인이면 로그인 모달 표시
+onMounted(() => {
+  if (!authStore.isLoggedIn) {
+    showLoginModal.value = true
+  }
+})
+
 async function handleStartAnalysis() {
   if (!canAnalyze.value || !uploadedFile.value) return
 
-  if (!authStore.isLoggedIn && hasUsedGuestAnalysis()) {
+  if (!authStore.isLoggedIn) {
     showLoginModal.value = true
     return
   }
@@ -35,22 +41,12 @@ async function handleStartAnalysis() {
       formData.append('additionalNote', additionalNote.value.trim())
     }
 
-    const res = await $fetch<{ data: { id: string | null; result: AnalysisResult } }>(
-      '/api/analyses',
-      { method: 'POST', body: formData }
-    )
+    const res = await $fetch<{ data: { id: string; result: AnalysisResult } }>('/api/analyses', {
+      method: 'POST',
+      body: formData,
+    })
 
-    if (!authStore.isLoggedIn) {
-      markGuestAnalysisUsed()
-    }
-
-    if (res.data.id) {
-      await navigateTo(`/analysis/${res.data.id}`)
-    } else {
-      // 비로그인 게스트 — 결과를 세션 스토리지에 임시 저장 후 demo 페이지로
-      sessionStorage.setItem('guestAnalysisResult', JSON.stringify(res.data.result))
-      await navigateTo('/analysis/demo')
-    }
+    await navigateTo(`/analysis/${res.data.id}`)
   } catch (e: unknown) {
     const err = e as { data?: { statusMessage?: string }; message?: string }
     errorMsg.value = err.data?.statusMessage ?? err.message ?? '분석 중 오류가 발생했어요'
@@ -133,9 +129,14 @@ async function handleStartAnalysis() {
 
     <LoginModal
       :open="showLoginModal"
-      context="계속 분석하기"
-      description="비로그인 체험은 1회만 가능해요. 로그인하면 무제한으로 분석할 수 있어요."
-      @close="showLoginModal = false"
+      context="포트폴리오 분석하기"
+      description="로그인 후 AI 포트폴리오 분석을 이용할 수 있어요."
+      @close="
+        () => {
+          showLoginModal = false
+          if (!authStore.isLoggedIn) navigateTo('/')
+        }
+      "
     />
   </div>
 </template>
