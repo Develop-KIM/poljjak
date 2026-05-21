@@ -209,6 +209,7 @@ function shareToCommunity() {
               :title="score.title"
               :score="score.score"
               :comment="score.comment"
+              :improvement="score.improvement"
             />
           </div>
         </Transition>

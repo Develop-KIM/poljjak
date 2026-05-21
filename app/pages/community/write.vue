@@ -42,8 +42,6 @@ onMounted(async () => {
   try {
     const res = await $fetch<{ data: AnalysisData }>(`/api/analyses/${analysisId}`)
     analysisData.value = res.data
-    title.value = `포트폴리오 피드백 부탁드려요`
-    body.value = `실무자분들이나 취업하신 분들의 시각에서 봐주시면 정말 감사할 것 같아요.\n\n특히 아쉬운 부분이나 더 개선할 수 있는 방향이 있다면 알려주세요!`
   } catch {
     // 분석 없이 빈 폼으로
   } finally {
@@ -58,7 +56,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[800px] px-5 py-8 md:px-8 md:py-10">
+  <div class="mx-auto max-w-[1120px] px-5 py-8 md:px-8 md:py-10">
     <NuxtLink
       :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'"
       class="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -123,6 +121,7 @@ function handleSubmit() {
               :title="score.title"
               :score="score.score"
               :comment="score.comment"
+              :improvement="score.improvement"
             />
           </div>
         </div>

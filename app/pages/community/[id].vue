@@ -182,6 +182,7 @@ function handleComment(content: string) {
             :title="score.title"
             :score="score.score"
             :comment="score.comment"
+            :improvement="score.improvement"
           />
         </div>
       </div>

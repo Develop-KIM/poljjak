@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 export interface AnalysisResult {
-  scores: Array<{ title: string; score: number; comment: string }>
+  scores: Array<{
+    title: string
+    score: number
+    comment: string // 현재 상태 평가
+    improvement: string // 10점을 위한 구체적 개선 방향
+  }>
   summary: string
   suggestions: Array<{
     category: string // 개선 유형 (예: "성과 수치화", "역할 명시", "기술 근거")
