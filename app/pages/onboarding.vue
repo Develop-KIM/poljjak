@@ -34,6 +34,7 @@ const canProceedStep1 = computed(() => agreedTerms.value && agreedPrivacy.value)
 const nickname = ref('')
 const avatarPreview = ref<string | null>(null)
 const imageError = ref<string | null>(null)
+const avatarFile = ref<File | null>(null)
 
 const NICKNAME_REGEX = /^[가-힣a-zA-Z0-9]{2,15}$/
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -99,9 +100,11 @@ function handleAvatarChange(e: Event) {
   if (!file) return
   if (file.size > MAX_IMAGE_BYTES) {
     imageError.value = '이미지 크기가 10MB를 초과해요'
+    avatarFile.value = null
     return
   }
   imageError.value = null
+  avatarFile.value = file
   avatarPreview.value = URL.createObjectURL(file)
 }
 
@@ -130,6 +133,15 @@ async function handleComplete() {
   if (completing.value || checkState.value !== 'available') return
   completing.value = true
   try {
+    if (avatarFile.value) {
+      const formData = new FormData()
+      formData.append('file', avatarFile.value)
+      await $fetch('/api/uploads/avatar', {
+        method: 'POST',
+        body: formData,
+      })
+    }
+
     await $fetch('/api/users/me', {
       method: 'PATCH',
       body: {

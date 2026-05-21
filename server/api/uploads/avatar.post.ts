@@ -5,7 +5,7 @@ import { db } from '../../db'
 import { users } from '../../db/schema'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_SIZE = 3 * 1024 * 1024
+const MAX_SIZE = 10 * 1024 * 1024
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'JPG, PNG, WEBP 형식만 지원해요' })
   }
   if (file.size > MAX_SIZE) {
-    throw createError({ statusCode: 400, statusMessage: '파일 크기는 3MB 이하여야 해요' })
+    throw createError({ statusCode: 400, statusMessage: '파일 크기는 10MB 이하여야 해요' })
   }
 
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
