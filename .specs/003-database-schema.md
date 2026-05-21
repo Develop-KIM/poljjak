@@ -38,7 +38,7 @@ server/db/
 | 컬럼                    | 타입                             | 설명                                       |
 | ----------------------- | -------------------------------- | ------------------------------------------ |
 | id                      | uuid PK                          | `auth.users.id`와 동일값                   |
-| kakao_id                | text UNIQUE NOT NULL             | OAuth provider ID. 기존 컬럼명 유지        |
+| provider_id             | text UNIQUE NOT NULL             | OAuth provider ID                          |
 | nickname                | text NOT NULL                    | OAuth 닉네임 (온보딩에서 변경 가능)        |
 | email                   | text                             | OAuth 제공 이메일 (nullable)               |
 | avatar_url              | text                             | 프로필 사진 URL. null이면 기본 이미지 사용 |

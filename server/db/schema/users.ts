@@ -4,7 +4,7 @@ export const jobTypeEnum = pgEnum('job_type', ['developer', 'designer'])
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey(),
-  kakaoId: text('kakao_id').unique().notNull(),
+  providerId: text('provider_id').unique().notNull(),
   nickname: text('nickname').notNull(),
   email: text('email'),
   avatarUrl: text('avatar_url'),

@@ -32,18 +32,18 @@ export default defineEventHandler(async (event) => {
   const [existing] = await db
     .select()
     .from(users)
-    .where(eq(users.kakaoId, String(providerId)))
+    .where(eq(users.providerId, String(providerId)))
     .limit(1)
 
   // 탈퇴 후 재가입: 기존 레코드 삭제 후 신규 삽입
   if (existing?.deletedAt) {
-    await db.delete(users).where(eq(users.kakaoId, String(providerId)))
+    await db.delete(users).where(eq(users.providerId, String(providerId)))
   }
 
   if (!existing || existing.deletedAt) {
     await db.insert(users).values({
       id: supabaseUser.id,
-      kakaoId: String(providerId),
+      providerId: String(providerId),
       nickname,
       email: supabaseUser.email ?? null,
       avatarUrl,
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
       avatarUrl: oauthAvatarUrl ?? existing.avatarUrl,
       updatedAt: new Date(),
     })
-    .where(eq(users.kakaoId, String(providerId)))
+    .where(eq(users.providerId, String(providerId)))
 
   return { data: { needsOnboarding: !existing.onboardingCompletedAt } }
 })
