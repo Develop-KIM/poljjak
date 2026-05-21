@@ -13,6 +13,8 @@ import {
   Loader2,
 } from '@lucide/vue'
 
+definePageMeta({ middleware: 'auth' })
+
 const showWithdrawDialog = ref(false)
 const withdrawing = ref(false)
 const authStore = useAuthStore()
