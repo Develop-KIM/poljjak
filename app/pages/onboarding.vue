@@ -136,7 +136,7 @@ async function handleComplete() {
   <div class="flex min-h-screen flex-col bg-background">
     <!-- 헤더 -->
     <header class="flex h-16 items-center px-5 md:px-8">
-      <span class="text-lg font-black text-foreground">폴짝</span>
+      <img src="/images/logo.png" alt="폴짝" class="h-8 w-auto" />
     </header>
 
     <!-- 프로그레스 바 -->
