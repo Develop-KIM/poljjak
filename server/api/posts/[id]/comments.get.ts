@@ -14,6 +14,8 @@ export default defineEventHandler(async (event) => {
       .select({
         id: comments.id,
         userId: comments.userId,
+        parentId: comments.parentId,
+        mentionNickname: comments.mentionNickname,
         content: comments.content,
         createdAt: comments.createdAt,
         author: users.nickname,
@@ -25,18 +27,49 @@ export default defineEventHandler(async (event) => {
       .orderBy(asc(comments.createdAt)),
   ])
 
-  const list = rows.map((c) => {
-    const author = c.author ?? '알 수 없음'
-    return {
-      id: c.id,
+  interface ReplyItem {
+    id: string
+    author: string
+    authorInitial: string
+    authorAvatarUrl: string | null
+    content: string
+    createdAt: string
+    isOwner: boolean
+    mentionNickname: string | null
+  }
+
+  interface CommentItem extends ReplyItem {
+    replies: ReplyItem[]
+  }
+
+  const topLevel: CommentItem[] = []
+  const replyMap = new Map<string, ReplyItem[]>()
+
+  for (const row of rows) {
+    const author = row.author ?? '알 수 없음'
+    const item = {
+      id: row.id,
       author,
       authorInitial: getAuthorInitial(author),
-      authorAvatarUrl: c.authorAvatarUrl ?? null,
-      content: c.content,
-      createdAt: formatCommunityDate(c.createdAt),
-      isOwner: !!user && c.userId === user.id,
+      authorAvatarUrl: row.authorAvatarUrl ?? null,
+      content: row.content,
+      createdAt: formatCommunityDate(row.createdAt),
+      isOwner: !!user && row.userId === user.id,
+      mentionNickname: row.mentionNickname ?? null,
     }
-  })
 
-  return { data: list }
+    if (!row.parentId) {
+      topLevel.push({ ...item, replies: [] })
+    } else {
+      const bucket = replyMap.get(row.parentId) ?? []
+      bucket.push(item)
+      replyMap.set(row.parentId, bucket)
+    }
+  }
+
+  for (const comment of topLevel) {
+    comment.replies = replyMap.get(comment.id) ?? []
+  }
+
+  return { data: topLevel }
 })

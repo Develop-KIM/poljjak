@@ -100,7 +100,7 @@ onMounted(async () => {
   fetchComments()
 })
 
-interface Comment {
+interface CommentReply {
   id: string
   author: string
   authorInitial: string
@@ -108,11 +108,29 @@ interface Comment {
   content: string
   createdAt: string
   isOwner: boolean
+  mentionNickname: string | null
+}
+
+interface Comment extends CommentReply {
+  replies: CommentReply[]
+}
+
+interface ReplyTarget {
+  parentId: string
+  mentionNickname: string
 }
 
 const comments = ref<Comment[]>([])
 const commentsPending = ref(false)
 const submittingComment = ref(false)
+
+const replyTarget = ref<ReplyTarget | null>(null)
+const replyContent = ref('')
+const submittingReply = ref(false)
+
+const totalCommentCount = computed(() =>
+  comments.value.reduce((sum, c) => sum + 1 + c.replies.length, 0)
+)
 
 async function fetchComments() {
   commentsPending.value = true
@@ -124,6 +142,21 @@ async function fetchComments() {
   } finally {
     commentsPending.value = false
   }
+}
+
+function openReply(parentId: string, mentionNickname: string) {
+  if (!authStore.isLoggedIn) {
+    loginContext.value = '답글 달기'
+    showLoginModal.value = true
+    return
+  }
+  replyTarget.value = { parentId, mentionNickname }
+  replyContent.value = ''
+}
+
+function closeReply() {
+  replyTarget.value = null
+  replyContent.value = ''
 }
 
 function renderBody(raw: string): string {
@@ -173,7 +206,7 @@ async function handleComment(content: string) {
       method: 'POST',
       body: { content },
     })
-    comments.value.push(res.data)
+    comments.value.push({ ...res.data, replies: [] })
   } catch (e: unknown) {
     const err = e as { data?: { statusMessage?: string } }
     toast.error(err.data?.statusMessage ?? '댓글 등록에 실패했어요')
@@ -182,10 +215,38 @@ async function handleComment(content: string) {
   }
 }
 
-async function deleteComment(commentId: string) {
+async function submitReply() {
+  if (!replyTarget.value || !replyContent.value.trim() || submittingReply.value) return
+  submittingReply.value = true
+  try {
+    const res = await $fetch<{ data: CommentReply }>(`/api/posts/${id}/comments`, {
+      method: 'POST',
+      body: {
+        content: replyContent.value.trim(),
+        parentId: replyTarget.value.parentId,
+        mentionNickname: replyTarget.value.mentionNickname,
+      },
+    })
+    const parent = comments.value.find((c) => c.id === replyTarget.value!.parentId)
+    if (parent) parent.replies.push(res.data)
+    closeReply()
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '답글 등록에 실패했어요')
+  } finally {
+    submittingReply.value = false
+  }
+}
+
+async function deleteComment(commentId: string, parentId?: string) {
   try {
     await $fetch(`/api/posts/${id}/comments/${commentId}`, { method: 'DELETE' })
-    comments.value = comments.value.filter((c) => c.id !== commentId)
+    if (parentId) {
+      const parent = comments.value.find((c) => c.id === parentId)
+      if (parent) parent.replies = parent.replies.filter((r) => r.id !== commentId)
+    } else {
+      comments.value = comments.value.filter((c) => c.id !== commentId)
+    }
   } catch (e: unknown) {
     const err = e as { data?: { statusMessage?: string } }
     toast.error(err.data?.statusMessage ?? '댓글 삭제에 실패했어요')
@@ -425,7 +486,7 @@ async function deletePost() {
             class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
           >
             <MessageSquare class="size-4" />
-            {{ commentsPending ? post.commentCount : comments.length }}
+            {{ commentsPending ? post.commentCount : totalCommentCount }}
           </button>
 
           <button
@@ -452,7 +513,7 @@ async function deletePost() {
           <h2 class="text-base font-black text-foreground">
             댓글
             <span class="text-muted-foreground">
-              {{ commentsPending ? post.commentCount : comments.length }}
+              {{ commentsPending ? post.commentCount : totalCommentCount }}
             </span>
           </h2>
 
@@ -461,40 +522,129 @@ async function deletePost() {
             <div class="size-5 animate-spin rounded-full border-2 border-border border-t-primary" />
           </div>
 
-          <div v-else class="mt-5 grid gap-5">
-            <div v-for="comment in comments" :key="comment.id" class="flex gap-3">
-              <img
-                v-if="comment.authorAvatarUrl"
-                :src="comment.authorAvatarUrl"
-                alt=""
-                class="size-8 shrink-0 rounded-full object-cover"
-              />
-              <div
-                v-else
-                class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
-              >
-                {{ comment.authorInitial }}
-              </div>
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-semibold text-foreground">{{ comment.author }}</span>
-                  <span class="text-xs text-muted-foreground">{{ comment.createdAt }}</span>
-                  <button
-                    v-if="comment.isOwner"
-                    type="button"
-                    class="ml-auto text-xs text-muted-foreground transition-colors hover:text-destructive"
-                    @click="deleteComment(comment.id)"
-                  >
-                    삭제
-                  </button>
-                </div>
-                <p class="mt-1.5 text-sm leading-6 text-foreground">{{ comment.content }}</p>
-              </div>
-            </div>
-
+          <div v-else class="mt-5 grid gap-6">
             <p v-if="comments.length === 0" class="py-4 text-center text-sm text-muted-foreground">
               첫 번째 댓글을 남겨보세요.
             </p>
+
+            <div v-for="comment in comments" :key="comment.id">
+              <!-- 최상위 댓글 -->
+              <div class="flex gap-3">
+                <img
+                  v-if="comment.authorAvatarUrl"
+                  :src="comment.authorAvatarUrl"
+                  alt=""
+                  class="size-8 shrink-0 rounded-full object-cover"
+                />
+                <div
+                  v-else
+                  class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
+                >
+                  {{ comment.authorInitial }}
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-foreground">{{ comment.author }}</span>
+                    <span class="text-xs text-muted-foreground">{{ comment.createdAt }}</span>
+                    <button
+                      v-if="comment.isOwner"
+                      type="button"
+                      class="ml-auto text-xs text-muted-foreground transition-colors hover:text-destructive"
+                      @click="deleteComment(comment.id)"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                  <p class="mt-1.5 text-sm leading-6 text-foreground">{{ comment.content }}</p>
+                  <button
+                    type="button"
+                    class="mt-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-primary"
+                    @click="openReply(comment.id, comment.author)"
+                  >
+                    답글
+                  </button>
+                </div>
+              </div>
+
+              <!-- 답글 입력창 -->
+              <div v-if="replyTarget?.parentId === comment.id" class="ml-11 mt-3">
+                <div
+                  class="flex flex-1 items-start rounded-xl border border-primary bg-white px-3.5 py-3 ring-2 ring-ring/20"
+                >
+                  <div class="flex-1">
+                    <span class="text-xs font-semibold text-primary"
+                      >@{{ replyTarget.mentionNickname }}</span
+                    >
+                    <textarea
+                      v-model="replyContent"
+                      placeholder="답글을 입력해주세요."
+                      rows="1"
+                      class="mt-1 block w-full resize-none bg-transparent text-sm leading-5 outline-none placeholder:text-muted-foreground"
+                      @keydown.enter.prevent="submitReply"
+                      @keydown.esc="closeReply"
+                    />
+                  </div>
+                  <div class="ml-2 flex shrink-0 flex-col gap-1">
+                    <AppButton
+                      size="sm"
+                      :disabled="!replyContent.trim()"
+                      :loading="submittingReply"
+                      @click="submitReply"
+                    >
+                      등록
+                    </AppButton>
+                    <AppButton size="sm" variant="ghost" class="text-xs" @click="closeReply">
+                      취소
+                    </AppButton>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 답글 목록 (depth 2) -->
+              <div v-if="comment.replies.length > 0" class="ml-11 mt-3 grid gap-4">
+                <div v-for="reply in comment.replies" :key="reply.id" class="flex gap-3">
+                  <img
+                    v-if="reply.authorAvatarUrl"
+                    :src="reply.authorAvatarUrl"
+                    alt=""
+                    class="size-7 shrink-0 rounded-full object-cover"
+                  />
+                  <div
+                    v-else
+                    class="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
+                  >
+                    {{ reply.authorInitial }}
+                  </div>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-semibold text-foreground">{{ reply.author }}</span>
+                      <span class="text-xs text-muted-foreground">{{ reply.createdAt }}</span>
+                      <button
+                        v-if="reply.isOwner"
+                        type="button"
+                        class="ml-auto text-xs text-muted-foreground transition-colors hover:text-destructive"
+                        @click="deleteComment(reply.id, comment.id)"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                    <p class="mt-1.5 text-sm leading-6 text-foreground">
+                      <span v-if="reply.mentionNickname" class="font-semibold text-primary"
+                        >@{{ reply.mentionNickname }}</span
+                      >
+                      {{ reply.mentionNickname ? ' ' + reply.content : reply.content }}
+                    </p>
+                    <button
+                      type="button"
+                      class="mt-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-primary"
+                      @click="openReply(comment.id, reply.author)"
+                    >
+                      답글
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="mt-6">
