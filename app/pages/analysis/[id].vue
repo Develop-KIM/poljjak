@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Link, Lock, Unlock, MessageSquare, ChevronDown, Check } from '@lucide/vue'
+import { Link, Lock, Unlock, MessageSquare, ChevronDown, Check, Download, CheckCircle2, Loader2 } from '@lucide/vue'
 import type { AnalysisResult } from '~~/server/utils/clova'
 
 const route = useRoute()
@@ -24,10 +24,18 @@ const showScores = ref(false)
 const linkCopied = ref(false)
 const toggling = ref(false)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
+let stepTimer: ReturnType<typeof setInterval> | null = null
 
 const isProcessing = computed(() =>
   analysis.value?.status === 'pending' || analysis.value?.status === 'processing',
 )
+
+const processingStep = ref(0)
+const processingSteps = [
+  { label: 'PDF 업로드 중', sublabel: '파일을 서버로 전송하고 있어요' },
+  { label: '텍스트 추출 중', sublabel: 'PDF에서 내용을 읽고 있어요' },
+  { label: 'AI 분석 중', sublabel: 'AI가 포트폴리오를 꼼꼼히 보고 있어요' },
+]
 
 const createdAtLabel = computed(() => {
   if (!analysis.value?.createdAt) return ''
@@ -43,7 +51,15 @@ async function fetchAnalysis() {
     const res = await $fetch<{ data: Analysis }>(`/api/analyses/${id}`)
     analysis.value = res.data
     if (isProcessing.value) {
+      // 단계별 애니메이션 시작
+      if (!stepTimer) {
+        stepTimer = setInterval(() => {
+          if (processingStep.value < processingSteps.length - 1) processingStep.value++
+        }, 3000)
+      }
       pollTimer = setTimeout(fetchAnalysis, 4000)
+    } else {
+      if (stepTimer) { clearInterval(stepTimer); stepTimer = null }
     }
   } catch (e: unknown) {
     const err = e as { data?: { statusMessage?: string } }
@@ -57,6 +73,7 @@ onMounted(fetchAnalysis)
 
 onUnmounted(() => {
   if (pollTimer) clearTimeout(pollTimer)
+  if (stepTimer) clearInterval(stepTimer)
 })
 
 async function togglePublic() {
@@ -99,17 +116,53 @@ async function copyShareLink() {
 }
 
 function shareToCommunity() {
-  // 커뮤니티 글쓰기 페이지로 이동 (analysisId 전달)
   navigateTo(`/community/write?analysisId=${id}`)
+}
+
+function downloadAsPdf() {
+  window.print()
 }
 </script>
 
 <template>
   <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8 md:py-14">
-    <!-- 로딩 (초기 fetch + 분석 중 폴링 모두 동일 UI) -->
-    <div v-if="pending || isProcessing" class="flex flex-col items-center gap-4 py-32">
+    <!-- 초기 로딩 -->
+    <div v-if="pending" class="flex justify-center py-32">
       <div class="size-10 animate-spin rounded-full border-4 border-border border-t-primary" />
-      <p class="text-sm text-muted-foreground">분석 결과를 불러오는 중...</p>
+    </div>
+
+    <!-- 분석 진행 중 (analyze.vue와 동일한 UI) -->
+    <div v-else-if="isProcessing" class="flex flex-col items-center justify-center py-24">
+      <p class="text-sm text-muted-foreground">{{ analysis?.title ?? '포트폴리오 분석 결과' }}</p>
+      <div class="relative mt-8">
+        <div class="size-20 animate-spin rounded-full border-4 border-border border-t-primary" />
+        <div class="absolute inset-0 flex items-center justify-center">
+          <span class="text-xs font-bold text-primary">AI</span>
+        </div>
+      </div>
+      <div class="mt-10 w-full max-w-sm">
+        <div
+          v-for="(step, i) in processingSteps"
+          :key="step.label"
+          class="flex items-start gap-3 py-3"
+          :class="i < processingSteps.length - 1 ? 'border-b border-border' : ''"
+        >
+          <div class="mt-0.5 shrink-0">
+            <CheckCircle2 v-if="i < processingStep" class="size-5 text-emerald-500" />
+            <Loader2 v-else-if="i === processingStep" class="size-5 animate-spin text-primary" />
+            <div v-else class="size-5 rounded-full border-2 border-border" />
+          </div>
+          <div>
+            <p class="text-sm font-bold" :class="i <= processingStep ? 'text-foreground' : 'text-muted-foreground'">
+              {{ step.label }}
+            </p>
+            <p v-if="i === processingStep" class="mt-0.5 text-xs text-muted-foreground">
+              {{ step.sublabel }}
+            </p>
+          </div>
+        </div>
+      </div>
+      <p class="mt-8 text-sm text-muted-foreground">보통 30초~1분 정도 소요돼요</p>
     </div>
 
     <!-- 에러 -->
@@ -131,6 +184,10 @@ function shareToCommunity() {
           </p>
         </div>
         <div class="flex shrink-0 flex-wrap gap-2">
+          <AppButton variant="outline" size="sm" @click="downloadAsPdf">
+            <Download class="size-4" />
+            PDF 저장
+          </AppButton>
           <AppButton variant="outline" size="sm" @click="copyShareLink">
             <Check v-if="linkCopied" class="size-4 text-emerald-500" />
             <Link v-else class="size-4" />
