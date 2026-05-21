@@ -4,7 +4,12 @@ import { resolve } from 'node:path'
 export interface AnalysisResult {
   scores: Array<{ title: string; score: number; comment: string }>
   summary: string
-  suggestions: Array<{ before: string; after: string }>
+  suggestions: Array<{
+    category: string // 개선 유형 (예: "성과 수치화", "역할 명시", "기술 근거")
+    context: string // 왜 이 개선이 채용에 유리한지 1문장
+    before: string // 원문 또는 개선 전 패턴
+    after: string // 구체적으로 개선된 버전
+  }>
 }
 
 type JobType = 'developer' | 'designer' | null

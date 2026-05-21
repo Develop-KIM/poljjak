@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Link, Lock, Unlock, MessageSquare } from '@lucide/vue'
+import { Link, Lock, Unlock, MessageSquare, ChevronDown } from '@lucide/vue'
 import type { AnalysisResult } from '~/server/utils/clova'
 
 const route = useRoute()
@@ -18,11 +18,20 @@ interface Analysis {
 const analysis = ref<Analysis | null>(null)
 const pending = ref(true)
 const error = ref<string | null>(null)
+const showScores = ref(false)
 
 const overallScore = computed(() => {
   const scores = analysis.value?.result?.scores
   if (!scores?.length) return null
   return Math.round(scores.reduce((sum, s) => sum + s.score, 0) / scores.length)
+})
+
+const scoreColor = computed(() => {
+  const s = overallScore.value
+  if (s === null) return 'text-muted-foreground'
+  if (s >= 8) return 'text-emerald-600'
+  if (s >= 6) return 'text-primary'
+  return 'text-orange-500'
 })
 
 const createdAtLabel = computed(() => {
@@ -70,12 +79,12 @@ async function togglePublic() {
 
     <!-- 결과 -->
     <template v-else-if="analysis?.result">
-      <!-- 헤더 -->
+      <!-- ── 헤더 ── -->
       <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-3">
             <AppBadge variant="green">분석 완료</AppBadge>
-            <span v-if="overallScore !== null" class="text-sm font-bold text-primary">
+            <span v-if="overallScore !== null" class="text-base font-black" :class="scoreColor">
               종합 {{ overallScore }}/10
             </span>
           </div>
@@ -103,32 +112,67 @@ async function togglePublic() {
         </div>
       </div>
 
-      <!-- 항목별 점수 -->
-      <section class="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <AnalysisScoreCard
-          v-for="score in analysis.result.scores"
-          :key="score.title"
-          :title="score.title"
-          :score="score.score"
-          :comment="score.comment"
-        />
-      </section>
+      <!-- ── 종합 피드백 ── -->
+      <AppCard class="mt-8">
+        <h2 class="text-lg font-black text-foreground">종합 피드백</h2>
+        <p class="mt-3 leading-7 text-muted-foreground">{{ analysis.result.summary }}</p>
+      </AppCard>
 
-      <!-- 종합 피드백 + Before/After -->
-      <section class="mt-6 grid gap-4 lg:grid-cols-2">
-        <AppCard>
-          <h2 class="text-xl font-black text-foreground">종합 피드백</h2>
-          <p class="mt-4 leading-7 text-muted-foreground">{{ analysis.result.summary }}</p>
-        </AppCard>
+      <!-- ── Before / After 개선안 (메인) ── -->
+      <section class="mt-8">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-black text-foreground">
+            개선 포인트
+            <span class="ml-2 text-sm font-semibold text-muted-foreground">
+              {{ analysis.result.suggestions.length }}개
+            </span>
+          </h2>
+        </div>
+        <p class="mt-1 text-sm text-muted-foreground">
+          아래 개선안을 포트폴리오에 바로 적용해보세요.
+        </p>
 
-        <div class="grid gap-4">
+        <div class="mt-5 grid gap-4">
           <BeforeAfterBlock
-            v-for="suggestion in analysis.result.suggestions"
-            :key="suggestion.before"
-            :before="suggestion.before"
-            :after="suggestion.after"
+            v-for="(s, i) in analysis.result.suggestions"
+            :key="i"
+            :category="s.category"
+            :context="s.context"
+            :before="s.before"
+            :after="s.after"
           />
         </div>
+      </section>
+
+      <!-- ── 항목별 점수 (접기/펼치기) ── -->
+      <section class="mt-8">
+        <button
+          type="button"
+          class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-slate-50"
+          @click="showScores = !showScores"
+        >
+          <span class="text-base font-bold text-foreground">항목별 점수 보기</span>
+          <ChevronDown
+            class="size-5 text-muted-foreground transition-transform duration-200"
+            :class="{ 'rotate-180': showScores }"
+          />
+        </button>
+
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 -translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+        >
+          <div v-if="showScores" class="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <AnalysisScoreCard
+              v-for="score in analysis.result.scores"
+              :key="score.title"
+              :title="score.title"
+              :score="score.score"
+              :comment="score.comment"
+            />
+          </div>
+        </Transition>
       </section>
     </template>
   </div>
