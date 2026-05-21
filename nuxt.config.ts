@@ -30,10 +30,4 @@ export default defineNuxtConfig({
       exclude: ['/', '/terms', '/privacy', '/analysis/demo', '/analysis/**'],
     },
   },
-
-  nitro: {
-    externals: {
-      external: ['pdf-parse'],
-    },
-  },
 })

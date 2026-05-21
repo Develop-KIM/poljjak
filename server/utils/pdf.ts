@@ -1,20 +1,16 @@
-import { createRequire } from 'node:module'
-
-const _require = createRequire(import.meta.url)
+import { extractText, getDocumentProxy } from 'unpdf'
 
 export async function extractPdfText(buffer: Buffer): Promise<string> {
-  const pdfParse = _require('pdf-parse') as (
-    buffer: Buffer
-  ) => Promise<{ text: string; numpages: number }>
+  const pdf = await getDocumentProxy(new Uint8Array(buffer))
 
-  const data = await pdfParse(buffer)
-
-  if (data.numpages > 50) {
+  if (pdf.numPages > 50) {
     throw createError({ statusCode: 400, statusMessage: '50페이지 이하의 PDF만 분석할 수 있어요' })
   }
 
-  const text = data.text.trim()
-  if (!text) {
+  const { text } = await extractText(pdf, { mergePages: true })
+  const result = (Array.isArray(text) ? text.join('\n') : text).trim()
+
+  if (!result) {
     throw createError({
       statusCode: 422,
       statusMessage:
@@ -23,5 +19,5 @@ export async function extractPdfText(buffer: Buffer): Promise<string> {
   }
 
   // CLOVA 컨텍스트 초과 방지 — 최대 12,000자
-  return text.slice(0, 12000)
+  return result.slice(0, 12000)
 }

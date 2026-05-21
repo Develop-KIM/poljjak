@@ -17,7 +17,7 @@ import {
     <!-- ─── 히어로 ─────────────────────────────────────────── -->
     <section class="border-b border-border px-5 py-24 text-center md:py-32 md:px-8">
       <div class="mx-auto max-w-3xl">
-        <AppBadge variant="blue">AI 포트폴리오 분석 · 1회 무료 체험</AppBadge>
+        <AppBadge variant="blue">AI 포트폴리오 분석</AppBadge>
 
         <h1
           class="mt-6 text-4xl font-black leading-[1.15] tracking-tight text-foreground md:text-5xl lg:text-6xl"
@@ -47,7 +47,7 @@ import {
           </NuxtLink>
         </div>
 
-        <p class="mt-4 text-sm text-muted-foreground">로그인 없이 1회 무료로 체험할 수 있어요</p>
+        <p class="mt-4 text-sm text-muted-foreground">로그인 후 무제한으로 분석할 수 있어요</p>
       </div>
     </section>
 
@@ -69,7 +69,7 @@ import {
           </div>
           <div class="px-8 py-6 text-center">
             <p class="text-2xl font-black text-foreground">무료</p>
-            <p class="mt-1 text-sm text-muted-foreground">로그인 없이 시작</p>
+            <p class="mt-1 text-sm text-muted-foreground">로그인 후 시작</p>
           </div>
         </div>
       </div>
@@ -287,7 +287,7 @@ import {
             </div>
             <h3 class="mt-4 font-black text-foreground">무료로 바로 시작</h3>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
-              로그인 없이 1회 무료로 체험할 수 있어요. 부담 없이 지금 바로 올려보세요.
+              로그인 후 PDF를 올리면 AI가 바로 분석해드려요.
             </p>
           </div>
         </div>
@@ -301,7 +301,7 @@ import {
         <h2 class="mt-3 text-3xl font-black leading-tight text-white md:text-4xl">
           내 포트폴리오,<br />AI에게 먼저 물어보세요.
         </h2>
-        <p class="mt-4 text-white/70">로그인 없이 1회 무료 · 결과는 저장 및 공유 가능</p>
+        <p class="mt-4 text-white/70">로그인 후 무제한 분석 · 결과는 저장 및 공유 가능</p>
         <div class="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
           <NuxtLink to="/analyze" class="sm:w-auto">
             <button
