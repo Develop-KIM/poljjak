@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { Link, Lock, MessageSquare } from '@lucide/vue'
 
+useSeoMeta({
+  title: '분석 결과 미리보기',
+  description:
+    '폴짝 AI 포트폴리오 분석 결과를 미리 체험해보세요. 항목별 점수와 Before/After 개선안을 확인할 수 있어요.',
+  ogTitle: '분석 결과 미리보기 · 폴짝',
+  ogDescription: '폴짝 AI 포트폴리오 분석이 어떻게 생겼는지 미리 확인해보세요.',
+  ogUrl: 'https://poljjak.kr/analysis/demo',
+})
+
 const scores = [
   {
     title: '프로젝트 설명 명확성',

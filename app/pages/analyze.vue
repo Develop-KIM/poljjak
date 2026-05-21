@@ -3,6 +3,15 @@ import { ref, computed, onMounted } from 'vue'
 import { ArrowRight, CheckCircle2, Loader2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 
+useSeoMeta({
+  title: '포트폴리오 분석',
+  description:
+    'PDF 포트폴리오를 업로드하면 AI가 10가지 항목을 분석하고 점수와 Before/After 개선안을 제시해드려요.',
+  ogTitle: '포트폴리오 분석 · 폴짝',
+  ogDescription: 'PDF를 올리면 AI가 항목별 점수와 구체적인 개선안을 제시해드려요.',
+  ogUrl: 'https://poljjak.kr/analyze',
+})
+
 const authStore = useAuthStore()
 const toast = useToastStore()
 

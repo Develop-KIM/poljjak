@@ -1,5 +1,10 @@
 <script setup lang="ts">
-useHead({ title: '개인정보처리방침 · 폴짝' })
+useSeoMeta({
+  title: '개인정보처리방침',
+  description: '폴짝 서비스의 개인정보 수집·이용·보관 방침을 안내합니다.',
+  ogTitle: '개인정보처리방침 · 폴짝',
+  ogUrl: 'https://poljjak.kr/privacy',
+})
 </script>
 
 <template>

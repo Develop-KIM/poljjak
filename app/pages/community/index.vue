@@ -3,6 +3,14 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { PenLine, Search, X } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 
+useSeoMeta({
+  title: '커뮤니티',
+  description: '피드백, 프로젝트 모집, 스터디 모집 게시판에서 개발자·디자이너와 교류하세요.',
+  ogTitle: '커뮤니티 · 폴짝',
+  ogDescription: '피드백, 프로젝트 모집, 스터디 모집 게시판에서 개발자·디자이너와 교류하세요.',
+  ogUrl: 'https://poljjak.kr/community',
+})
+
 const authStore = useAuthStore()
 const route = useRoute()
 const validTabs = ['feedback', 'project', 'study']

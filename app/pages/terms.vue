@@ -1,5 +1,10 @@
 <script setup lang="ts">
-useHead({ title: '이용약관 · 폴짝' })
+useSeoMeta({
+  title: '이용약관',
+  description: '폴짝 서비스 이용 조건 및 이용자와 서비스 제공자 간의 권리·의무를 규정합니다.',
+  ogTitle: '이용약관 · 폴짝',
+  ogUrl: 'https://poljjak.kr/terms',
+})
 </script>
 
 <template>

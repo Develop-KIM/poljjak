@@ -19,6 +19,7 @@ const authStore = useAuthStore()
 const toast = useToastStore()
 const route = useRoute()
 const id = route.params.id as string
+
 const showLoginModal = ref(false)
 const loginContext = ref('계속하기')
 const showReportDialog = ref(false)
@@ -79,10 +80,20 @@ const backLink = computed(() => {
 const canSaveEdit = computed(() => editTitle.value.trim().length > 0)
 
 const isFromAnalysis = computed(() => !!post.value?.analysisId)
-const editBodyLabel = computed(() => (post.value?.category === '피드백' && !isFromAnalysis.value) ? '피드백 내용' : '본문')
+const editBodyLabel = computed(() =>
+  post.value?.category === '피드백' && !isFromAnalysis.value ? '피드백 내용' : '본문'
+)
 
 const post = ref<PostDetail | null>(null)
 const analysisEmbed = ref<AnalysisEmbed | null>(null)
+
+useSeoMeta({
+  title: () => post.value?.title ?? '커뮤니티 게시글',
+  description: () => post.value?.body?.slice(0, 150) ?? '폴짝 커뮤니티 게시글',
+  ogTitle: () => post.value?.title ?? '커뮤니티 게시글',
+  ogDescription: () => post.value?.body?.slice(0, 150) ?? '폴짝 커뮤니티 게시글',
+  ogUrl: `https://poljjak.kr/community/${id}`,
+})
 
 onMounted(async () => {
   try {
@@ -118,6 +129,7 @@ interface CommentReply {
 }
 
 interface Comment extends CommentReply {
+  isDeleted: boolean
   replies: CommentReply[]
 }
 
@@ -266,10 +278,21 @@ async function deleteComment(commentId: string, parentId?: string) {
   try {
     await $fetch(`/api/posts/${id}/comments/${commentId}`, { method: 'DELETE' })
     if (parentId) {
+      // 대댓글: 목록에서 완전 제거
       const parent = comments.value.find((c) => c.id === parentId)
       if (parent) parent.replies = parent.replies.filter((r) => r.id !== commentId)
     } else {
-      comments.value = comments.value.filter((c) => c.id !== commentId)
+      // 최상위 댓글: 대댓글이 있으면 삭제 표시만, 없으면 제거
+      const target = comments.value.find((c) => c.id === commentId)
+      if (target) {
+        if (target.replies.length > 0) {
+          target.isDeleted = true
+          target.content = ''
+          target.isOwner = false
+        } else {
+          comments.value = comments.value.filter((c) => c.id !== commentId)
+        }
+      }
     }
   } catch (e: unknown) {
     const err = e as { data?: { statusMessage?: string } }
@@ -428,8 +451,15 @@ async function deletePost() {
                 />
               </div>
               <div class="flex gap-3">
-                <AppButton variant="outline" class="flex-1" @click="editing = false">취소</AppButton>
-                <AppButton class="flex-1" :disabled="!canSaveEdit" :loading="saving" @click="saveEdit">
+                <AppButton variant="outline" class="flex-1" @click="editing = false"
+                  >취소</AppButton
+                >
+                <AppButton
+                  class="flex-1"
+                  :disabled="!canSaveEdit"
+                  :loading="saving"
+                  @click="saveEdit"
+                >
                   저장
                 </AppButton>
               </div>
@@ -458,7 +488,12 @@ async function deletePost() {
             </div>
             <div class="flex gap-3">
               <AppButton variant="outline" class="flex-1" @click="editing = false">취소</AppButton>
-              <AppButton class="flex-1" :disabled="!canSaveEdit" :loading="saving" @click="saveEdit">
+              <AppButton
+                class="flex-1"
+                :disabled="!canSaveEdit"
+                :loading="saving"
+                @click="saveEdit"
+              >
                 저장
               </AppButton>
             </div>
@@ -617,7 +652,11 @@ async function deletePost() {
           <button
             type="button"
             class="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-destructive"
-            @click="authStore.isLoggedIn ? (showReportDialog = true) : (loginContext = '신고하기', showLoginModal = true)"
+            @click="
+              authStore.isLoggedIn
+                ? (showReportDialog = true)
+                : ((loginContext = '신고하기'), (showLoginModal = true))
+            "
           >
             <Flag class="size-4" />
             신고
@@ -646,32 +685,40 @@ async function deletePost() {
             <div v-for="comment in comments" :key="comment.id">
               <!-- 최상위 댓글 -->
               <div class="flex gap-3">
-                <img
-                  v-if="comment.authorAvatarUrl"
-                  :src="comment.authorAvatarUrl"
-                  alt=""
-                  class="size-8 shrink-0 rounded-full object-cover"
-                />
                 <div
-                  v-else
                   class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
+                  :class="{ 'opacity-40': comment.isDeleted }"
                 >
-                  {{ comment.authorInitial }}
+                  <template v-if="!comment.isDeleted && comment.authorAvatarUrl">
+                    <img
+                      :src="comment.authorAvatarUrl"
+                      alt=""
+                      class="h-full w-full rounded-full object-cover"
+                    />
+                  </template>
+                  <template v-else>{{ comment.isDeleted ? '?' : comment.authorInitial }}</template>
                 </div>
                 <div class="flex-1">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-semibold text-foreground">{{ comment.author }}</span>
-                    <span class="text-xs text-muted-foreground">{{ comment.createdAt }}</span>
-                    <button
-                      v-if="comment.isOwner"
-                      type="button"
-                      class="ml-auto text-xs text-muted-foreground transition-colors hover:text-destructive"
-                      @click="deleteComment(comment.id)"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                  <p class="mt-1.5 text-sm leading-6 text-foreground">{{ comment.content }}</p>
+                  <template v-if="comment.isDeleted">
+                    <p class="text-sm italic text-muted-foreground">삭제된 메시지입니다.</p>
+                  </template>
+                  <template v-else>
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-semibold text-foreground">{{
+                        comment.author
+                      }}</span>
+                      <span class="text-xs text-muted-foreground">{{ comment.createdAt }}</span>
+                      <button
+                        v-if="comment.isOwner"
+                        type="button"
+                        class="ml-auto text-xs text-muted-foreground transition-colors hover:text-destructive"
+                        @click="deleteComment(comment.id)"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                    <p class="mt-1.5 text-sm leading-6 text-foreground">{{ comment.content }}</p>
+                  </template>
                   <button
                     type="button"
                     class="mt-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-primary"

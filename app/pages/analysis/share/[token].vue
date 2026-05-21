@@ -16,6 +16,19 @@ interface SharedAnalysis {
 const analysis = ref<SharedAnalysis | null>(null)
 const pending = ref(true)
 const error = ref<string | null>(null)
+
+useSeoMeta({
+  title: () =>
+    analysis.value?.title ? `${analysis.value.title} 분석 결과` : '포트폴리오 분석 결과',
+  description: () =>
+    analysis.value
+      ? `AI가 분석한 포트폴리오 결과를 확인해보세요. 항목별 점수와 Before/After 개선안이 포함되어 있어요.`
+      : '폴짝 AI 포트폴리오 분석 결과',
+  ogTitle: () =>
+    analysis.value?.title ? `${analysis.value.title} 분석 결과` : '포트폴리오 분석 결과',
+  ogDescription:
+    'AI가 분석한 포트폴리오 결과를 확인해보세요. 항목별 점수와 Before/After 개선안이 포함되어 있어요.',
+})
 const showScores = ref(false)
 
 const overallScore = computed(() => {

@@ -16,6 +16,37 @@ import {
   Download,
 } from '@lucide/vue'
 
+useHead({ titleTemplate: '%s' })
+useSeoMeta({
+  title: '폴짝 - AI 포트폴리오 분석 서비스',
+  description:
+    'PDF 하나로 포트폴리오의 약점을 파악하세요. AI가 10가지 항목을 점수와 코멘트로 분석하고 Before/After 개선안을 제시해드려요.',
+  ogTitle: '폴짝 - AI 포트폴리오 분석 서비스',
+  ogDescription:
+    'PDF 하나로 포트폴리오의 약점을 파악하세요. AI가 10가지 항목을 분석하고 Before/After 개선안을 제시해드려요.',
+  ogUrl: 'https://poljjak.kr',
+  twitterTitle: '폴짝 - AI 포트폴리오 분석 서비스',
+  twitterDescription: 'PDF 하나로 포트폴리오의 약점을 파악하세요.',
+})
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebApplication',
+        name: '폴짝',
+        url: 'https://poljjak.kr',
+        description: 'AI가 포트폴리오를 분석하고 개선해주는 서비스',
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Web',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'KRW' },
+        inLanguage: 'ko',
+      }),
+    },
+  ],
+})
+
 const demoStep = ref(0)
 const analysisStep = ref(0)
 const showScores = ref(false)

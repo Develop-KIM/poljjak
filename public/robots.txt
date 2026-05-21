@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Allow: /analyze
+Allow: /community
+Allow: /analysis/demo
+Allow: /analysis/share/
+Allow: /terms
+Allow: /privacy
+
+Disallow: /auth/
+Disallow: /my
+Disallow: /chat
+Disallow: /onboarding
+Disallow: /analysis/
+Disallow: /community/write
+
+Sitemap: https://poljjak.kr/sitemap.xml
