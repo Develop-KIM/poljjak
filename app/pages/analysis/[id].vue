@@ -106,23 +106,10 @@ function shareToCommunity() {
 
 <template>
   <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8 md:py-14">
-    <!-- 로딩 -->
-    <div v-if="pending" class="flex flex-col items-center gap-4 py-32">
+    <!-- 로딩 (초기 fetch + 분석 중 폴링 모두 동일 UI) -->
+    <div v-if="pending || isProcessing" class="flex flex-col items-center gap-4 py-32">
       <div class="size-10 animate-spin rounded-full border-4 border-border border-t-primary" />
       <p class="text-sm text-muted-foreground">분석 결과를 불러오는 중...</p>
-    </div>
-
-    <!-- 분석 중 (비동기) -->
-    <div v-else-if="isProcessing" class="flex flex-col items-center gap-5 py-32 text-center">
-      <div class="size-12 animate-spin rounded-full border-4 border-border border-t-primary" />
-      <div>
-        <p class="text-lg font-black text-foreground">AI가 포트폴리오를 분석하고 있어요</p>
-        <p class="mt-2 text-sm text-muted-foreground">
-          보통 30초~1분 정도 걸려요. 다른 화면을 둘러봐도 괜찮아요.
-          <br />분석이 완료되면 알림으로 알려드릴게요.
-        </p>
-      </div>
-      <NuxtLink to="/" class="text-sm text-primary hover:underline">홈으로 이동</NuxtLink>
     </div>
 
     <!-- 에러 -->
