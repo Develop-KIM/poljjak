@@ -2,46 +2,74 @@
 import { ref, onMounted } from 'vue'
 import { Heart, MessageSquare, Share2, Flag, Send, ArrowLeft, ChevronDown } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
-import type { AnalysisResult } from '~/server/utils/clova'
+import type { AnalysisResult } from '~~/server/utils/clova'
 
 const authStore = useAuthStore()
+const route = useRoute()
+const id = route.params.id as string
 const showLoginModal = ref(false)
 const loginContext = ref('계속하기')
 const showShareDialog = ref(false)
 const showReportDialog = ref(false)
+const pending = ref(true)
+const error = ref<string | null>(null)
 
 const liked = ref(false)
 const likeCount = ref(0)
 const showScores = ref(false)
-
-const post = ref<null | {
-  id: string
-  category: string
-  title: string
-  body: string
-  author: string
-  authorInitial: string
-  createdAt: string
-  commentCount: number
-  analysisId?: string | null
-}>(null)
 
 // 분석 결과 임베드
 interface AnalysisEmbed {
   id: string
   result: AnalysisResult
 }
+
+interface PostDetail {
+  id: string
+  category: string
+  title: string
+  body: string
+  author: string
+  authorInitial: string
+  authorAvatarUrl: string | null
+  createdAt: string
+  commentCount: number
+  likeCount: number
+  analysisId?: string | null
+  analysis?: AnalysisEmbed | null
+}
+
+const categoryTabMap: Record<string, string> = {
+  피드백: 'feedback',
+  '프로젝트 모집': 'project',
+  '스터디 모집': 'study',
+}
+
+const backLink = computed(() => {
+  if (!post.value) return '/community'
+  const tab = categoryTabMap[post.value.category] ?? 'project'
+  return `/community?tab=${tab}`
+})
+
+const post = ref<PostDetail | null>(null)
 const analysisEmbed = ref<AnalysisEmbed | null>(null)
 
 onMounted(async () => {
-  // 게시글 API 구현 전: post.analysisId가 있으면 분석 결과 로드
-  if (post.value?.analysisId) {
-    try {
-      const res = await $fetch<{ data: AnalysisEmbed }>(`/api/analyses/${post.value.analysisId}`)
-      analysisEmbed.value = res.data
-    } catch {
-      /* 조용히 무시 */
+  try {
+    const res = await $fetch<{ data: PostDetail }>(`/api/posts/${id}`)
+    post.value = res.data
+    likeCount.value = res.data.likeCount
+    analysisEmbed.value = res.data.analysis ?? null
+  } catch (e: unknown) {
+    const err = e as { data?: { statusCode?: number; statusMessage?: string } }
+    error.value = err.data?.statusMessage ?? '게시글을 불러오지 못했어요'
+
+    if (err.data?.statusCode === 401) {
+      loginContext.value = '피드백 보기'
+      showLoginModal.value = true
     }
+  } finally {
+    pending.value = false
   }
 })
 
@@ -99,17 +127,22 @@ function handleComment(content: string) {
   <div class="mx-auto max-w-[1120px] px-5 py-8 md:px-8 md:py-10">
     <!-- 뒤로가기 -->
     <NuxtLink
-      to="/community"
+      :to="backLink"
       class="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
     >
       <ArrowLeft class="size-4" />
       커뮤니티
     </NuxtLink>
 
+    <!-- 로딩 -->
+    <div v-if="pending" class="flex justify-center py-20">
+      <div class="size-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+    </div>
+
     <!-- 게시글 없음 -->
     <AppEmptyState
-      v-if="!post"
-      title="게시글을 찾을 수 없어요"
+      v-else-if="error || !post"
+      :title="error ?? '게시글을 찾을 수 없어요'"
       description="삭제되었거나 존재하지 않는 게시글이에요."
     />
 
@@ -122,7 +155,14 @@ function handleComment(content: string) {
         </h1>
         <div class="mt-3 flex items-center justify-between gap-4">
           <div class="flex items-center gap-2">
+            <img
+              v-if="post.authorAvatarUrl"
+              :src="post.authorAvatarUrl"
+              alt=""
+              class="size-7 rounded-full object-cover"
+            />
             <div
+              v-else
               class="flex size-7 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
             >
               {{ post.authorInitial }}
@@ -175,7 +215,7 @@ function handleComment(content: string) {
             :class="{ 'rotate-180': showScores }"
           />
         </button>
-        <div v-if="showScores" class="mt-3 grid gap-3 md:grid-cols-2">
+        <div v-if="showScores" class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2">
           <AnalysisScoreCard
             v-for="score in analysisEmbed.result.scores"
             :key="score.title"
@@ -187,10 +227,16 @@ function handleComment(content: string) {
         </div>
       </div>
 
-      <hr class="my-6 border-border" />
+      <hr v-if="post.body.trim()" class="my-6 border-border" />
 
       <!-- 본문 -->
-      <div class="text-base leading-8 text-foreground" v-html="renderBody(post.body)" />
+      <!-- eslint-disable vue/no-v-html -->
+      <div
+        v-if="post.body.trim()"
+        class="text-base leading-8 text-foreground"
+        v-html="renderBody(post.body)"
+      />
+      <!-- eslint-enable vue/no-v-html -->
 
       <!-- 액션 바 -->
       <div class="mt-8 flex items-center gap-2 border-t border-b border-border py-4">

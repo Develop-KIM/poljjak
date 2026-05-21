@@ -202,7 +202,7 @@ function shareToCommunity() {
           enter-from-class="opacity-0 -translate-y-2"
           enter-to-class="opacity-100 translate-y-0"
         >
-          <div v-if="showScores" class="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div v-if="showScores" class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2 lg:grid-cols-3">
             <AnalysisScoreCard
               v-for="score in analysis.result.scores"
               :key="score.title"

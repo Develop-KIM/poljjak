@@ -23,7 +23,8 @@ const scoreColor = computed(() => {
 </script>
 
 <template>
-  <AppCard>
+  <div class="flex h-full flex-col rounded-xl border border-border bg-card p-5">
+    <!-- 제목 + 점수 -->
     <div class="flex items-start justify-between gap-4">
       <h3 class="font-bold text-foreground">{{ title }}</h3>
       <div class="shrink-0 text-right">
@@ -32,6 +33,7 @@ const scoreColor = computed(() => {
       </div>
     </div>
 
+    <!-- 점수 바 -->
     <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
       <div
         class="h-full rounded-full transition-all"
@@ -40,12 +42,13 @@ const scoreColor = computed(() => {
       />
     </div>
 
-    <p class="mt-3 text-sm leading-6 text-muted-foreground">{{ comment }}</p>
+    <!-- 현재 평가 -->
+    <p class="mt-3 flex-1 text-sm leading-6 text-muted-foreground">{{ comment }}</p>
 
-    <!-- 개선 방향 -->
+    <!-- 개선 방향 — 항상 하단에 고정 -->
     <div v-if="improvement" class="mt-3 flex items-start gap-2 rounded-lg bg-primary/5 px-3 py-2.5">
       <TrendingUp class="mt-0.5 size-3.5 shrink-0 text-primary" />
       <p class="text-xs font-medium leading-5 text-primary">{{ improvement }}</p>
     </div>
-  </AppCard>
+  </div>
 </template>

@@ -125,7 +125,7 @@ onMounted(async () => {
             :class="{ 'rotate-180': showScores }"
           />
         </button>
-        <div v-if="showScores" class="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div v-if="showScores" class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2 lg:grid-cols-3">
           <AnalysisScoreCard
             v-for="score in analysis.result.scores"
             :key="score.title"

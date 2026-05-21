@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { PenLine } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
-const activeTab = ref('project')
+const route = useRoute()
+const validTabs = ['feedback', 'project', 'study']
+const initialTab = validTabs.includes(route.query.tab as string)
+  ? (route.query.tab as string)
+  : 'project'
+const activeTab = ref(initialTab)
 const showLoginModal = ref(false)
 const loginContext = ref('계속하기')
+const toast = useToastStore()
+const pending = ref(false)
 
 const tabs = [
   { label: '피드백', value: 'feedback' },
@@ -27,7 +34,32 @@ interface Post {
   createdAt: string
 }
 
-const currentPosts = computed<Post[]>(() => [])
+const posts = ref<Post[]>([])
+const currentPosts = computed(() => posts.value)
+
+async function fetchPosts() {
+  if (activeTab.value === 'feedback' && !authStore.isLoggedIn) {
+    posts.value = []
+    return
+  }
+
+  pending.value = true
+  try {
+    const res = await $fetch<{ data: Post[] }>('/api/posts', {
+      query: { category: activeTab.value },
+    })
+    posts.value = res.data
+  } catch (e: unknown) {
+    const error = e as { data?: { statusMessage?: string } }
+    posts.value = []
+    toast.error(error.data?.statusMessage ?? '게시글을 불러오지 못했어요')
+  } finally {
+    pending.value = false
+  }
+}
+
+onMounted(fetchPosts)
+watch(activeTab, fetchPosts)
 
 function handleTabChange(value: string) {
   if (value === 'feedback' && !authStore.isLoggedIn) {
@@ -92,7 +124,10 @@ function handleWrite() {
 
     <!-- 게시글 목록 -->
     <div v-else class="mt-6">
-      <div v-if="currentPosts.length > 0" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div v-if="pending" class="flex justify-center py-16">
+        <div class="size-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+      </div>
+      <div v-else-if="currentPosts.length > 0" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <PostCard
           v-for="post in currentPosts"
           :id="post.id"
