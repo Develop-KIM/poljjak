@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Heart, MessageSquare, Share2, Flag, Send, ArrowLeft } from '@lucide/vue'
+import { ref, onMounted } from 'vue'
+import { Heart, MessageSquare, Share2, Flag, Send, ArrowLeft, ChevronDown } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
+import type { AnalysisResult } from '~/server/utils/clova'
 
 const authStore = useAuthStore()
 const showLoginModal = ref(false)
@@ -11,6 +12,7 @@ const showReportDialog = ref(false)
 
 const liked = ref(false)
 const likeCount = ref(0)
+const showScores = ref(false)
 
 const post = ref<null | {
   id: string
@@ -21,7 +23,27 @@ const post = ref<null | {
   authorInitial: string
   createdAt: string
   commentCount: number
+  analysisId?: string | null
 }>(null)
+
+// 분석 결과 임베드
+interface AnalysisEmbed {
+  id: string
+  result: AnalysisResult
+}
+const analysisEmbed = ref<AnalysisEmbed | null>(null)
+
+onMounted(async () => {
+  // 게시글 API 구현 전: post.analysisId가 있으면 분석 결과 로드
+  if (post.value?.analysisId) {
+    try {
+      const res = await $fetch<{ data: AnalysisEmbed }>(`/api/analyses/${post.value.analysisId}`)
+      analysisEmbed.value = res.data
+    } catch {
+      /* 조용히 무시 */
+    }
+  }
+})
 
 interface Comment {
   id: number
@@ -108,11 +130,59 @@ function handleComment(content: string) {
             <span class="text-sm font-semibold text-foreground">{{ post.author }}</span>
             <span class="text-sm text-muted-foreground">{{ post.createdAt }}</span>
           </div>
-          <!-- DM 보내기 -->
           <AppButton variant="outline" size="sm" @click="handleDM">
             <Send class="size-3.5" />
             DM 보내기
           </AppButton>
+        </div>
+      </div>
+
+      <!-- 분석 결과 임베드 (피드백 게시글에 분석 첨부된 경우) -->
+      <div
+        v-if="analysisEmbed?.result"
+        class="mt-6 rounded-xl border border-primary/20 bg-accent/30 p-5"
+      >
+        <div class="flex items-center gap-2 mb-4">
+          <AppBadge variant="green">AI 분석 결과</AppBadge>
+        </div>
+
+        <AppCard>
+          <h3 class="text-sm font-black text-foreground">종합 피드백</h3>
+          <p class="mt-2 text-sm leading-7 text-muted-foreground">
+            {{ analysisEmbed.result.summary }}
+          </p>
+        </AppCard>
+
+        <div class="mt-4 grid gap-3">
+          <BeforeAfterBlock
+            v-for="(s, i) in analysisEmbed.result.suggestions"
+            :key="i"
+            :category="s.category"
+            :context="s.context"
+            :before="s.before"
+            :after="s.after"
+          />
+        </div>
+
+        <button
+          type="button"
+          class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:bg-slate-50"
+          @click="showScores = !showScores"
+        >
+          항목별 점수 보기
+          <ChevronDown
+            class="size-4 text-muted-foreground transition-transform"
+            :class="{ 'rotate-180': showScores }"
+          />
+        </button>
+        <div v-if="showScores" class="mt-3 grid gap-3 md:grid-cols-2">
+          <AnalysisScoreCard
+            v-for="score in analysisEmbed.result.scores"
+            :key="score.title"
+            :title="score.title"
+            :score="score.score"
+            :comment="score.comment"
+          />
         </div>
       </div>
 
