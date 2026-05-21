@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Link, Lock, Unlock, MessageSquare, ChevronDown } from '@lucide/vue'
+import { Link, Lock, Unlock, MessageSquare, ChevronDown, Check } from '@lucide/vue'
 import type { AnalysisResult } from '~/server/utils/clova'
 
 const route = useRoute()
 const id = route.params.id as string
+const toast = useToastStore()
 
 interface Analysis {
   id: string
   title: string
   status: string
   isPublic: boolean
+  shareToken: string | null
   result: AnalysisResult | null
   createdAt: string
 }
@@ -19,6 +21,8 @@ const analysis = ref<Analysis | null>(null)
 const pending = ref(true)
 const error = ref<string | null>(null)
 const showScores = ref(false)
+const linkCopied = ref(false)
+const toggling = ref(false)
 
 const overallScore = computed(() => {
   const scores = analysis.value?.result?.scores
@@ -56,13 +60,47 @@ onMounted(async () => {
 })
 
 async function togglePublic() {
+  if (!analysis.value || toggling.value) return
+  toggling.value = true
+  try {
+    const next = !analysis.value.isPublic
+    const res = await $fetch<{ data: Analysis }>(`/api/analyses/${id}`, {
+      method: 'PATCH',
+      body: { isPublic: next },
+    })
+    analysis.value = res.data
+    toast.success(next ? '공개로 전환됐어요' : '비공개로 전환됐어요')
+  } catch {
+    toast.error('전환에 실패했어요')
+  } finally {
+    toggling.value = false
+  }
+}
+
+async function copyShareLink() {
   if (!analysis.value) return
-  const next = !analysis.value.isPublic
-  await $fetch(`/api/analyses/${id}`, {
-    method: 'PATCH',
-    body: { isPublic: next },
-  })
-  analysis.value.isPublic = next
+
+  // 비공개면 먼저 공개 전환
+  if (!analysis.value.isPublic) {
+    await togglePublic()
+    if (!analysis.value?.isPublic) return
+  }
+
+  const token = analysis.value.shareToken
+  if (!token) return
+
+  const url = `${window.location.origin}/analysis/share/${token}`
+  await navigator.clipboard.writeText(url)
+  linkCopied.value = true
+  toast.success('링크가 복사됐어요')
+  setTimeout(() => {
+    linkCopied.value = false
+  }, 2000)
+}
+
+function shareToCommunity() {
+  // 커뮤니티 글쓰기 페이지로 이동 (analysisId 전달)
+  navigateTo(`/community/write?analysisId=${id}`)
 }
 </script>
 
@@ -96,16 +134,17 @@ async function togglePublic() {
           </p>
         </div>
         <div class="flex shrink-0 flex-wrap gap-2">
-          <AppButton variant="outline" size="sm">
-            <Link class="size-4" />
-            공유 링크 생성
+          <AppButton variant="outline" size="sm" @click="copyShareLink">
+            <Check v-if="linkCopied" class="size-4 text-emerald-500" />
+            <Link v-else class="size-4" />
+            {{ linkCopied ? '복사됐어요' : '링크 복사' }}
           </AppButton>
-          <AppButton variant="outline" size="sm" @click="togglePublic">
+          <AppButton variant="outline" size="sm" :disabled="toggling" @click="togglePublic">
             <Unlock v-if="analysis.isPublic" class="size-4" />
             <Lock v-else class="size-4" />
             {{ analysis.isPublic ? '공개' : '비공개' }}
           </AppButton>
-          <AppButton size="sm">
+          <AppButton size="sm" @click="shareToCommunity">
             <MessageSquare class="size-4" />
             커뮤니티에 공유
           </AppButton>
