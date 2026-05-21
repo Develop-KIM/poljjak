@@ -5,17 +5,37 @@ import { Camera, Check, X, Loader2 } from '@lucide/vue'
 definePageMeta({ layout: false })
 
 // ── 단계 ──────────────────────────────────────────────
-const step = ref<1 | 2>(1)
+const step = ref<1 | 2 | 3>(1)
+const TOTAL_STEPS = 3
 
-// ── Step 1: 프로필 ────────────────────────────────────
-const nickname = ref('김개발')
+const progressPercent = computed(() => ((step.value - 1) / (TOTAL_STEPS - 1)) * 100)
+
+// ── Step 1: 약관 동의 ──────────────────────────────────
+const agreedAll = ref(false)
+const agreedTerms = ref(false)
+const agreedPrivacy = ref(false)
+
+watch([agreedTerms, agreedPrivacy], () => {
+  agreedAll.value = agreedTerms.value && agreedPrivacy.value
+})
+
+function toggleAll() {
+  const next = !agreedAll.value
+  agreedAll.value = next
+  agreedTerms.value = next
+  agreedPrivacy.value = next
+}
+
+const canProceedStep1 = computed(() => agreedTerms.value && agreedPrivacy.value)
+
+// ── Step 2: 프로필 ────────────────────────────────────
+const nickname = ref('')
 const avatarPreview = ref<string | null>(null)
 const imageError = ref<string | null>(null)
 
 const NICKNAME_REGEX = /^[가-힣a-zA-Z0-9]{2,15}$/
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
-// 닉네임 중복 체크 상태
 type CheckState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
 const checkState = ref<CheckState>('idle')
 const checkTimer = ref<ReturnType<typeof setTimeout> | null>(null)
@@ -39,7 +59,6 @@ const nicknameHintColor = computed(() => {
   return ''
 })
 
-// 닉네임 변경 시 500ms 디바운스로 중복 체크
 watch(nickname, (val) => {
   if (checkTimer.value) clearTimeout(checkTimer.value)
   if (!val.trim()) {
@@ -58,7 +77,7 @@ watch(nickname, (val) => {
   }, 500)
 })
 
-const canProceed = computed(() => checkState.value === 'available')
+const canProceedStep2 = computed(() => checkState.value === 'available')
 
 function handleAvatarChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
@@ -71,53 +90,129 @@ function handleAvatarChange(e: Event) {
   avatarPreview.value = URL.createObjectURL(file)
 }
 
-// ── Step 2: 직종 ──────────────────────────────────────
+// ── Step 3: 직종 ──────────────────────────────────────
 const selectedJob = ref<'developer' | 'designer' | null>(null)
 
 const jobs = [
   {
     value: 'developer' as const,
     label: '개발자',
-    desc: '프론트엔드·백엔드·풀스택·모바일 등',
+    desc: '프론트엔드·백엔드·풀스택·모바일',
     emoji: '💻',
   },
   {
     value: 'designer' as const,
     label: '디자이너',
-    desc: 'UI/UX·그래픽·제품 디자인 등',
+    desc: 'UI/UX·그래픽·제품 디자인',
     emoji: '🎨',
   },
 ]
 
 // ── 완료 ──────────────────────────────────────────────
-function handleComplete() {
-  // 3차 구현에서 PATCH /api/users/me (onboarding_completed_at, job_type 저장)
-  navigateTo('/')
+const completing = ref(false)
+
+async function handleComplete() {
+  if (completing.value) return
+  completing.value = true
+  try {
+    await $fetch('/api/users/me', {
+      method: 'PATCH',
+      body: {
+        nickname: nickname.value,
+        jobType: selectedJob.value,
+      },
+    })
+    await navigateTo('/')
+  } catch {
+    // 실패해도 홈으로 이동 (온보딩 재시도는 나중에)
+    await navigateTo('/')
+  } finally {
+    completing.value = false
+  }
 }
 </script>
 
 <template>
   <div class="flex min-h-screen flex-col bg-background">
     <!-- 헤더 -->
-    <header class="flex h-16 items-center justify-between px-5 md:px-8">
+    <header class="flex h-16 items-center px-5 md:px-8">
       <span class="text-lg font-black text-foreground">폴짝</span>
-      <div class="flex items-center gap-2 text-sm font-semibold">
-        <span :class="step === 1 ? 'text-primary' : 'text-muted-foreground/40'">1</span>
-        <div class="h-px w-8 bg-border" />
-        <span :class="step === 2 ? 'text-primary' : 'text-muted-foreground/40'">2</span>
-      </div>
     </header>
+
+    <!-- 프로그레스 바 -->
+    <div class="h-1 w-full bg-border">
+      <div
+        class="h-full bg-primary transition-all duration-300"
+        :style="{ width: `${progressPercent}%` }"
+      />
+    </div>
 
     <main class="flex flex-1 items-center justify-center px-5 py-10">
       <div class="w-full max-w-sm">
-        <!-- ── Step 1: 프로필 설정 ── -->
+        <!-- ── Step 1: 약관 동의 ── -->
         <div v-if="step === 1">
+          <h1 class="text-2xl font-black text-foreground">서비스 이용에 동의해주세요</h1>
+          <p class="mt-2 text-sm text-muted-foreground">아래 약관을 확인하고 동의해주세요.</p>
+
+          <div class="mt-8 rounded-xl border border-border bg-card">
+            <!-- 전체 동의 -->
+            <button
+              type="button"
+              class="flex w-full items-center gap-3 px-4 py-4"
+              @click="toggleAll"
+            >
+              <div
+                class="flex size-5 items-center justify-center rounded-full border-2 transition-colors"
+                :class="agreedAll ? 'border-primary bg-primary' : 'border-border'"
+              >
+                <Check v-if="agreedAll" class="size-3 text-white" />
+              </div>
+              <span class="font-bold text-foreground">전체 동의</span>
+            </button>
+
+            <div class="mx-4 h-px bg-border" />
+
+            <!-- 개별 항목 -->
+            <div class="divide-y divide-border">
+              <label class="flex cursor-pointer items-center gap-3 px-4 py-3.5">
+                <input v-model="agreedTerms" type="checkbox" class="sr-only" />
+                <div
+                  class="flex size-5 items-center justify-center rounded-full border-2 transition-colors"
+                  :class="agreedTerms ? 'border-primary bg-primary' : 'border-border'"
+                >
+                  <Check v-if="agreedTerms" class="size-3 text-white" />
+                </div>
+                <span class="flex-1 text-sm text-foreground">(필수) 이용약관 동의</span>
+                <span class="text-xs text-muted-foreground underline">보기</span>
+              </label>
+
+              <label class="flex cursor-pointer items-center gap-3 px-4 py-3.5">
+                <input v-model="agreedPrivacy" type="checkbox" class="sr-only" />
+                <div
+                  class="flex size-5 items-center justify-center rounded-full border-2 transition-colors"
+                  :class="agreedPrivacy ? 'border-primary bg-primary' : 'border-border'"
+                >
+                  <Check v-if="agreedPrivacy" class="size-3 text-white" />
+                </div>
+                <span class="flex-1 text-sm text-foreground">(필수) 개인정보 처리방침 동의</span>
+                <span class="text-xs text-muted-foreground underline">보기</span>
+              </label>
+            </div>
+          </div>
+
+          <AppButton class="mt-8 w-full" size="lg" :disabled="!canProceedStep1" @click="step = 2">
+            다음
+          </AppButton>
+        </div>
+
+        <!-- ── Step 2: 프로필 설정 ── -->
+        <div v-else-if="step === 2">
           <h1 class="text-2xl font-black text-foreground">프로필을 설정해주세요</h1>
           <p class="mt-2 text-sm text-muted-foreground">
             나중에 마이페이지에서 언제든지 변경할 수 있어요.
           </p>
 
-          <!-- 프로필 이미지 -->
+          <!-- 프로필 이미지 (선택) -->
           <div class="mt-8 flex flex-col items-center gap-2">
             <label class="group relative cursor-pointer">
               <div class="size-24 overflow-hidden rounded-full border-2 border-border bg-accent">
@@ -139,11 +234,11 @@ function handleComplete() {
                 @change="handleAvatarChange"
               />
             </label>
-            <p class="text-xs text-muted-foreground">클릭해서 변경 · jpg, png, webp · 10MB 이하</p>
+            <p class="text-xs text-muted-foreground">선택 · jpg, png, webp · 10MB 이하</p>
             <p v-if="imageError" class="text-xs text-destructive">{{ imageError }}</p>
           </div>
 
-          <!-- 닉네임 -->
+          <!-- 닉네임 (필수) -->
           <div class="mt-8">
             <div class="flex items-center justify-between">
               <label class="text-sm font-bold text-foreground">닉네임</label>
@@ -151,8 +246,7 @@ function handleComplete() {
             </div>
 
             <div class="relative mt-2">
-              <AppInput v-model="nickname" placeholder="한글·영문·숫자 2~15자" :maxlength="15" />
-              <!-- 체크 상태 아이콘 -->
+              <AppInput v-model="nickname" placeholder="닉네임을 입력해주세요" :maxlength="15" />
               <div class="absolute right-3 top-1/2 -translate-y-1/2">
                 <Loader2
                   v-if="checkState === 'checking'"
@@ -174,12 +268,12 @@ function handleComplete() {
             </p>
           </div>
 
-          <AppButton class="mt-8 w-full" size="lg" :disabled="!canProceed" @click="step = 2">
+          <AppButton class="mt-8 w-full" size="lg" :disabled="!canProceedStep2" @click="step = 3">
             다음
           </AppButton>
         </div>
 
-        <!-- ── Step 2: 직종 선택 ── -->
+        <!-- ── Step 3: 직종 선택 ── -->
         <div v-else>
           <h1 class="text-2xl font-black text-foreground">어떤 분야에서 일하고 계신가요?</h1>
           <p class="mt-2 text-sm text-muted-foreground">
@@ -212,11 +306,14 @@ function handleComplete() {
             </button>
           </div>
 
-          <AppButton class="mt-8 w-full" size="lg" @click="handleComplete"> 시작하기 🎉 </AppButton>
+          <AppButton class="mt-8 w-full" size="lg" :disabled="completing" @click="handleComplete">
+            시작하기
+          </AppButton>
 
           <button
             type="button"
-            class="mt-4 w-full text-center text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            class="mt-4 w-full text-center text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+            :disabled="completing"
             @click="handleComplete"
           >
             나중에 설정할게요
