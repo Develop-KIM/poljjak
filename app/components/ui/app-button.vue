@@ -23,12 +23,14 @@ const props = withDefaults(
 
 const classes = computed(() => {
   const variants: Record<ButtonVariant, string> = {
-    primary: 'bg-primary text-primary-foreground hover:bg-blue-600 active:bg-blue-700',
-    secondary: 'bg-secondary text-secondary-foreground hover:bg-slate-200 active:bg-slate-300',
+    primary: 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80',
+    secondary:
+      'bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70',
     outline:
-      'border border-border bg-transparent text-foreground hover:bg-slate-50 active:bg-slate-100',
-    ghost: 'text-foreground hover:bg-slate-100 active:bg-slate-200',
-    destructive: 'bg-destructive text-destructive-foreground hover:bg-red-600 active:bg-red-700',
+      'border border-border bg-transparent text-foreground hover:bg-muted active:bg-muted/80',
+    ghost: 'text-foreground hover:bg-muted active:bg-muted/80',
+    destructive:
+      'bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/80',
   }
   const sizes: Record<ButtonSize, string> = {
     sm: 'h-9 px-3 text-sm',

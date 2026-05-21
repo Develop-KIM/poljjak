@@ -27,7 +27,7 @@ const charCount = computed(() => props.modelValue?.length ?? 0)
       :rows="rows ?? 5"
       :maxlength="maxlength"
       :disabled="disabled"
-      class="w-full resize-y rounded-lg border border-input bg-white px-3 py-3 text-sm leading-6 outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted"
+      class="w-full resize-y rounded-lg border border-input bg-background px-3 py-3 text-sm leading-6 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted"
       :class="{ 'pb-8': showCount && maxlength }"
       @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
     />

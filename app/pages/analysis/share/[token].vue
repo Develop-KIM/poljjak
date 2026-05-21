@@ -129,7 +129,7 @@ onMounted(async () => {
       <section class="mt-8">
         <button
           type="button"
-          class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-slate-50"
+          class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted"
           @click="showScores = !showScores"
         >
           <span class="text-base font-bold text-foreground">항목별 점수 보기</span>

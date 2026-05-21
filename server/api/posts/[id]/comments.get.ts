@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { getAuthUser } from '../../../utils/auth'
 import { db } from '../../../db'
 import { comments, users } from '../../../db/schema'
@@ -17,13 +17,14 @@ export default defineEventHandler(async (event) => {
         parentId: comments.parentId,
         mentionNickname: comments.mentionNickname,
         content: comments.content,
+        deletedAt: comments.deletedAt,
         createdAt: comments.createdAt,
         author: users.nickname,
         authorAvatarUrl: users.avatarUrl,
       })
       .from(comments)
       .leftJoin(users, eq(comments.userId, users.id))
-      .where(and(eq(comments.postId, id), isNull(comments.deletedAt)))
+      .where(eq(comments.postId, id))
       .orderBy(asc(comments.createdAt)),
   ])
 
@@ -39,6 +40,7 @@ export default defineEventHandler(async (event) => {
   }
 
   interface CommentItem extends ReplyItem {
+    isDeleted: boolean
     replies: ReplyItem[]
   }
 
@@ -46,23 +48,32 @@ export default defineEventHandler(async (event) => {
   const replyMap = new Map<string, ReplyItem[]>()
 
   for (const row of rows) {
+    // 삭제된 대댓글은 완전히 제외
+    if (row.deletedAt && row.parentId) continue
+
+    const isDeleted = !!row.deletedAt
     const author = row.author ?? '알 수 없음'
     const item = {
       id: row.id,
-      author,
-      authorInitial: getAuthorInitial(author),
-      authorAvatarUrl: getAvatarUrl(row.authorAvatarUrl, author),
-      content: row.content,
+      author: isDeleted ? '알 수 없음' : author,
+      authorInitial: isDeleted ? '?' : getAuthorInitial(author),
+      authorAvatarUrl: isDeleted ? null : getAvatarUrl(row.authorAvatarUrl, author),
+      content: isDeleted ? '' : row.content,
       createdAt: formatCommunityDate(row.createdAt),
-      isOwner: !!user && row.userId === user.id,
-      mentionNickname: row.mentionNickname ?? null,
+      isOwner: false, // 삭제된 댓글은 소유권 표시 안 함
+      mentionNickname: isDeleted ? null : row.mentionNickname,
     }
 
     if (!row.parentId) {
-      topLevel.push({ ...item, replies: [] })
+      topLevel.push({
+        ...item,
+        isOwner: !isDeleted && !!user && row.userId === user.id,
+        isDeleted,
+        replies: [],
+      })
     } else {
       const bucket = replyMap.get(row.parentId) ?? []
-      bucket.push(item)
+      bucket.push({ ...item, isOwner: !!user && row.userId === user.id })
       replyMap.set(row.parentId, bucket)
     }
   }

@@ -151,7 +151,7 @@ async function handleComplete() {
   <div class="flex min-h-screen flex-col bg-background">
     <!-- 헤더 -->
     <header class="flex h-16 items-center px-5 md:px-8">
-      <img src="/images/logo.png" alt="폴짝" class="h-8 w-auto" />
+      <AppLogo class="h-8" />
     </header>
 
     <!-- 프로그레스 바 -->
@@ -304,7 +304,7 @@ async function handleComplete() {
               :class="
                 selectedJob === job.value
                   ? 'border-primary bg-accent'
-                  : 'border-border bg-card hover:border-primary/40 hover:bg-slate-50'
+                  : 'border-border bg-card hover:border-primary/40 hover:bg-muted'
               "
               @click="selectedJob = job.value"
             >

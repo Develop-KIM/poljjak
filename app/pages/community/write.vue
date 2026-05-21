@@ -30,9 +30,7 @@ const isFeedbackCategory = computed(() => category.value === '피드백')
 
 const bodyLabel = computed(() => (isFeedbackCategory.value ? '피드백 내용' : '본문'))
 const bodyPlaceholder = computed(() =>
-  isFeedbackCategory.value
-    ? '어떤 피드백이 필요한지 적어주세요.'
-    : '내용을 입력해주세요.',
+  isFeedbackCategory.value ? '어떤 피드백이 필요한지 적어주세요.' : '내용을 입력해주세요.'
 )
 
 const canSubmit = computed(() => {
@@ -91,7 +89,10 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="mx-auto px-5 py-8 md:px-8 md:py-10" :class="isFromAnalysis ? 'max-w-[1120px]' : 'max-w-2xl'">
+  <div
+    class="mx-auto px-5 py-8 md:px-8 md:py-10"
+    :class="isFromAnalysis ? 'max-w-[1120px]' : 'max-w-2xl'"
+  >
     <NuxtLink
       :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'"
       class="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -140,7 +141,7 @@ async function handleSubmit() {
 
               <button
                 type="button"
-                class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground transition-colors hover:bg-slate-50"
+                class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground transition-colors hover:bg-muted"
                 @click="showScores = !showScores"
               >
                 항목별 점수 보기
@@ -167,7 +168,9 @@ async function handleSubmit() {
         <div class="grid gap-5">
           <div>
             <label class="text-sm font-bold text-foreground">카테고리</label>
-            <div class="mt-2 flex h-10 items-center rounded-lg border border-border bg-muted px-3 text-sm font-semibold text-foreground">
+            <div
+              class="mt-2 flex h-10 items-center rounded-lg border border-border bg-muted px-3 text-sm font-semibold text-foreground"
+            >
               피드백
             </div>
           </div>

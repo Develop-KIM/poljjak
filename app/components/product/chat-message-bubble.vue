@@ -5,18 +5,26 @@ defineProps<{
   time: string
   senderInitial?: string
   senderName?: string
+  senderAvatarUrl?: string | null
   isDeleted?: boolean
 }>()
 </script>
 
 <template>
-  <div class="flex items-end gap-2" :class="isMine ? 'flex-row-reverse' : 'flex-row'">
+  <div class="flex items-start gap-2" :class="isMine ? 'flex-row-reverse' : 'flex-row'">
     <!-- 상대방 아바타 -->
     <div
       v-if="!isMine"
-      class="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600"
+      class="relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs font-bold text-muted-foreground"
     >
-      {{ senderInitial ?? 'U' }}
+      <span>{{ senderInitial ?? 'U' }}</span>
+      <img
+        v-if="senderAvatarUrl"
+        :src="senderAvatarUrl"
+        alt=""
+        class="absolute inset-0 h-full w-full object-cover"
+        @error="($event.currentTarget as HTMLImageElement).style.display = 'none'"
+      />
     </div>
 
     <div class="flex max-w-[70%] flex-col gap-1" :class="isMine ? 'items-end' : 'items-start'">
@@ -30,7 +38,7 @@ defineProps<{
             ? 'bg-muted italic text-muted-foreground'
             : isMine
               ? 'bg-primary text-primary-foreground'
-              : 'border border-border bg-white text-foreground',
+              : 'border border-border bg-card text-foreground',
         ]"
       >
         {{ isDeleted ? '삭제된 메시지예요.' : content }}

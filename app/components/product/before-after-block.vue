@@ -27,7 +27,7 @@ defineProps<{
       <!-- Before -->
       <div class="p-5">
         <div class="flex items-center gap-2 mb-3">
-          <span class="rounded px-2 py-0.5 text-xs font-bold bg-slate-100 text-slate-500"
+          <span class="rounded bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground"
             >Before</span
           >
         </div>

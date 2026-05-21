@@ -22,7 +22,7 @@ defineProps<{
 <template>
   <NuxtLink
     :to="`/community/${id}`"
-    class="-mx-1 flex flex-col gap-2 border-b border-border px-1 py-5 transition-colors first:pt-0 hover:bg-slate-50/60"
+    class="-mx-1 flex flex-col gap-2 border-b border-border px-1 py-5 transition-colors first:pt-0 hover:bg-muted/60"
   >
     <!-- 제목 행 -->
     <div class="flex items-start gap-2.5">
@@ -33,7 +33,7 @@ defineProps<{
           :class="
             recruitmentStatus === 'open'
               ? 'bg-emerald-100 text-emerald-700'
-              : 'bg-slate-100 text-slate-500'
+              : 'bg-muted text-muted-foreground'
           "
         >
           {{ recruitmentStatus === 'open' ? '모집중' : '모집완료' }}
@@ -51,10 +51,10 @@ defineProps<{
     <div class="flex items-center justify-between gap-4 text-xs text-muted-foreground">
       <span>{{ author }} · {{ createdAt }}</span>
       <div class="flex shrink-0 items-center gap-3">
-        <span class="flex items-center gap-1"> <Heart class="size-3.5" />{{ likeCount }} </span>
         <span v-if="viewCount !== undefined" class="flex items-center gap-1">
           <Eye class="size-3.5" />{{ viewCount }}
         </span>
+        <span class="flex items-center gap-1"> <Heart class="size-3.5" />{{ likeCount }} </span>
         <span class="flex items-center gap-1">
           <MessageSquare class="size-3.5" />{{ commentCount }}
         </span>

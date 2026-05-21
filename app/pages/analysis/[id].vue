@@ -277,7 +277,7 @@ function downloadAsPdf() {
         <h2 class="hidden text-xl font-black text-foreground print:block">항목별 점수</h2>
         <button
           type="button"
-          class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-slate-50 print:hidden"
+          class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted print:hidden"
           @click="showScores = !showScores"
         >
           <span class="text-base font-bold text-foreground">항목별 점수 보기</span>

@@ -20,7 +20,7 @@ const emit = defineEmits<{
       :id="id"
       :value="modelValue"
       :disabled="disabled"
-      class="h-11 w-full appearance-none rounded-lg border border-input bg-white pl-3 pr-9 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted"
+      class="h-11 w-full appearance-none rounded-lg border border-input bg-background pl-3 pr-9 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted"
       :class="{ 'text-muted-foreground': !modelValue }"
       @change="emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
     >

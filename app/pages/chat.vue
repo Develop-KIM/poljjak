@@ -105,9 +105,11 @@ async function selectRoom(id: string) {
   await fetchMessages(id)
 
   // 해당 방 입장 시 DM 알림 읽음 처리
-  $fetch('/api/notifications/read-dm', { method: 'POST' }).then(() => {
-    notifStore.markDmRead()
-  }).catch(() => {})
+  $fetch('/api/notifications/read-dm', { method: 'POST' })
+    .then(() => {
+      notifStore.markDmRead()
+    })
+    .catch(() => {})
 
   // Broadcast 방식 — postgres_changes 대신 사용
   await new Promise<void>((resolve) => {
@@ -176,7 +178,7 @@ watch(
   () => notifStore.dmUnreadCount,
   (next, prev) => {
     if (next > prev) fetchRooms()
-  },
+  }
 )
 
 onMounted(async () => {
@@ -216,19 +218,16 @@ onUnmounted(() => {
           v-else
           :key="room.id"
           type="button"
-          class="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50"
+          class="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted"
           :class="{ 'bg-accent/50': selectedRoomId === room.id }"
           @click="selectRoom(room.id)"
         >
-          <div
-            v-if="room.otherAvatarUrl"
-            class="size-10 shrink-0 overflow-hidden rounded-full"
-          >
+          <div v-if="room.otherAvatarUrl" class="size-10 shrink-0 overflow-hidden rounded-full">
             <img :src="room.otherAvatarUrl" alt="" class="h-full w-full object-cover" />
           </div>
           <div
             v-else
-            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-700"
+            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground"
           >
             {{ room.otherInitial }}
           </div>
@@ -256,20 +255,17 @@ onUnmounted(() => {
         <div class="flex items-center gap-3 border-b border-border px-5 py-4">
           <button
             type="button"
-            class="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-slate-100 md:hidden"
+            class="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
             @click="selectedRoomId = null"
           >
             <ArrowLeft class="size-5" />
           </button>
-          <div
-            v-if="selectedRoom.otherAvatarUrl"
-            class="size-8 overflow-hidden rounded-full"
-          >
+          <div v-if="selectedRoom.otherAvatarUrl" class="size-8 overflow-hidden rounded-full">
             <img :src="selectedRoom.otherAvatarUrl" alt="" class="h-full w-full object-cover" />
           </div>
           <div
             v-else
-            class="flex size-8 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-700"
+            class="flex size-8 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground"
           >
             {{ selectedRoom.otherInitial }}
           </div>
@@ -305,6 +301,7 @@ onUnmounted(() => {
               :time="formatTime(msg.createdAt)"
               :sender-initial="selectedRoom.otherInitial"
               :sender-name="selectedRoom.otherNickname"
+              :sender-avatar-url="msg.senderAvatarUrl ?? selectedRoom.otherAvatarUrl"
               :is-deleted="msg.isDeleted"
             />
           </div>
@@ -313,7 +310,9 @@ onUnmounted(() => {
         <!-- 입력창 -->
         <div class="border-t border-border px-4 py-3">
           <div class="flex gap-2">
-            <div class="flex flex-1 items-center rounded-xl border border-input bg-white px-3.5 py-2.5 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/20">
+            <div
+              class="flex flex-1 items-center rounded-xl border border-input bg-background px-3.5 py-2.5 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/20"
+            >
               <input
                 v-model="newMessage"
                 type="text"

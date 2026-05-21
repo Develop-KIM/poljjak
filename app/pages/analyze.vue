@@ -163,7 +163,7 @@ async function handleStartAnalysis() {
               이미지 스캔 PDF는 텍스트를 추출할 수 없어 분석이 제한됩니다. 텍스트 선택이 가능한
               PDF를 올려주세요.
             </AppAlert>
-            <div class="rounded-xl border border-border bg-slate-50/60 p-4">
+            <div class="rounded-xl border border-border bg-muted/50 p-4">
               <h2 class="text-sm font-black text-foreground">업로드 전 확인</h2>
               <ul class="mt-2 grid gap-2">
                 <li

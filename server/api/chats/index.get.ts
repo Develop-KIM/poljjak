@@ -37,7 +37,12 @@ export default defineEventHandler(async (event) => {
   const otherMap = new Map(otherUsers.map((u) => [u.id, u]))
 
   // 마지막 메시지 일괄 조회 (DISTINCT ON)
-  type LastMsgRow = { room_id: string; content: string; is_deleted: boolean; created_at: Date }
+  type LastMsgRow = {
+    room_id: string
+    content: string
+    is_deleted: boolean
+    created_at: Date | string
+  }
   const lastMsgs = (await db.execute(sql`
     SELECT DISTINCT ON (room_id) room_id, content, is_deleted, created_at
     FROM messages
@@ -91,6 +96,7 @@ export default defineEventHandler(async (event) => {
     const otherId = room.initiatorId === user.id ? room.participantId : room.initiatorId
     const other = otherMap.get(otherId)
     const lastMsg = lastMsgMap.get(room.id)
+    const lastMessageDate = lastMsg ? new Date(lastMsg.created_at) : null
     const nickname = other?.nickname ?? '알 수 없음'
 
     return {
@@ -100,9 +106,10 @@ export default defineEventHandler(async (event) => {
       otherInitial: getAuthorInitial(nickname),
       otherAvatarUrl: getAvatarUrl(other?.avatarUrl, nickname),
       lastMessage: lastMsg ? (lastMsg.is_deleted ? '삭제된 메시지예요' : lastMsg.content) : '',
-      lastMessageAt: lastMsg ? formatCommunityDate(lastMsg.created_at) : '',
+      lastMessageAt: lastMessageDate ? formatCommunityDate(lastMessageDate) : '',
       // 정렬용 raw timestamp (클라이언트 반환 안 함)
-      _ts: lastMsg ? lastMsg.created_at.getTime() : 0,
+      _ts:
+        lastMessageDate && !Number.isNaN(lastMessageDate.getTime()) ? lastMessageDate.getTime() : 0,
       unreadCount: unreadMap.get(room.id) ?? 0,
       sourcePostId: room.sourcePostId ?? null,
       sourcePostTitle: room.sourcePostTitle ?? null,

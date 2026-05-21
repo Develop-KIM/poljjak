@@ -409,7 +409,7 @@ async function deletePost() {
               </div>
               <button
                 type="button"
-                class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:bg-slate-50"
+                class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:bg-muted"
                 @click="editShowScores = !editShowScores"
               >
                 항목별 점수 보기
@@ -520,7 +520,7 @@ async function deletePost() {
               />
               <div
                 v-else
-                class="flex size-7 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
+                class="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground"
               >
                 {{ post.authorInitial }}
               </div>
@@ -541,7 +541,7 @@ async function deletePost() {
                 <AppButton
                   variant="outline"
                   size="sm"
-                  class="text-destructive hover:border-destructive hover:bg-red-50"
+                  class="text-destructive hover:border-destructive hover:bg-destructive/10"
                   @click="showDeleteConfirm = true"
                 >
                   <Trash2 class="size-3.5" />
@@ -585,7 +585,7 @@ async function deletePost() {
 
           <button
             type="button"
-            class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:bg-slate-50"
+            class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:bg-muted"
             @click="showScores = !showScores"
           >
             항목별 점수 보기
@@ -634,7 +634,7 @@ async function deletePost() {
 
           <button
             type="button"
-            class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+            class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <MessageSquare class="size-4" />
             {{ commentsPending ? post.commentCount : totalCommentCount }}
@@ -642,7 +642,7 @@ async function deletePost() {
 
           <button
             type="button"
-            class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+            class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             @click="copyLink"
           >
             <Share2 class="size-4" />
@@ -651,7 +651,7 @@ async function deletePost() {
 
           <button
             type="button"
-            class="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-destructive"
+            class="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
             @click="
               authStore.isLoggedIn
                 ? (showReportDialog = true)
@@ -686,7 +686,7 @@ async function deletePost() {
               <!-- 최상위 댓글 -->
               <div class="flex gap-3">
                 <div
-                  class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
+                  class="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground"
                   :class="{ 'opacity-40': comment.isDeleted }"
                 >
                   <template v-if="!comment.isDeleted && comment.authorAvatarUrl">
@@ -732,7 +732,7 @@ async function deletePost() {
               <!-- 답글 입력창 -->
               <div v-if="replyTarget?.parentId === comment.id" class="ml-11 mt-3">
                 <div
-                  class="flex flex-1 items-start rounded-xl border border-primary bg-white px-3.5 py-3 ring-2 ring-ring/20"
+                  class="flex flex-1 items-start rounded-xl border border-primary bg-background px-3.5 py-3 ring-2 ring-ring/20"
                 >
                   <div class="flex-1">
                     <span class="text-xs font-semibold text-primary"
@@ -774,7 +774,7 @@ async function deletePost() {
                   />
                   <div
                     v-else
-                    class="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
+                    class="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground"
                   >
                     {{ reply.authorInitial }}
                   </div>
@@ -843,7 +843,7 @@ async function deletePost() {
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
         @click.self="showDeleteConfirm = false"
       >
-        <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+        <div class="w-full max-w-sm rounded-2xl bg-popover p-6 text-popover-foreground shadow-xl">
           <h3 class="text-lg font-black text-foreground">게시글을 삭제할까요?</h3>
           <p class="mt-2 text-sm text-muted-foreground">삭제한 게시글은 복구할 수 없어요.</p>
           <div class="mt-6 flex gap-3">

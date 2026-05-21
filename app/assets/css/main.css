@@ -29,25 +29,25 @@
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-    --popover: 224 71% 4%;
-    --popover-foreground: 215 20.2% 65.1%;
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 1.2%;
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
+    --background: 222 47% 6%;
+    --foreground: 210 40% 96%;
+    --muted: 217 33% 15%;
+    --muted-foreground: 215 20% 68%;
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 96%;
+    --card: 222 47% 9%;
+    --card-foreground: 210 40% 96%;
+    --border: 217 33% 18%;
+    --input: 217 33% 20%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 16%;
+    --secondary-foreground: 210 40% 96%;
+    --accent: 217 91% 14%;
+    --accent-foreground: 213 100% 86%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
-    --ring: 216 34% 17%;
+    --ring: 217 91% 60%;
   }
 }
 
@@ -57,10 +57,15 @@
   }
   body {
     @apply bg-background text-foreground;
+    color-scheme: light;
     font-family: Pretendard, system-ui, sans-serif;
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
+  }
+
+  .dark body {
+    color-scheme: dark;
   }
 
   ::selection {

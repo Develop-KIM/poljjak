@@ -1,5 +1,4 @@
 import { and, desc, eq, ilike, isNull, sql } from 'drizzle-orm'
-import { getAuthUser } from '../../utils/auth'
 import { db } from '../../db'
 import { comments, likes, posts, users } from '../../db/schema'
 import { parsePostCategory } from '../../validation/posts'
@@ -15,12 +14,7 @@ export default defineEventHandler(async (event) => {
   const keyword = typeof query.keyword === 'string' ? query.keyword.trim() : ''
   const page = Math.max(1, parseInt(String(query.page ?? '1'), 10))
 
-  if (category === 'feedback') {
-    const user = await getAuthUser(event)
-    if (!user) {
-      throw createError({ statusCode: 401, statusMessage: '로그인이 필요해요' })
-    }
-  } else {
+  if (category !== 'feedback') {
     setResponseHeaders(event, {
       'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=60',
     })

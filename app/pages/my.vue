@@ -267,11 +267,11 @@ function selectTab(key: typeof activeTab.value) {
     <!-- ── 프로필 카드 ── -->
     <div class="rounded-2xl border border-border bg-card p-6 md:p-8">
       <div class="flex items-start justify-between gap-3">
-        <div class="flex min-w-0 items-center gap-3">
+        <div class="flex min-w-0 items-center gap-4 md:gap-5">
           <!-- 아바타 -->
           <button
             type="button"
-            class="size-12 shrink-0 overflow-hidden rounded-full bg-primary text-left sm:size-14 md:size-16"
+            class="size-16 shrink-0 overflow-hidden rounded-full bg-primary text-left sm:size-18 md:size-20"
             @click="openEdit"
           >
             <img
@@ -282,15 +282,15 @@ function selectTab(key: typeof activeTab.value) {
             />
             <div
               v-else
-              class="flex h-full w-full items-center justify-center text-base font-bold text-primary-foreground sm:text-lg"
+              class="flex h-full w-full items-center justify-center text-lg font-bold text-primary-foreground sm:text-xl"
             >
               {{ userInitial }}
             </div>
           </button>
 
-          <div class="min-w-0">
+          <div class="min-w-0 overflow-hidden">
             <div class="flex flex-wrap items-center gap-1.5">
-              <p class="text-lg font-black text-foreground sm:text-xl">
+              <p class="text-xl font-black text-foreground sm:text-2xl">
                 {{ profile?.nickname ?? '사용자' }}
               </p>
               <span
@@ -298,21 +298,21 @@ function selectTab(key: typeof activeTab.value) {
                 class="rounded-full px-2 py-0.5 text-xs font-semibold"
                 :class="
                   profile?.jobType === 'developer'
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'bg-violet-50 text-violet-700'
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-200'
+                    : 'bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-200'
                 "
               >
                 {{ jobTypeLabel }}
               </span>
             </div>
-            <p class="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
+            <p class="mt-2 truncate text-sm text-muted-foreground">
               {{ profile?.email ?? '' }}
             </p>
           </div>
         </div>
 
         <!-- 우상단 버튼: 모바일은 아이콘만, 데스크탑은 텍스트+아이콘 -->
-        <div class="flex shrink-0 flex-col items-end gap-2">
+        <div class="flex shrink-0 flex-col items-end gap-3.5">
           <!-- 모바일: 아이콘 버튼 -->
           <button
             type="button"
@@ -347,7 +347,7 @@ function selectTab(key: typeof activeTab.value) {
         :class="
           activeTab === tab.key
             ? 'bg-primary/[0.07] text-primary'
-            : 'bg-white text-muted-foreground hover:bg-slate-50 hover:text-foreground'
+            : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
         "
         @click="selectTab(tab.key)"
       >
@@ -370,7 +370,7 @@ function selectTab(key: typeof activeTab.value) {
             v-for="item in paged(analyses, 'analyses')"
             :key="item.id"
             :to="`/analysis/${item.id}`"
-            class="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-slate-50"
+            class="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
           >
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-semibold text-foreground">{{ item.title }}</p>
@@ -416,7 +416,7 @@ function selectTab(key: typeof activeTab.value) {
             v-for="post in paged(myPosts, 'posts')"
             :key="post.id"
             :to="`/community/${post.id}`"
-            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-slate-50"
+            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
           >
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2 flex-wrap">
@@ -467,7 +467,7 @@ function selectTab(key: typeof activeTab.value) {
             :key="comment.id"
             :to="comment.postTitle ? `/community/${comment.postId}` : '#'"
             class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors"
-            :class="comment.postTitle ? 'hover:bg-slate-50' : 'cursor-default opacity-60'"
+            :class="comment.postTitle ? 'hover:bg-muted' : 'cursor-default opacity-60'"
           >
             <div class="min-w-0 flex-1">
               <p class="text-sm text-foreground line-clamp-2">{{ comment.content }}</p>
@@ -509,7 +509,7 @@ function selectTab(key: typeof activeTab.value) {
             v-for="post in paged(likedPosts, 'likes')"
             :key="post.id"
             :to="`/community/${post.id}`"
-            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-slate-50"
+            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
           >
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2 flex-wrap">
@@ -568,10 +568,12 @@ function selectTab(key: typeof activeTab.value) {
         @click.self="cancelEdit"
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="cancelEdit" />
-        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        <div
+          class="relative w-full max-w-md rounded-2xl bg-popover p-6 text-popover-foreground shadow-2xl sm:p-8"
+        >
           <button
             type="button"
-            class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+            class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             @click="cancelEdit"
           >
             <X class="size-4" />
@@ -714,7 +716,9 @@ function selectTab(key: typeof activeTab.value) {
           class="absolute inset-0 bg-black/40 backdrop-blur-sm"
           @click="showWithdrawDialog = false"
         />
-        <div class="relative w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
+        <div
+          class="relative w-full max-w-sm rounded-2xl bg-popover p-8 text-popover-foreground shadow-2xl"
+        >
           <h2 class="text-xl font-black text-foreground">정말 탈퇴하시겠어요?</h2>
           <p class="mt-3 text-sm leading-6 text-muted-foreground">
             탈퇴 신청 후 <strong class="text-foreground">30일</strong>이 지나면 계정과 분석 기록,

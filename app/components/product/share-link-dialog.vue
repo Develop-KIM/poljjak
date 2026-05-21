@@ -39,10 +39,12 @@ function copyLink(link: string) {
         @click.self="emit('close')"
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="emit('close')" />
-        <div class="relative w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
+        <div
+          class="relative w-full max-w-sm rounded-2xl bg-popover p-8 text-popover-foreground shadow-2xl"
+        >
           <button
             type="button"
-            class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-slate-100"
+            class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
             @click="emit('close')"
           >
             <X class="size-4" />

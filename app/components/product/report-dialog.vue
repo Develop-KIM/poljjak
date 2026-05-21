@@ -60,10 +60,12 @@ function handleClose() {
         @click.self="handleClose"
       >
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="handleClose" />
-        <div class="relative w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
+        <div
+          class="relative w-full max-w-sm rounded-2xl bg-popover p-8 text-popover-foreground shadow-2xl"
+        >
           <button
             type="button"
-            class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-slate-100"
+            class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
             @click="handleClose"
           >
             <X class="size-4" />
@@ -71,7 +73,9 @@ function handleClose() {
 
           <!-- 접수 완료 -->
           <div v-if="submitted" class="flex flex-col items-center text-center">
-            <div class="flex size-12 items-center justify-center rounded-full bg-emerald-50">
+            <div
+              class="flex size-12 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/50"
+            >
               <CheckCircle2 class="size-6 text-emerald-500" />
             </div>
             <h2 class="mt-4 text-xl font-black text-foreground">신고가 접수됐어요</h2>
@@ -90,7 +94,7 @@ function handleClose() {
                   :class="
                     selectedReason === reason
                       ? 'border-primary bg-accent text-foreground'
-                      : 'border-border text-foreground hover:bg-slate-50'
+                      : 'border-border text-foreground hover:bg-muted'
                   "
                 >
                   <input

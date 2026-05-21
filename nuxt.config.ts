@@ -33,7 +33,7 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/eslint', '@nuxtjs/supabase'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxt/eslint', '@nuxtjs/supabase'],
 
   // ui/, product/ 하위 디렉터리 prefix 없이 AppButton, AppCard 등으로 auto-import
   components: [
@@ -45,6 +45,10 @@ export default defineNuxtConfig({
 
   tailwindcss: {
     cssPath: '~/assets/css/main.css',
+  },
+
+  imports: {
+    dirs: ['stores'],
   },
 
   supabase: {

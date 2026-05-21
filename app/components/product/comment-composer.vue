@@ -32,7 +32,7 @@ function handleSubmit() {
 <template>
   <div class="flex gap-3">
     <div
-      class="flex flex-1 items-start rounded-xl border border-input bg-white px-3.5 py-3 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/20"
+      class="flex flex-1 items-start rounded-xl border border-input bg-background px-3.5 py-3 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/20"
     >
       <textarea
         v-model="content"
@@ -45,6 +45,7 @@ function handleSubmit() {
     </div>
     <AppButton
       size="sm"
+      class="h-[46px] px-4"
       :disabled="!content.trim() || loading"
       :loading="loading"
       @click="handleSubmit"

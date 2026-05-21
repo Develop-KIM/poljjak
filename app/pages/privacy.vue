@@ -22,19 +22,15 @@ useSeoMeta({
     <section class="mt-10">
       <h2 class="text-lg font-black text-foreground">1. 수집하는 개인정보 항목</h2>
       <div class="mt-4 rounded-lg border border-border p-5 text-sm leading-7 text-muted-foreground">
-        <p class="font-semibold text-foreground">카카오 OAuth 로그인 시 수집</p>
+        <p class="font-semibold text-foreground">필수 수집 항목</p>
         <ul class="mt-2 list-inside list-disc space-y-1">
-          <li>카카오 회원 고유 식별자</li>
-          <li>닉네임</li>
-          <li>프로필 사진 URL</li>
-          <li>이메일 주소 (제공 동의 시)</li>
-        </ul>
-        <p class="mt-4 font-semibold text-foreground">구글 OAuth 로그인 시 수집</p>
-        <ul class="mt-2 list-inside list-disc space-y-1">
-          <li>구글 회원 고유 식별자</li>
-          <li>이름</li>
-          <li>프로필 사진 URL</li>
+          <li>OAuth 제공자 회원 고유 식별자</li>
           <li>이메일 주소</li>
+          <li>닉네임 또는 이름</li>
+        </ul>
+        <p class="mt-4 font-semibold text-foreground">선택 수집 항목</p>
+        <ul class="mt-2 list-inside list-disc space-y-1">
+          <li>프로필 사진 URL</li>
         </ul>
         <p class="mt-4 font-semibold text-foreground">서비스 이용 과정에서 자동 수집</p>
         <ul class="mt-2 list-inside list-disc space-y-1">

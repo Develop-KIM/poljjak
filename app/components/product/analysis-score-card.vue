@@ -34,7 +34,7 @@ const scoreColor = computed(() => {
     </div>
 
     <!-- 점수 바 -->
-    <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+    <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
       <div
         class="h-full rounded-full transition-all"
         :class="barColor"

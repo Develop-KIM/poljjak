@@ -174,21 +174,19 @@ onUnmounted(() => {
 
         <!-- 데모 화면 -->
         <div
-          class="mx-auto mt-8 max-w-3xl overflow-hidden rounded-2xl border border-border bg-white shadow-xl"
+          class="mx-auto mt-8 max-w-3xl overflow-hidden rounded-2xl border border-border bg-card shadow-xl"
         >
           <!-- 브라우저 크롬 -->
-          <div class="flex items-center gap-2 border-b border-border bg-slate-50 px-4 py-3">
+          <div class="flex items-center gap-2 border-b border-border bg-muted/60 px-4 py-3">
             <div class="flex gap-1.5">
               <div class="size-3 rounded-full bg-red-400" />
               <div class="size-3 rounded-full bg-amber-400" />
               <div class="size-3 rounded-full bg-emerald-400" />
             </div>
             <div
-              class="mx-auto flex h-6 w-56 items-center rounded-md bg-white px-3 text-xs text-muted-foreground ring-1 ring-border"
+              class="mx-auto flex h-6 w-56 items-center rounded-md bg-background px-3 text-xs text-muted-foreground ring-1 ring-border"
             >
-              {{
-                demoStep === 2 ? 'poljjak.vercel.app/analysis/...' : 'poljjak.vercel.app/analyze'
-              }}
+              {{ demoStep === 2 ? 'poljjak.kr/analysis/...' : 'poljjak.kr/analyze' }}
             </div>
           </div>
 
@@ -210,7 +208,7 @@ onUnmounted(() => {
                     class="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-200 bg-accent/50 px-6 py-7 text-center"
                   >
                     <span
-                      class="mb-3 inline-flex size-12 items-center justify-center rounded-full bg-white text-primary ring-1 ring-blue-100"
+                      class="mb-3 inline-flex size-12 items-center justify-center rounded-full bg-background text-primary ring-1 ring-border"
                     >
                       <FileUp class="size-6" />
                     </span>
@@ -377,7 +375,7 @@ onUnmounted(() => {
                   <div class="grid divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0">
                     <div class="p-4">
                       <span
-                        class="rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500"
+                        class="rounded bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground"
                         >Before</span
                       >
                       <p
@@ -402,7 +400,7 @@ onUnmounted(() => {
               <div class="mt-4">
                 <button
                   type="button"
-                  class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3.5 text-sm font-bold text-foreground hover:bg-slate-50"
+                  class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3.5 text-sm font-bold text-foreground hover:bg-muted"
                   @click="showScores = !showScores"
                 >
                   항목별 점수 보기
@@ -430,7 +428,7 @@ onUnmounted(() => {
                         <span class="font-semibold text-foreground">{{ s.title }}</span>
                         <span class="font-bold text-primary">{{ s.score }}</span>
                       </div>
-                      <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                      <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
                         <div class="h-full rounded-full bg-primary" :style="`width:${s.score}%`" />
                       </div>
                     </div>
@@ -444,7 +442,7 @@ onUnmounted(() => {
     </section>
 
     <!-- ─── 왜 폴짝인가요? ─────────────────────────────────── -->
-    <section class="border-b border-border bg-slate-50/60 px-5 py-20 md:px-8">
+    <section class="border-b border-border bg-muted/40 px-5 py-20 md:px-8">
       <div class="mx-auto max-w-[1120px]">
         <div class="text-center">
           <AppBadge variant="gray">왜 폴짝인가요?</AppBadge>
@@ -454,7 +452,7 @@ onUnmounted(() => {
         </div>
 
         <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div class="rounded-xl border border-border bg-white p-6">
+          <div class="rounded-xl border border-border bg-card p-6">
             <div class="flex size-10 items-center justify-center rounded-lg bg-accent">
               <Sparkles class="size-5 text-primary" />
             </div>
@@ -464,7 +462,7 @@ onUnmounted(() => {
               부족한지 바로 파악할 수 있어요.
             </p>
           </div>
-          <div class="rounded-xl border border-border bg-white p-6">
+          <div class="rounded-xl border border-border bg-card p-6">
             <div class="flex size-10 items-center justify-center rounded-lg bg-accent">
               <MessageSquare class="size-5 text-primary" />
             </div>
@@ -474,7 +472,7 @@ onUnmounted(() => {
               없어요.
             </p>
           </div>
-          <div class="rounded-xl border border-border bg-white p-6">
+          <div class="rounded-xl border border-border bg-card p-6">
             <div class="flex size-10 items-center justify-center rounded-lg bg-accent">
               <Users class="size-5 text-primary" />
             </div>
@@ -484,7 +482,7 @@ onUnmounted(() => {
               받을 수 있어요.
             </p>
           </div>
-          <div class="rounded-xl border border-border bg-white p-6">
+          <div class="rounded-xl border border-border bg-card p-6">
             <div class="flex size-10 items-center justify-center rounded-lg bg-accent">
               <Zap class="size-5 text-primary" />
             </div>
@@ -493,7 +491,7 @@ onUnmounted(() => {
               업로드 후 보통 30초~1분 안에 전체 분석 결과를 받아볼 수 있어요.
             </p>
           </div>
-          <div class="rounded-xl border border-border bg-white p-6">
+          <div class="rounded-xl border border-border bg-card p-6">
             <div class="flex size-10 items-center justify-center rounded-lg bg-accent">
               <Link class="size-5 text-primary" />
             </div>
@@ -502,8 +500,10 @@ onUnmounted(() => {
               분석 결과를 저장해두고 공유 링크를 만들어 멘토, 지인에게 바로 보여줄 수 있어요.
             </p>
           </div>
-          <div class="rounded-xl border border-border bg-white p-6">
-            <div class="flex size-10 items-center justify-center rounded-lg bg-emerald-50">
+          <div class="rounded-xl border border-border bg-card p-6">
+            <div
+              class="flex size-10 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/50"
+            >
               <Share2 class="size-5 text-emerald-600" />
             </div>
             <h3 class="mt-4 font-black text-foreground">무료로 바로 시작</h3>
@@ -527,7 +527,7 @@ onUnmounted(() => {
           <NuxtLink to="/analyze" class="sm:w-auto">
             <button
               type="button"
-              class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-white px-6 text-base font-semibold text-primary transition-colors hover:bg-blue-50"
+              class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary-foreground px-6 text-base font-semibold text-primary transition-colors hover:bg-primary-foreground/90"
             >
               지금 분석 시작하기
               <ArrowRight class="size-4" />

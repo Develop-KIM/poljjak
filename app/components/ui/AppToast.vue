@@ -7,8 +7,10 @@ const toast = useToastStore()
 const icons = { success: CheckCircle2, error: XCircle, info: Info }
 
 const colorMap = {
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  error: 'border-red-200 bg-red-50 text-red-800',
+  success:
+    'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950 dark:text-emerald-100',
+  error:
+    'border-red-200 bg-red-50 text-red-800 dark:border-red-900/60 dark:bg-red-950 dark:text-red-100',
   info: 'border-border bg-card text-foreground',
 }
 

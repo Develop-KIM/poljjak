@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { ChevronDown, UserRound, LogOut, Menu, X, MessageCircle } from '@lucide/vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { ChevronDown, UserRound, LogOut, Menu, X, MessageCircle, Moon, Sun } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
 
 const route = useRoute()
@@ -8,10 +8,12 @@ const { user, isLoggedIn, signOut } = useAuth()
 const authStore = useAuthStore()
 const notifStore = useNotificationStore()
 
+const isDark = ref(false)
 const profileOpen = ref(false)
 const profileRef = ref<HTMLElement | null>(null)
 const mobileMenuOpen = ref(false)
 const showLoginModal = ref(false)
+const isChatPage = computed(() => route.path.startsWith('/chat'))
 
 // ?login=1 쿼리 파라미터로 로그인 모달 자동 오픈 (auth 미들웨어에서 전달)
 const routeQuery = useRoute().query
@@ -26,6 +28,29 @@ watch(
 onClickOutside(profileRef, () => {
   profileOpen.value = false
 })
+
+onMounted(() => {
+  const savedTheme = localStorage.getItem('poljjak-theme')
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  isDark.value = savedTheme ? savedTheme === 'dark' : prefersDark
+  applyTheme()
+
+  // @nuxtjs/supabase 플러그인이 async setup으로 이미 세션 복원을 완료했으므로
+  // isLoggedIn은 mount 시점에 이미 정확한 값 — 별도 getSession() 불필요
+  if (authStore.isLoggedIn && !authStore.profile) {
+    authStore.fetchProfile()
+  }
+})
+
+function applyTheme() {
+  document.documentElement.classList.toggle('dark', isDark.value)
+  localStorage.setItem('poljjak-theme', isDark.value ? 'dark' : 'light')
+}
+
+function toggleDark() {
+  isDark.value = !isDark.value
+  applyTheme()
+}
 
 // 모바일 메뉴 열릴 때 배경 스크롤 잠금
 watch(mobileMenuOpen, (open) => {
@@ -79,11 +104,18 @@ const userJobLabel = computed(() => {
 <template>
   <div class="flex min-h-screen flex-col bg-background">
     <!-- ─── 헤더 ─────────────────────────────────────────── -->
-    <header class="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-sm">
+    <header
+      class="sticky top-0 z-40"
+      :class="
+        isChatPage
+          ? 'border-b border-transparent bg-transparent'
+          : 'border-b border-border bg-background/90 backdrop-blur-sm'
+      "
+    >
       <div class="mx-auto flex h-16 max-w-[1120px] items-center justify-between px-5 md:px-8">
         <!-- 로고 -->
         <NuxtLink to="/">
-          <img src="/images/logo.png" alt="폴짝" class="h-10 w-auto" />
+          <AppLogo class="h-10" />
         </NuxtLink>
 
         <!-- 데스크탑 네비게이션 -->
@@ -93,8 +125,8 @@ const userJobLabel = computed(() => {
             class="rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
             :class="
               isActive('/analyze') || isActive('/analysis')
-                ? 'bg-slate-100 text-foreground'
-                : 'text-muted-foreground hover:bg-slate-50 hover:text-foreground'
+                ? 'bg-accent text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             "
           >
             포트폴리오 분석
@@ -104,8 +136,8 @@ const userJobLabel = computed(() => {
             class="rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
             :class="
               isActive('/community')
-                ? 'bg-slate-100 text-foreground'
-                : 'text-muted-foreground hover:bg-slate-50 hover:text-foreground'
+                ? 'bg-accent text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             "
           >
             커뮤니티
@@ -114,13 +146,24 @@ const userJobLabel = computed(() => {
 
         <!-- 우측 액션 -->
         <div class="flex items-center gap-2">
+          <!-- 다크모드 토글 -->
+          <button
+            type="button"
+            class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            :aria-label="isDark ? '라이트 모드로 전환' : '다크 모드로 전환'"
+            @click="toggleDark()"
+          >
+            <Sun v-if="isDark" class="size-5" />
+            <Moon v-else class="size-5" />
+          </button>
+
           <!-- 데스크탑에서만 표시 -->
           <div class="hidden md:flex md:items-center md:gap-2">
             <template v-if="isLoggedIn">
               <NuxtLink
                 to="/chat"
-                class="relative flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
-                active-class="text-foreground bg-slate-100"
+                class="relative flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                active-class="text-foreground bg-muted"
               >
                 <MessageCircle class="size-5" />
                 <span
@@ -137,7 +180,7 @@ const userJobLabel = computed(() => {
           <div v-if="isLoggedIn" ref="profileRef" class="relative hidden md:block">
             <button
               type="button"
-              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100"
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted"
               @click="profileOpen = !profileOpen"
             >
               <ClientOnly>
@@ -179,7 +222,7 @@ const userJobLabel = computed(() => {
             >
               <div
                 v-if="profileOpen"
-                class="absolute right-0 top-full mt-1.5 w-48 origin-top-right rounded-xl border border-border bg-white py-1.5 shadow-lg"
+                class="absolute right-0 top-full mt-1.5 w-48 origin-top-right rounded-xl border border-border bg-popover py-1.5 shadow-lg"
               >
                 <div class="border-b border-border px-4 py-3">
                   <p class="truncate text-sm font-semibold text-foreground">{{ userName }}</p>
@@ -189,7 +232,7 @@ const userJobLabel = computed(() => {
                 </div>
                 <NuxtLink
                   to="/my"
-                  class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-slate-50"
+                  class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
                   @click="profileOpen = false"
                 >
                   <UserRound class="size-4 text-muted-foreground" />
@@ -197,7 +240,7 @@ const userJobLabel = computed(() => {
                 </NuxtLink>
                 <button
                   type="button"
-                  class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-red-50"
+                  class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
                   @click="handleLogout"
                 >
                   <LogOut class="size-4" />
@@ -221,7 +264,7 @@ const userJobLabel = computed(() => {
           <!-- 모바일 햄버거 버튼 -->
           <button
             type="button"
-            class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 md:hidden"
+            class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted md:hidden"
             :aria-label="mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'"
             @click="mobileMenuOpen = true"
           >
@@ -249,13 +292,13 @@ const userJobLabel = computed(() => {
           />
 
           <!-- 슬라이드 패널 -->
-          <div class="relative flex h-full w-72 flex-col bg-white shadow-2xl">
+          <div class="relative flex h-full w-72 flex-col bg-background shadow-2xl">
             <!-- 패널 헤더 -->
             <div class="flex items-center justify-between border-b border-border px-5 py-4">
-              <img src="/images/logo.png" alt="폴짝" class="h-7 w-auto" />
+              <AppLogo class="h-7" />
               <button
                 type="button"
-                class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100"
+                class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 @click="mobileMenuOpen = false"
               >
                 <X class="size-5" />
@@ -270,7 +313,7 @@ const userJobLabel = computed(() => {
                 :class="
                   isActive('/analyze') || isActive('/analysis')
                     ? 'bg-accent text-primary'
-                    : 'text-foreground hover:bg-slate-50'
+                    : 'text-foreground hover:bg-muted'
                 "
                 @click="mobileMenuOpen = false"
               >
@@ -282,7 +325,7 @@ const userJobLabel = computed(() => {
                 :class="
                   isActive('/community')
                     ? 'bg-accent text-primary'
-                    : 'text-foreground hover:bg-slate-50'
+                    : 'text-foreground hover:bg-muted'
                 "
                 @click="mobileMenuOpen = false"
               >
@@ -293,7 +336,7 @@ const userJobLabel = computed(() => {
                 to="/chat"
                 class="flex items-center justify-between rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
                 :class="
-                  isActive('/chat') ? 'bg-accent text-primary' : 'text-foreground hover:bg-slate-50'
+                  isActive('/chat') ? 'bg-accent text-primary' : 'text-foreground hover:bg-muted'
                 "
                 @click="mobileMenuOpen = false"
               >
@@ -345,7 +388,7 @@ const userJobLabel = computed(() => {
                 <div class="mt-4 grid gap-1">
                   <NuxtLink
                     to="/my"
-                    class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-slate-50"
+                    class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
                     @click="mobileMenuOpen = false"
                   >
                     <UserRound class="size-4 text-muted-foreground" />
@@ -353,7 +396,7 @@ const userJobLabel = computed(() => {
                   </NuxtLink>
                   <button
                     type="button"
-                    class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-destructive transition-colors hover:bg-red-50"
+                    class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
                     @click="handleLogout"
                   >
                     <LogOut class="size-4" />
@@ -394,7 +437,7 @@ const userJobLabel = computed(() => {
       <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8">
         <div class="flex flex-col gap-8 md:flex-row md:justify-between">
           <div>
-            <img src="/images/logo.png" alt="폴짝" class="h-9 w-auto" />
+            <AppLogo class="h-9" />
             <p class="mt-1.5 text-sm text-muted-foreground">포트폴리오로 한 단계 폴짝</p>
           </div>
           <div class="flex flex-col gap-4 text-sm text-muted-foreground md:flex-row md:gap-12">

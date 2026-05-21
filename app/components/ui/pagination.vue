@@ -35,7 +35,7 @@ const pages = computed(() => {
   <div class="flex items-center justify-center gap-1">
     <button
       type="button"
-      class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 disabled:opacity-30"
+      class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted disabled:opacity-30"
       :disabled="current <= 1"
       @click="emit('change', current - 1)"
     >
@@ -46,14 +46,13 @@ const pages = computed(() => {
       <span
         v-if="p === '...'"
         class="flex size-8 items-center justify-center text-sm text-muted-foreground"
-      >…</span>
+        >…</span
+      >
       <button
         v-else
         type="button"
         class="flex size-8 items-center justify-center rounded-lg text-sm font-semibold transition-colors"
-        :class="p === current
-          ? 'bg-primary text-white'
-          : 'text-foreground hover:bg-slate-100'"
+        :class="p === current ? 'bg-primary text-white' : 'text-foreground hover:bg-muted'"
         @click="emit('change', p as number)"
       >
         {{ p }}
@@ -62,7 +61,7 @@ const pages = computed(() => {
 
     <button
       type="button"
-      class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 disabled:opacity-30"
+      class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted disabled:opacity-30"
       :disabled="current >= total"
       @click="emit('change', current + 1)"
     >

@@ -29,7 +29,10 @@ function addFiles(newFiles: File[]) {
       break
     }
     const err = validate(f)
-    if (err) { errorMessage.value = err; continue }
+    if (err) {
+      errorMessage.value = err
+      continue
+    }
     if (!merged.find((m) => m.name === f.name)) merged.push(f)
   }
 
@@ -69,7 +72,7 @@ function formatMB(bytes: number): string {
       class="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors"
       :class="[
         errorMessage
-          ? 'border-destructive/40 bg-red-50/50'
+          ? 'border-destructive/40 bg-destructive/10'
           : isDragging
             ? 'border-primary bg-accent'
             : 'border-blue-200 bg-accent/50 hover:border-primary hover:bg-accent',
@@ -78,7 +81,9 @@ function formatMB(bytes: number): string {
       @dragleave.prevent="isDragging = false"
       @drop.prevent="onDrop"
     >
-      <span class="mb-3 inline-flex size-12 items-center justify-center rounded-full bg-white text-primary ring-1 ring-blue-100">
+      <span
+        class="mb-3 inline-flex size-12 items-center justify-center rounded-full bg-background text-primary ring-1 ring-border"
+      >
         <FileUp class="size-6" />
       </span>
       <span class="text-base font-bold text-foreground">
@@ -117,7 +122,7 @@ function formatMB(bytes: number): string {
         </div>
         <button
           type="button"
-          class="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+          class="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           @click="remove(i)"
         >
           <X class="size-4" />
