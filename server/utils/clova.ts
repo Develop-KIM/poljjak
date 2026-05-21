@@ -66,7 +66,9 @@ ${text}`
       },
       timeout: 60000,
     })
-  } catch {
+  } catch (e: unknown) {
+    const err = e as { message?: string; statusCode?: number; data?: unknown }
+    console.error('[CLOVA ERROR]', err.message, err.statusCode, JSON.stringify(err.data))
     throw createError({
       statusCode: 502,
       statusMessage: 'AI 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.',

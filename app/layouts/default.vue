@@ -126,11 +126,29 @@ const userJobLabel = computed(() => {
               class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100"
               @click="profileOpen = !profileOpen"
             >
-              <div
-                class="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground"
-              >
-                {{ userInitial }}
-              </div>
+              <ClientOnly>
+                <div class="size-7 overflow-hidden rounded-full">
+                  <img
+                    v-if="authStore.profile?.avatarUrl"
+                    :src="authStore.profile.avatarUrl"
+                    alt="프로필"
+                    class="h-full w-full object-cover"
+                  />
+                  <div
+                    v-else
+                    class="flex h-full w-full items-center justify-center bg-primary text-xs font-bold text-primary-foreground"
+                  >
+                    {{ userInitial }}
+                  </div>
+                </div>
+                <template #fallback>
+                  <div
+                    class="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground"
+                  >
+                    U
+                  </div>
+                </template>
+              </ClientOnly>
               <ChevronDown
                 class="hidden size-3.5 text-muted-foreground transition-transform duration-150 md:block"
                 :class="{ 'rotate-180': profileOpen }"
@@ -263,11 +281,29 @@ const userJobLabel = computed(() => {
               <!-- 로그인 상태 -->
               <template v-if="isLoggedIn">
                 <div class="flex items-center gap-3">
-                  <div
-                    class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
-                  >
-                    {{ userInitial }}
-                  </div>
+                  <ClientOnly>
+                    <div class="size-9 overflow-hidden rounded-full">
+                      <img
+                        v-if="authStore.profile?.avatarUrl"
+                        :src="authStore.profile.avatarUrl"
+                        alt="프로필"
+                        class="h-full w-full object-cover"
+                      />
+                      <div
+                        v-else
+                        class="flex h-full w-full items-center justify-center bg-primary text-sm font-bold text-primary-foreground"
+                      >
+                        {{ userInitial }}
+                      </div>
+                    </div>
+                    <template #fallback>
+                      <div
+                        class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+                      >
+                        U
+                      </div>
+                    </template>
+                  </ClientOnly>
                   <div class="min-w-0">
                     <p class="truncate text-sm font-semibold text-foreground">{{ userName }}</p>
                     <p v-if="userJobLabel" class="mt-0.5 text-xs text-muted-foreground">
