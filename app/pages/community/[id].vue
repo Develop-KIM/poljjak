@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Heart, MessageSquare, Share2, Flag, Send, ArrowLeft, ChevronDown } from '@lucide/vue'
+import { ref, computed, onMounted } from 'vue'
+import {
+  Heart,
+  MessageSquare,
+  Share2,
+  Flag,
+  Send,
+  ArrowLeft,
+  ChevronDown,
+  Eye,
+  Pencil,
+  Trash2,
+} from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import type { AnalysisResult } from '~~/server/utils/clova'
 
 const authStore = useAuthStore()
+const toast = useToastStore()
 const route = useRoute()
 const id = route.params.id as string
 const showLoginModal = ref(false)
@@ -17,8 +29,15 @@ const error = ref<string | null>(null)
 const liked = ref(false)
 const likeCount = ref(0)
 const showScores = ref(false)
+const liking = ref(false)
 
-// 분석 결과 임베드
+const editing = ref(false)
+const editTitle = ref('')
+const editBody = ref('')
+const saving = ref(false)
+const deleting = ref(false)
+const showDeleteConfirm = ref(false)
+
 interface AnalysisEmbed {
   id: string
   result: AnalysisResult
@@ -32,9 +51,12 @@ interface PostDetail {
   author: string
   authorInitial: string
   authorAvatarUrl: string | null
+  viewCount: number
   createdAt: string
   commentCount: number
   likeCount: number
+  isOwner: boolean
+  isLiked: boolean
   analysisId?: string | null
   analysis?: AnalysisEmbed | null
 }
@@ -51,6 +73,8 @@ const backLink = computed(() => {
   return `/community?tab=${tab}`
 })
 
+const canSaveEdit = computed(() => editTitle.value.trim().length > 0)
+
 const post = ref<PostDetail | null>(null)
 const analysisEmbed = ref<AnalysisEmbed | null>(null)
 
@@ -59,11 +83,11 @@ onMounted(async () => {
     const res = await $fetch<{ data: PostDetail }>(`/api/posts/${id}`)
     post.value = res.data
     likeCount.value = res.data.likeCount
+    liked.value = res.data.isLiked
     analysisEmbed.value = res.data.analysis ?? null
   } catch (e: unknown) {
     const err = e as { data?: { statusCode?: number; statusMessage?: string } }
     error.value = err.data?.statusMessage ?? '게시글을 불러오지 못했어요'
-
     if (err.data?.statusCode === 401) {
       loginContext.value = '피드백 보기'
       showLoginModal.value = true
@@ -71,19 +95,21 @@ onMounted(async () => {
   } finally {
     pending.value = false
   }
+
+  $fetch(`/api/posts/${id}/views`, { method: 'POST' }).catch(() => {})
 })
 
 interface Comment {
   id: number
   author: string
   initial: string
+  avatarUrl: string | null
   content: string
   createdAt: string
 }
 
 const comments = ref<Comment[]>([])
 
-// XSS 방지 후 URL 링크화 + 줄바꿈 처리
 function renderBody(raw: string): string {
   const escaped = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   const linked = escaped.replace(
@@ -93,14 +119,25 @@ function renderBody(raw: string): string {
   return linked.replace(/\n/g, '<br>')
 }
 
-function toggleLike() {
+async function toggleLike() {
   if (!authStore.isLoggedIn) {
     loginContext.value = '좋아요 누르기'
     showLoginModal.value = true
     return
   }
-  liked.value = !liked.value
-  likeCount.value += liked.value ? 1 : -1
+  if (liking.value) return
+  liking.value = true
+  try {
+    const res = await $fetch<{ data: { liked: boolean } }>(`/api/posts/${id}/likes`, {
+      method: 'POST',
+    })
+    liked.value = res.data.liked
+    likeCount.value += res.data.liked ? 1 : -1
+  } catch {
+    toast.error('좋아요 처리에 실패했어요')
+  } finally {
+    liking.value = false
+  }
 }
 
 function handleDM() {
@@ -113,13 +150,59 @@ function handleDM() {
 }
 
 function handleComment(content: string) {
+  const profile = authStore.profile
   comments.value.push({
     id: Date.now(),
-    author: '나',
-    initial: '나',
+    author: profile?.nickname ?? '나',
+    initial: (profile?.nickname?.[0] ?? '나').toUpperCase(),
+    avatarUrl: profile?.avatarUrl ?? null,
     content,
     createdAt: '방금',
   })
+}
+
+function startEdit() {
+  if (!post.value) return
+  editTitle.value = post.value.title
+  editBody.value = post.value.body
+  editing.value = true
+}
+
+async function saveEdit() {
+  if (!canSaveEdit.value || saving.value) return
+  saving.value = true
+  try {
+    await $fetch(`/api/posts/${id}`, {
+      method: 'PATCH',
+      body: { title: editTitle.value.trim(), body: editBody.value.trim() },
+    })
+    if (post.value) {
+      post.value.title = editTitle.value.trim()
+      post.value.body = editBody.value.trim()
+    }
+    editing.value = false
+    toast.success('게시글이 수정됐어요')
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '수정에 실패했어요')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function deletePost() {
+  if (deleting.value) return
+  deleting.value = true
+  try {
+    await $fetch(`/api/posts/${id}`, { method: 'DELETE' })
+    toast.success('게시글이 삭제됐어요')
+    navigateTo(backLink.value)
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '삭제에 실패했어요')
+    deleting.value = false
+    showDeleteConfirm.value = false
+  }
 }
 </script>
 
@@ -139,7 +222,7 @@ function handleComment(content: string) {
       <div class="size-8 animate-spin rounded-full border-4 border-border border-t-primary" />
     </div>
 
-    <!-- 게시글 없음 -->
+    <!-- 에러 -->
     <AppEmptyState
       v-else-if="error || !post"
       :title="error ?? '게시글을 찾을 수 없어요'"
@@ -148,177 +231,277 @@ function handleComment(content: string) {
 
     <!-- 게시글 -->
     <template v-else>
-      <div>
-        <AppBadge variant="blue">{{ post.category }}</AppBadge>
-        <h1 class="mt-3 text-2xl font-black leading-tight text-foreground md:text-3xl">
-          {{ post.title }}
-        </h1>
-        <div class="mt-3 flex items-center justify-between gap-4">
-          <div class="flex items-center gap-2">
-            <img
-              v-if="post.authorAvatarUrl"
-              :src="post.authorAvatarUrl"
-              alt=""
-              class="size-7 rounded-full object-cover"
+      <!-- ── 수정 모드 ── -->
+      <template v-if="editing">
+        <div class="grid gap-4">
+          <div>
+            <label class="text-sm font-bold text-foreground">제목</label>
+            <AppInput v-model="editTitle" placeholder="제목을 입력해주세요" class="mt-2" />
+          </div>
+          <div>
+            <label class="text-sm font-bold text-foreground">
+              본문
+              <span class="ml-1 font-normal text-muted-foreground">(선택)</span>
+            </label>
+            <AppTextarea
+              v-model="editBody"
+              placeholder="내용을 입력해주세요."
+              :rows="10"
+              :maxlength="5000"
+              :show-count="true"
+              class="mt-2"
             />
-            <div
-              v-else
-              class="flex size-7 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
-            >
-              {{ post.authorInitial }}
-            </div>
-            <span class="text-sm font-semibold text-foreground">{{ post.author }}</span>
-            <span class="text-sm text-muted-foreground">{{ post.createdAt }}</span>
           </div>
-          <AppButton variant="outline" size="sm" @click="handleDM">
-            <Send class="size-3.5" />
-            DM 보내기
-          </AppButton>
+          <div class="flex gap-3">
+            <AppButton variant="outline" class="flex-1" @click="editing = false">취소</AppButton>
+            <AppButton class="flex-1" :disabled="!canSaveEdit" :loading="saving" @click="saveEdit">
+              저장
+            </AppButton>
+          </div>
         </div>
-      </div>
+      </template>
 
-      <!-- 분석 결과 임베드 (피드백 게시글에 분석 첨부된 경우) -->
-      <div
-        v-if="analysisEmbed?.result"
-        class="mt-6 rounded-xl border border-primary/20 bg-accent/30 p-5"
-      >
-        <div class="flex items-center gap-2 mb-4">
-          <AppBadge variant="green">AI 분석 결과</AppBadge>
-        </div>
-
-        <AppCard>
-          <h3 class="text-sm font-black text-foreground">종합 피드백</h3>
-          <p class="mt-2 text-sm leading-7 text-muted-foreground">
-            {{ analysisEmbed.result.summary }}
-          </p>
-        </AppCard>
-
-        <div class="mt-4 grid gap-3">
-          <BeforeAfterBlock
-            v-for="(s, i) in analysisEmbed.result.suggestions"
-            :key="i"
-            :category="s.category"
-            :context="s.context"
-            :before="s.before"
-            :after="s.after"
-          />
-        </div>
-
-        <button
-          type="button"
-          class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:bg-slate-50"
-          @click="showScores = !showScores"
-        >
-          항목별 점수 보기
-          <ChevronDown
-            class="size-4 text-muted-foreground transition-transform"
-            :class="{ 'rotate-180': showScores }"
-          />
-        </button>
-        <div v-if="showScores" class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2">
-          <AnalysisScoreCard
-            v-for="score in analysisEmbed.result.scores"
-            :key="score.title"
-            :title="score.title"
-            :score="score.score"
-            :comment="score.comment"
-            :improvement="score.improvement"
-          />
-        </div>
-      </div>
-
-      <hr v-if="post.body.trim()" class="my-6 border-border" />
-
-      <!-- 본문 -->
-      <!-- eslint-disable vue/no-v-html -->
-      <div
-        v-if="post.body.trim()"
-        class="text-base leading-8 text-foreground"
-        v-html="renderBody(post.body)"
-      />
-      <!-- eslint-enable vue/no-v-html -->
-
-      <!-- 액션 바 -->
-      <div class="mt-8 flex items-center gap-2 border-t border-b border-border py-4">
-        <button
-          type="button"
-          class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
-          :class="
-            liked
-              ? 'bg-red-50 text-red-500'
-              : 'text-muted-foreground hover:bg-slate-100 hover:text-foreground'
-          "
-          @click="toggleLike"
-        >
-          <Heart class="size-4" :class="{ 'fill-red-500': liked }" />
-          {{ likeCount }}
-        </button>
-
-        <button
-          type="button"
-          class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
-        >
-          <MessageSquare class="size-4" />
-          {{ post.commentCount }}
-        </button>
-
-        <button
-          type="button"
-          class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
-          @click="showShareDialog = true"
-        >
-          <Share2 class="size-4" />
-          공유
-        </button>
-
-        <button
-          type="button"
-          class="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-destructive"
-          @click="showReportDialog = true"
-        >
-          <Flag class="size-4" />
-          신고
-        </button>
-      </div>
-
-      <!-- 댓글 -->
-      <section class="mt-8">
-        <h2 class="text-base font-black text-foreground">
-          댓글 <span class="text-muted-foreground">{{ comments.length }}</span>
-        </h2>
-
-        <div class="mt-5 grid gap-5">
-          <div v-for="comment in comments" :key="comment.id" class="flex gap-3">
-            <div
-              class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
-            >
-              {{ comment.initial }}
-            </div>
-            <div class="flex-1">
-              <div class="flex items-baseline gap-2">
-                <span class="text-sm font-semibold text-foreground">{{ comment.author }}</span>
-                <span class="text-xs text-muted-foreground">{{ comment.createdAt }}</span>
+      <!-- ── 조회 모드 ── -->
+      <template v-else>
+        <!-- 헤더 -->
+        <div>
+          <AppBadge variant="blue">{{ post.category }}</AppBadge>
+          <h1 class="mt-3 text-2xl font-black leading-tight text-foreground md:text-3xl">
+            {{ post.title }}
+          </h1>
+          <div class="mt-3 flex items-center justify-between gap-4">
+            <!-- 작성자 정보 -->
+            <div class="flex flex-wrap items-center gap-2">
+              <img
+                v-if="post.authorAvatarUrl"
+                :src="post.authorAvatarUrl"
+                alt=""
+                class="size-7 rounded-full object-cover"
+              />
+              <div
+                v-else
+                class="flex size-7 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
+              >
+                {{ post.authorInitial }}
               </div>
-              <p class="mt-1.5 text-sm leading-6 text-foreground">{{ comment.content }}</p>
+              <span class="text-sm font-semibold text-foreground">{{ post.author }}</span>
+              <span class="text-sm text-muted-foreground">{{ post.createdAt }}</span>
+              <span class="flex items-center gap-1 text-sm text-muted-foreground">
+                <Eye class="size-3.5" />
+                {{ post.viewCount.toLocaleString() }}
+              </span>
+            </div>
+            <!-- 액션 버튼 -->
+            <div class="flex shrink-0 items-center gap-2">
+              <template v-if="post.isOwner">
+                <AppButton variant="outline" size="sm" @click="startEdit">
+                  <Pencil class="size-3.5" />
+                  수정
+                </AppButton>
+                <AppButton
+                  variant="outline"
+                  size="sm"
+                  class="text-destructive hover:border-destructive hover:bg-red-50"
+                  @click="showDeleteConfirm = true"
+                >
+                  <Trash2 class="size-3.5" />
+                  삭제
+                </AppButton>
+              </template>
+              <AppButton v-else variant="outline" size="sm" @click="handleDM">
+                <Send class="size-3.5" />
+                DM 보내기
+              </AppButton>
             </div>
           </div>
         </div>
 
-        <div class="mt-6">
-          <CommentComposer
-            :is-logged-in="authStore.isLoggedIn"
-            @submit="handleComment"
-            @open-login="
-              () => {
-                loginContext = '댓글 달기'
-                showLoginModal = true
-              }
-            "
-          />
+        <!-- 분석 결과 임베드 -->
+        <div
+          v-if="analysisEmbed?.result"
+          class="mt-6 rounded-xl border border-primary/20 bg-accent/30 p-5"
+        >
+          <div class="mb-4 flex items-center gap-2">
+            <AppBadge variant="green">AI 분석 결과</AppBadge>
+          </div>
+
+          <AppCard>
+            <h3 class="text-sm font-black text-foreground">종합 피드백</h3>
+            <p class="mt-2 text-sm leading-7 text-muted-foreground">
+              {{ analysisEmbed.result.summary }}
+            </p>
+          </AppCard>
+
+          <div class="mt-4 grid gap-3">
+            <BeforeAfterBlock
+              v-for="(s, i) in analysisEmbed.result.suggestions"
+              :key="i"
+              :category="s.category"
+              :context="s.context"
+              :before="s.before"
+              :after="s.after"
+            />
+          </div>
+
+          <button
+            type="button"
+            class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:bg-slate-50"
+            @click="showScores = !showScores"
+          >
+            항목별 점수 보기
+            <ChevronDown
+              class="size-4 text-muted-foreground transition-transform"
+              :class="{ 'rotate-180': showScores }"
+            />
+          </button>
+          <div v-if="showScores" class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2">
+            <AnalysisScoreCard
+              v-for="score in analysisEmbed.result.scores"
+              :key="score.title"
+              :title="score.title"
+              :score="score.score"
+              :comment="score.comment"
+              :improvement="score.improvement"
+            />
+          </div>
         </div>
-      </section>
+
+        <hr v-if="post.body.trim()" class="my-6 border-border" />
+
+        <!-- 본문 -->
+        <!-- eslint-disable vue/no-v-html -->
+        <div
+          v-if="post.body.trim()"
+          class="text-base leading-8 text-foreground"
+          v-html="renderBody(post.body)"
+        />
+        <!-- eslint-enable vue/no-v-html -->
+
+        <!-- 액션 바 -->
+        <div class="mt-8 flex items-center gap-1 border-b border-t border-border py-4">
+          <button
+            type="button"
+            class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
+            :class="
+              liked
+                ? 'bg-red-50 text-red-500'
+                : 'text-muted-foreground hover:bg-slate-100 hover:text-foreground'
+            "
+            @click="toggleLike"
+          >
+            <Heart class="size-4" :class="{ 'fill-red-500': liked }" />
+            {{ likeCount }}
+          </button>
+
+          <button
+            type="button"
+            class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+          >
+            <MessageSquare class="size-4" />
+            {{ post.commentCount + comments.length }}
+          </button>
+
+          <button
+            type="button"
+            class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+            @click="showShareDialog = true"
+          >
+            <Share2 class="size-4" />
+            공유
+          </button>
+
+          <button
+            type="button"
+            class="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-destructive"
+            @click="showReportDialog = true"
+          >
+            <Flag class="size-4" />
+            신고
+          </button>
+        </div>
+
+        <!-- 댓글 -->
+        <section class="mt-8">
+          <h2 class="text-base font-black text-foreground">
+            댓글
+            <span class="text-muted-foreground">{{ post.commentCount + comments.length }}</span>
+          </h2>
+
+          <div class="mt-5 grid gap-5">
+            <div v-for="comment in comments" :key="comment.id" class="flex gap-3">
+              <img
+                v-if="comment.avatarUrl"
+                :src="comment.avatarUrl"
+                alt=""
+                class="size-8 shrink-0 rounded-full object-cover"
+              />
+              <div
+                v-else
+                class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
+              >
+                {{ comment.initial }}
+              </div>
+              <div class="flex-1">
+                <div class="flex items-baseline gap-2">
+                  <span class="text-sm font-semibold text-foreground">{{ comment.author }}</span>
+                  <span class="text-xs text-muted-foreground">{{ comment.createdAt }}</span>
+                </div>
+                <p class="mt-1.5 text-sm leading-6 text-foreground">{{ comment.content }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <CommentComposer
+              :is-logged-in="authStore.isLoggedIn"
+              @submit="handleComment"
+              @open-login="
+                () => {
+                  loginContext = '댓글 달기'
+                  showLoginModal = true
+                }
+              "
+            />
+          </div>
+        </section>
+      </template>
     </template>
   </div>
+
+  <!-- 삭제 확인 모달 -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-150 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-100 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showDeleteConfirm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+        @click.self="showDeleteConfirm = false"
+      >
+        <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+          <h3 class="text-lg font-black text-foreground">게시글을 삭제할까요?</h3>
+          <p class="mt-2 text-sm text-muted-foreground">삭제한 게시글은 복구할 수 없어요.</p>
+          <div class="mt-6 flex gap-3">
+            <AppButton variant="outline" class="flex-1" @click="showDeleteConfirm = false">
+              취소
+            </AppButton>
+            <AppButton
+              class="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              :loading="deleting"
+              @click="deletePost"
+            >
+              삭제
+            </AppButton>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 
   <ShareLinkDialog :open="showShareDialog" @close="showShareDialog = false" />
   <ReportDialog :open="showReportDialog" @close="showReportDialog = false" />

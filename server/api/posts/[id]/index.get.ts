@@ -11,34 +11,38 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '잘못된 요청이에요' })
   }
 
-  const [post] = await db
-    .select({
-      id: posts.id,
-      category: posts.category,
-      title: posts.title,
-      body: posts.body,
-      analysisId: posts.analysisId,
-      createdAt: posts.createdAt,
-      author: users.nickname,
-      authorAvatarUrl: users.avatarUrl,
-    })
-    .from(posts)
-    .leftJoin(users, eq(posts.userId, users.id))
-    .where(and(eq(posts.id, id), isNull(posts.deletedAt)))
-    .limit(1)
+  const [[post], user] = await Promise.all([
+    db
+      .select({
+        id: posts.id,
+        userId: posts.userId,
+        category: posts.category,
+        title: posts.title,
+        body: posts.body,
+        analysisId: posts.analysisId,
+        viewCount: posts.viewCount,
+        createdAt: posts.createdAt,
+        author: users.nickname,
+        authorAvatarUrl: users.avatarUrl,
+      })
+      .from(posts)
+      .leftJoin(users, eq(posts.userId, users.id))
+      .where(and(eq(posts.id, id), isNull(posts.deletedAt)))
+      .limit(1),
+    getAuthUser(event),
+  ])
 
   if (!post) {
     throw createError({ statusCode: 404, statusMessage: '게시글을 찾을 수 없어요' })
   }
 
-  if (post.category === 'feedback') {
-    const user = await getAuthUser(event)
-    if (!user) {
-      throw createError({ statusCode: 401, statusMessage: '로그인이 필요해요' })
-    }
+  if (post.category === 'feedback' && !user) {
+    throw createError({ statusCode: 401, statusMessage: '로그인이 필요해요' })
   }
 
-  const [[commentCountRow], [likeCountRow]] = await Promise.all([
+  const isOwner = !!user && post.userId === user.id
+
+  const [[commentCountRow], [likeCountRow], likedRow] = await Promise.all([
     db
       .select({ value: count(comments.id) })
       .from(comments)
@@ -47,6 +51,13 @@ export default defineEventHandler(async (event) => {
       .select({ value: count(likes.id) })
       .from(likes)
       .where(eq(likes.postId, post.id)),
+    user
+      ? db
+          .select({ id: likes.id })
+          .from(likes)
+          .where(and(eq(likes.postId, post.id), eq(likes.userId, user.id)))
+          .limit(1)
+      : Promise.resolve([]),
   ])
 
   let analysis: { id: string; result: AnalysisResult } | null = null
@@ -79,9 +90,12 @@ export default defineEventHandler(async (event) => {
       author,
       authorInitial: getAuthorInitial(author),
       authorAvatarUrl: post.authorAvatarUrl ?? null,
+      viewCount: post.viewCount,
       createdAt: formatCommunityDate(post.createdAt),
       commentCount: commentCountRow?.value ?? 0,
       likeCount: likeCountRow?.value ?? 0,
+      isOwner,
+      isLiked: likedRow.length > 0,
       analysisId: post.analysisId,
       analysis,
     },
