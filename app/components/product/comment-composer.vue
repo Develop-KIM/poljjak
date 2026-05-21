@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Send } from '@lucide/vue'
 
 const props = defineProps<{
   isLoggedIn: boolean
@@ -37,21 +36,20 @@ function handleSubmit() {
     >
       <textarea
         v-model="content"
-        placeholder="댓글을 입력해주세요. (Ctrl+Enter로 전송)"
+        placeholder="댓글을 입력해주세요."
         rows="1"
         class="flex-1 resize-none bg-transparent text-sm leading-5 outline-none placeholder:text-muted-foreground"
         @focus="handleFocus"
-        @keydown.ctrl.enter.prevent="handleSubmit"
-        @keydown.meta.enter.prevent="handleSubmit"
+        @keydown.enter.prevent="handleSubmit"
       />
     </div>
     <AppButton
-      size="icon"
+      size="sm"
       :disabled="!content.trim() || loading"
       :loading="loading"
       @click="handleSubmit"
     >
-      <Send class="size-4" />
+      등록
     </AppButton>
   </div>
 </template>

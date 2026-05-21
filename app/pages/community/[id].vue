@@ -413,11 +413,7 @@ async function deletePost() {
           <button
             type="button"
             class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
-            :class="
-              liked
-                ? 'bg-red-50 text-red-500'
-                : 'text-muted-foreground hover:bg-slate-100 hover:text-foreground'
-            "
+            :class="liked ? 'text-red-500' : 'text-muted-foreground hover:text-foreground'"
             @click="toggleLike"
           >
             <Heart class="size-4" :class="{ 'fill-red-500': liked }" />
@@ -466,7 +462,7 @@ async function deletePost() {
           </div>
 
           <div v-else class="mt-5 grid gap-5">
-            <div v-for="comment in comments" :key="comment.id" class="group flex gap-3">
+            <div v-for="comment in comments" :key="comment.id" class="flex gap-3">
               <img
                 v-if="comment.authorAvatarUrl"
                 :src="comment.authorAvatarUrl"
@@ -486,7 +482,7 @@ async function deletePost() {
                   <button
                     v-if="comment.isOwner"
                     type="button"
-                    class="ml-auto hidden text-xs text-muted-foreground transition-colors hover:text-destructive group-hover:block"
+                    class="ml-auto text-xs text-muted-foreground transition-colors hover:text-destructive"
                     @click="deleteComment(comment.id)"
                   >
                     삭제
