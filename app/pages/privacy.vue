@@ -72,9 +72,10 @@ useSeoMeta({
     <section class="mt-10">
       <h2 class="text-lg font-black text-foreground">3. 개인정보 보유 및 이용 기간</h2>
       <p class="mt-4 text-sm leading-7 text-muted-foreground">
-        회원 탈퇴 시 즉시 파기하는 것을 원칙으로 합니다. 단, 탈퇴 신청 후
-        <strong class="text-foreground">30일간 유예 기간</strong>을 두며, 이 기간 내 재가입 시
-        데이터를 복원할 수 있습니다. 30일 경과 후에는 모든 개인정보를 영구 삭제합니다.
+        회원 탈퇴 시 이메일, 프로필 이미지 등 개인정보성 필드는 익명화합니다. 같은 OAuth 계정으로
+        30일 이내 재로그인하는 경우 기존 활동 기록과 연결된 계정을 복구할 수 있도록 최소한의 계정
+        식별 정보는 보관합니다. 30일이 지나면 기존 활동의 작성자 연결을 익명화하고 계정 정보와
+        분석 PDF, 프로필 이미지를 영구 삭제합니다.
       </p>
       <p class="mt-3 text-sm leading-7 text-muted-foreground">
         단, 관계 법령에 의해 보존 의무가 있는 정보는 해당 기간 동안 보관합니다.

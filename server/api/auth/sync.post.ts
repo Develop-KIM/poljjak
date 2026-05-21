@@ -2,6 +2,7 @@ import { serverSupabaseClient } from '#supabase/server'
 import { eq } from 'drizzle-orm'
 import { db } from '../../db'
 import { users } from '../../db/schema'
+import { getDeletedUserCutoff, hardDeleteUser } from '../../utils/deleted-users'
 
 export default defineEventHandler(async (event) => {
   const client = await serverSupabaseClient(event)
@@ -14,15 +15,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: '로그인이 필요해요' })
   }
 
+  const authUser = supabaseUser
+
   // provider ID (카카오/구글 공통으로 사용)
   const providerId =
-    supabaseUser.user_metadata?.provider_id ?? supabaseUser.identities?.[0]?.id ?? supabaseUser.id
+    authUser.user_metadata?.provider_id ?? authUser.identities?.[0]?.id ?? authUser.id
 
-  const nickname =
-    supabaseUser.user_metadata?.full_name ?? supabaseUser.user_metadata?.name ?? '사용자'
+  const nickname = authUser.user_metadata?.full_name ?? authUser.user_metadata?.name ?? '사용자'
 
   const oauthAvatarUrl =
-    supabaseUser.user_metadata?.avatar_url ?? supabaseUser.user_metadata?.picture ?? null
+    authUser.user_metadata?.avatar_url ?? authUser.user_metadata?.picture ?? null
 
   // OAuth 아바타 없으면 dicebear 기본 이미지 생성
   const avatarUrl =
@@ -35,20 +37,44 @@ export default defineEventHandler(async (event) => {
     .where(eq(users.providerId, String(providerId)))
     .limit(1)
 
-  // 탈퇴 후 재가입: 기존 레코드 삭제 후 신규 삽입
-  if (existing?.deletedAt) {
-    await db.delete(users).where(eq(users.providerId, String(providerId)))
-  }
-
-  if (!existing || existing.deletedAt) {
+  async function createUser() {
     await db.insert(users).values({
-      id: supabaseUser.id,
+      id: authUser.id,
       providerId: String(providerId),
       nickname,
-      email: supabaseUser.email ?? null,
+      email: authUser.email ?? null,
       avatarUrl,
       lastLoginAt: new Date(),
     })
+  }
+
+  if (!existing) {
+    await createUser()
+    return { data: { needsOnboarding: true } }
+  }
+
+  // 탈퇴 후 재로그인: 기존 사용자 ID를 유지해 게시글·댓글·분석 기록 연결을 복구한다.
+  if (existing.deletedAt) {
+    if (existing.deletedAt <= getDeletedUserCutoff()) {
+      await hardDeleteUser(existing.id, { deleteAuth: false })
+      await createUser()
+      return { data: { needsOnboarding: true } }
+    }
+
+    await db
+      .update(users)
+      .set({
+        nickname,
+        email: authUser.email ?? null,
+        avatarUrl,
+        jobType: null,
+        onboardingCompletedAt: null,
+        deletedAt: null,
+        lastLoginAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.providerId, String(providerId)))
+
     return { data: { needsOnboarding: true } }
   }
 
@@ -57,7 +83,7 @@ export default defineEventHandler(async (event) => {
     .update(users)
     .set({
       lastLoginAt: new Date(),
-      email: supabaseUser.email ?? null,
+      email: authUser.email ?? null,
       avatarUrl: oauthAvatarUrl ?? existing.avatarUrl,
       updatedAt: new Date(),
     })

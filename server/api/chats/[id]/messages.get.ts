@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
       content: m.isDeleted ? null : m.content,
       isMine: m.senderId === user.id,
       isDeleted: m.isDeleted,
-      senderNickname: m.senderNickname ?? '알 수 없음',
+      senderNickname: m.senderNickname ?? '탈퇴한 사용자',
       senderAvatarUrl: m.senderAvatarUrl ?? null,
       createdAt: m.createdAt.toISOString(),
     })),

@@ -47,10 +47,15 @@ server/db/
 | last_login_at           | timestamp                        | 마지막 로그인 시각. 로그인마다 갱신        |
 | created_at              | timestamp NOT NULL DEFAULT now() |                                            |
 | updated_at              | timestamp NOT NULL DEFAULT now() |                                            |
-| deleted_at              | timestamp                        | 탈퇴 신청일. 30일 후 실제 삭제 처리        |
+| deleted_at              | timestamp                        | 탈퇴 신청일. null이 아니면 비활성 계정     |
 
 `job_type` enum: `'developer' | 'designer'`
 (개발자·디자이너 2종. 마이페이지에서 변경 가능. 온보딩 건너뛰면 null)
+
+탈퇴 시 즉시 사용자 row를 삭제하지 않는다. 이메일, 프로필 이미지, 직종 등 개인정보성 필드를 익명화하고
+30일 전 같은 OAuth 계정으로 재로그인하면 동일 `id`를 복구해 기존 게시글·댓글·분석 결과 연결을 유지한다.
+30일이 지나면 매일 오전 9시 스케줄러가 게시글·댓글·채팅 메시지의 작성자 ID를 익명 ID로 분리하고
+분석 PDF·프로필 이미지·분석 결과·좋아요·알림·신고 기록·Supabase Auth 계정·사용자 row를 하드 딜리트한다.
 
 ### analyses
 

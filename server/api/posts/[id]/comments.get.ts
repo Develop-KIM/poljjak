@@ -52,10 +52,10 @@ export default defineEventHandler(async (event) => {
     if (row.deletedAt && row.parentId) continue
 
     const isDeleted = !!row.deletedAt
-    const author = row.author ?? '알 수 없음'
+    const author = row.author ?? '탈퇴한 사용자'
     const item = {
       id: row.id,
-      author: isDeleted ? '알 수 없음' : author,
+      author: isDeleted ? '탈퇴한 사용자' : author,
       authorInitial: isDeleted ? '?' : getAuthorInitial(author),
       authorAvatarUrl: isDeleted ? null : getAvatarUrl(row.authorAvatarUrl, author),
       content: isDeleted ? '' : row.content,

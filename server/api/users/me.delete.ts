@@ -9,7 +9,15 @@ export default defineEventHandler(async (event) => {
 
   await db
     .update(users)
-    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .set({
+      nickname: '탈퇴한 사용자',
+      email: null,
+      avatarUrl: null,
+      jobType: null,
+      onboardingCompletedAt: null,
+      deletedAt: new Date(),
+      updatedAt: new Date(),
+    })
     .where(eq(users.id, user.id))
 
   // Supabase Auth 세션 무효화

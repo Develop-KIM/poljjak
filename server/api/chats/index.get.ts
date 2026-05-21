@@ -106,7 +106,7 @@ export default defineEventHandler(async (event) => {
     const other = otherMap.get(otherId)
     const lastMsg = lastMsgMap.get(room.id)
     const lastMessageDate = lastMsg ? new Date(lastMsg.created_at) : null
-    const nickname = other?.nickname ?? '알 수 없음'
+    const nickname = other?.nickname ?? '탈퇴한 사용자'
 
     return {
       id: room.id,

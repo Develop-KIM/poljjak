@@ -4,7 +4,7 @@
 
 ## 목표 (한 문장)
 
-카카오 로그인으로 가입한 개발자·디자이너가 PDF 포트폴리오를 AI에게 분석받고,
+카카오·구글 OAuth로 가입한 개발자·디자이너가 PDF 포트폴리오를 AI에게 분석받고,
 커뮤니티에서 사람 피드백·프로젝트·스터디 모집까지 이어지는 MVP를 팀원 시연 가능 수준으로 완성한다.
 
 ---
@@ -13,7 +13,7 @@
 
 ### 인증
 
-- AC-1: 카카오 로그인 버튼 클릭 → 카카오 동의 → 계정 생성 및 로그인 완료
+- AC-1: 카카오 또는 구글 로그인 버튼 클릭 → OAuth 동의 → 계정 생성 및 로그인 완료
 - AC-2: OAuth 이메일 제공 불가 시 닉네임만으로 가입 진행
 - AC-3: 비로그인 상태에서 쓰기 액션 시도 시 페이지 이동 없이 로그인 모달 표시
 
@@ -22,7 +22,7 @@
 - AC-4: PDF 이외 파일 선택 시 업로드 차단 + "PDF 파일만 가능합니다" 메시지
 - AC-5: 10MB 초과 또는 51페이지 이상 PDF 업로드 시도 시 구체적 에러 메시지. 업로드 UI에 제한 조건 사전 표시
 - AC-6: 이미지 스캔 PDF 업로드 시 "텍스트를 추출할 수 없습니다. 텍스트 PDF로 업로드해 주세요" 안내
-- AC-7: 분석 중 스트리밍으로 결과가 실시간 표시됨 (빈 화면 X)
+- AC-7: 분석 요청 후 백그라운드에서 결과를 생성하고, 진행 화면은 빈 화면 없이 상태를 표시함
 - AC-8: 분석 결과 페이지에 점수+코멘트 / 종합 피드백 / Before-After 제안 세 섹션이 노출됨
 - AC-9: 마이페이지에서 이전 분석 결과 목록 조회 및 개별 결과 열람 가능
 - AC-10: 공유 링크 생성 → 비로그인 브라우저에서 열람 가능, 작성자 이름 노출
@@ -55,7 +55,7 @@
 ### 프로필 / 탈퇴
 
 - AC-27: 마이페이지에서 프로필 사진 업로드·변경 가능
-- AC-28: 탈퇴 신청 시 "30일 후 영구 삭제" 안내. 유예 기간 내 재로그인 시 복구
+- AC-28: 탈퇴 신청 시 사용자 개인정보를 익명화하고 `deletedAt`을 기록함. 30일 전까지 같은 OAuth 계정으로 재로그인 시 기존 사용자 ID를 복구, 30일 경과 시 스케줄러가 하드 딜리트
 
 ---
 
@@ -76,14 +76,14 @@
 ### DB 스키마 (신규 테이블)
 
 ```
-users                  - Supabase Auth 기본 + profile_image_url
-portfolio_analyses     - 분석 결과 (userId, pdfUrl, prompt, result JSON, isPublic, shareToken)
+users                  - Supabase Auth 사용자와 1:1 매핑되는 서비스 프로필 (providerId, avatarUrl, deletedAt)
+analyses               - 분석 결과 (userId, pdfUrl, prompt, result JSON, isPublic, shareToken)
 posts                  - 게시글 (userId, category, title, body, analysisId?)
 post_images            - 게시글 이미지 (postId, url, order)
 comments               - 댓글 (postId, userId, body)
 likes                  - 좋아요 (postId, userId) UNIQUE
 chat_rooms             - 채팅방 (id, initiatorLeftAt, participantLeftAt)
-chat_messages          - 메시지 (roomId, senderId, body, deletedAt)
+messages               - 메시지 (roomId, senderId, content, isDeleted)
 notifications          - 알림 (userId, type, targetId, isRead)
 reports                - 신고 (reporterId, targetType, targetId, reason)
 ```
@@ -126,7 +126,7 @@ reports                - 신고 (reporterId, targetType, targetId, reason)
 
 - `server/utils/auth.ts`, 카카오 앱 설정, 환경변수
 - 이메일 없을 시 닉네임 폴백 로직
-- 검증: 카카오 로그인 → DB users 테이블에 row 생성
+- 검증: 카카오·구글 로그인 → DB users 테이블에 row 생성
 - 의존: T02
 
 #### T06: 로그인 모달 컴포넌트 (1시간)
@@ -164,8 +164,8 @@ reports                - 신고 (reporterId, targetType, targetId, reason)
 
 - `server/api/portfolio/analyze.post.ts`
 - 점수+코멘트 / 종합 피드백 / Before-After 구조화 프롬프트
-- SSE 스트리밍 응답 (CLOVA Studio 스트리밍 API)
-- 검증: 실제 PDF 업로드 시 스트리밍으로 결과 수신
+- 백그라운드 분석 처리. 요청 즉시 분석 row를 만들고 완료 시 결과 저장
+- 검증: 실제 PDF 업로드 시 진행 화면 표시 후 결과 페이지에서 완료 결과 확인
 - 의존: T09
 
 #### T11: 분석 결과 저장 + 마이페이지 목록 (1시간)
@@ -313,9 +313,10 @@ reports                - 신고 (reporterId, targetType, targetId, reason)
 
 #### T30: 회원 탈퇴 플로우 (1시간)
 
-- 탈퇴 신청 → `deletedAt` 기록, 30일 유예 안내
-- 30일 후 배치: 개인정보 삭제, AI 분석 결과 삭제, 게시글 익명화
-- 검증: 탈퇴 신청 후 재로그인 시 복구 확인. 탈퇴 계정 게시글 "탈퇴한 사용자" 표시
+- 탈퇴 신청 → 개인정보 필드 익명화 + `deletedAt` 기록
+- 30일 전 같은 OAuth 계정으로 재로그인 → 동일 `users.id` 복구 + 온보딩 재진입
+- 30일 경과 → 매일 오전 9시 스케줄러가 작성자 ID를 익명 ID로 분리한 뒤 분석 PDF·프로필 이미지·Supabase Auth 계정·사용자 row 하드 딜리트
+- 검증: 탈퇴 신청 후 게시글·댓글 작성자가 "탈퇴한 사용자"로 표시되고, 30일 전 재로그인 시 기존 게시글·댓글·분석 결과가 다시 연결됨
 - 의존: T05
 
 ---
@@ -362,7 +363,7 @@ T01 → T03 → T04                          T14 → T15 → T16
 | `pdf-parse` 특정 PDF 파싱 실패 | 텍스트 0자 감지 → 사용자 안내    |
 | Supabase Storage 버킷 설정     | T08에서 선행 검증 후 T09 진행    |
 | Supabase Realtime 인증 처리    | Supabase JWT 토큰 기반 채널 인증 |
-| AI 분석 응답 지연 (10초+)      | 스트리밍 + 로딩 상태 UI 필수     |
+| AI 분석 응답 지연 (10초+)      | 백그라운드 처리 + 진행 상태 UI 필수 |
 
 ---
 
@@ -370,10 +371,10 @@ T01 → T03 → T04                          T14 → T15 → T16
 
 **시나리오 1 — AI 분석 전체 플로우**
 
-1. 카카오 로그인 → 업로드 페이지 이동
+1. 카카오 또는 구글 로그인 → 업로드 페이지 이동
 2. PDF 업로드 (10MB 이하, 50페이지 이하)
 3. 분석 방향 텍스트 입력 (선택)
-4. 분석 시작 → 스트리밍으로 결과 표시
+4. 분석 시작 → 진행 화면 표시, 완료 후 결과 확인
 5. 결과 저장 확인 (마이페이지)
 6. 공유 링크 생성 → 비로그인 브라우저에서 열람
 

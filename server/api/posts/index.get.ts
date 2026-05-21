@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
     category: postCategoryLabels[post.category],
     title: post.title,
     excerpt: createPostExcerpt(post.body),
-    author: post.author ?? '알 수 없음',
+    author: post.author ?? '탈퇴한 사용자',
     commentCount: post.commentCount,
     likeCount: post.likeCount,
     viewCount: post.viewCount,

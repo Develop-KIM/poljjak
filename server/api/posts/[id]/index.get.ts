@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
     .where(eq(postImages.postId, post.id))
     .orderBy(asc(postImages.order))
 
-  const author = post.author ?? '알 수 없음'
+  const author = post.author ?? '탈퇴한 사용자'
 
   return {
     data: {

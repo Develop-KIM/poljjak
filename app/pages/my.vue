@@ -281,7 +281,7 @@ function selectTab(key: typeof activeTab.value) {
               :src="profile.avatarUrl"
               alt="프로필"
               class="h-full w-full object-cover"
-            />
+            >
             <div
               v-else
               class="flex h-full w-full items-center justify-center text-lg font-bold text-primary-foreground sm:text-xl"
@@ -594,7 +594,7 @@ function selectTab(key: typeof activeTab.value) {
                     :src="editAvatarPreview ?? profile?.avatarUrl ?? ''"
                     alt="프로필"
                     class="h-full w-full object-cover"
-                  />
+                  >
                   <div
                     v-else
                     class="flex h-full w-full items-center justify-center text-2xl font-bold text-primary-foreground"
@@ -613,7 +613,7 @@ function selectTab(key: typeof activeTab.value) {
                   accept="image/jpeg,image/png,image/webp"
                   class="sr-only"
                   @change="onAvatarChange"
-                />
+                >
               </label>
               <p class="text-xs text-muted-foreground">클릭해서 변경</p>
             </div>
@@ -632,7 +632,7 @@ function selectTab(key: typeof activeTab.value) {
                     maxlength="15"
                     placeholder="2~15자"
                     class="h-10 w-full rounded-lg border border-border bg-background px-3 pr-9 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
+                  >
                   <div class="absolute right-3 top-1/2 -translate-y-1/2">
                     <Loader2
                       v-if="nicknameCheckState === 'checking'"
@@ -723,8 +723,9 @@ function selectTab(key: typeof activeTab.value) {
         >
           <h2 class="text-xl font-black text-foreground">정말 탈퇴하시겠어요?</h2>
           <p class="mt-3 text-sm leading-6 text-muted-foreground">
-            탈퇴 신청 후 <strong class="text-foreground">30일</strong>이 지나면 계정과 분석 기록,
-            게시글 등 모든 데이터가 영구적으로 삭제돼요.
+            탈퇴하면 이메일과 프로필 정보가 익명화되고 로그아웃돼요. 같은 OAuth 계정으로 다시
+            로그인하면 30일 이내에는 기존 활동 기록과 연결된 계정을 복구할 수 있어요. 30일이
+            지나면 계정 정보와 분석 PDF, 프로필 이미지는 영구 삭제돼요.
           </p>
           <div class="mt-6 flex gap-3">
             <AppButton variant="outline" class="flex-1" @click="showWithdrawDialog = false"
