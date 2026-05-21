@@ -137,16 +137,20 @@ UNIQUE INDEX: (post_id, user_id)
 
 ### chat_rooms
 
-1:1 채팅방. user1_id < user2_id 로 정렬하여 중복 방지.
+1:1 채팅방. initiator_id < participant_id 로 정렬하여 중복 방지.
 
-| 컬럼       | 타입                              | 설명 |
-| ---------- | --------------------------------- | ---- |
-| id         | uuid PK DEFAULT gen_random_uuid() |      |
-| user1_id   | uuid FK → users.id NOT NULL       |      |
-| user2_id   | uuid FK → users.id NOT NULL       |      |
-| created_at | timestamp NOT NULL DEFAULT now()  |      |
+| 컬럼                | 타입                              | 설명                         |
+| ------------------- | --------------------------------- | ---------------------------- |
+| id                  | uuid PK DEFAULT gen_random_uuid() |                              |
+| initiator_id        | uuid FK → users.id NOT NULL       | 정렬된 첫 번째 사용자        |
+| participant_id      | uuid FK → users.id NOT NULL       | 정렬된 두 번째 사용자        |
+| source_post_id      | uuid FK → posts.id                | DM 시작 게시글 (nullable)    |
+| source_post_title   | text                              | DM 시작 게시글 제목 스냅샷   |
+| initiator_left_at   | timestamp                         | 첫 번째 사용자의 나가기 시각 |
+| participant_left_at | timestamp                         | 두 번째 사용자의 나가기 시각 |
+| created_at          | timestamp NOT NULL DEFAULT now()  |                              |
 
-UNIQUE INDEX: (user1_id, user2_id)
+UNIQUE INDEX: (initiator_id, participant_id)
 
 ### messages
 
@@ -200,7 +204,7 @@ users
  │    └─< likes      (post_id)
  ├─< comments        (user_id)
  ├─< likes           (user_id)
- ├─< chat_rooms      (user1_id / user2_id)
+ ├─< chat_rooms      (initiator_id / participant_id)
  │    └─< messages   (room_id)
  ├─< notifications   (user_id)
  └─< reports         (reporter_id)
