@@ -1,7 +1,7 @@
 import { and, desc, eq, ilike, isNull, sql } from 'drizzle-orm'
 import { getAuthUser } from '../../utils/auth'
 import { db } from '../../db'
-import { comments, likes, postImages, posts, users } from '../../db/schema'
+import { comments, likes, posts, users } from '../../db/schema'
 import { parsePostCategory } from '../../validation/posts'
 import { createPostExcerpt, formatCommunityDate, postCategoryLabels } from '../../utils/community'
 
@@ -11,8 +11,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const category = parsePostCategory(query.category) ?? 'project'
   const jobTypeParam = query.jobType as string | undefined
-  const jobType =
-    jobTypeParam === 'developer' || jobTypeParam === 'designer' ? jobTypeParam : null
+  const jobType = jobTypeParam === 'developer' || jobTypeParam === 'designer' ? jobTypeParam : null
   const keyword = typeof query.keyword === 'string' ? query.keyword.trim() : ''
   const page = Math.max(1, parseInt(String(query.page ?? '1'), 10))
 
@@ -44,7 +43,9 @@ export default defineEventHandler(async (event) => {
         viewCount: posts.viewCount,
         recruitmentStatus: posts.recruitmentStatus,
         author: users.nickname,
-        thumbnailUrl: sql<string | null>`(SELECT url FROM post_images WHERE post_id = ${posts.id} AND "order" = 0 LIMIT 1)`,
+        thumbnailUrl: sql<
+          string | null
+        >`(SELECT url FROM post_images WHERE post_id = ${posts.id} AND "order" = 0 LIMIT 1)`,
         commentCount: sql<number>`CAST(COUNT(DISTINCT CASE WHEN ${comments.deletedAt} IS NULL THEN ${comments.id} END) AS INTEGER)`,
         likeCount: sql<number>`CAST(COUNT(DISTINCT ${likes.id}) AS INTEGER)`,
       })
@@ -54,8 +55,14 @@ export default defineEventHandler(async (event) => {
       .leftJoin(likes, eq(likes.postId, posts.id))
       .where(and(...whereConditions))
       .groupBy(
-        posts.id, posts.category, posts.title, posts.body, posts.createdAt,
-        posts.viewCount, posts.recruitmentStatus, users.nickname,
+        posts.id,
+        posts.category,
+        posts.title,
+        posts.body,
+        posts.createdAt,
+        posts.viewCount,
+        posts.recruitmentStatus,
+        users.nickname
       )
       .orderBy(desc(posts.createdAt))
       .limit(PAGE_SIZE)

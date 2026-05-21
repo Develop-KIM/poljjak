@@ -1,7 +1,7 @@
-import { and, desc, eq, isNull, or, sql } from 'drizzle-orm'
+import { and, eq, isNull, or, sql } from 'drizzle-orm'
 import { requireAuth } from '../../utils/auth'
 import { db } from '../../db'
-import { chatRooms, messages, posts, users } from '../../db/schema'
+import { chatRooms, posts, users } from '../../db/schema'
 import { formatCommunityDate, getAuthorInitial, getAvatarUrl } from '../../utils/community'
 
 export default defineEventHandler(async (event) => {
@@ -21,15 +21,18 @@ export default defineEventHandler(async (event) => {
   if (rooms.length === 0) return { data: [] }
 
   const roomIds = rooms.map((r) => r.id)
-  const otherIds = rooms.map((r) =>
-    r.initiatorId === user.id ? r.participantId : r.initiatorId,
-  )
+  const otherIds = rooms.map((r) => (r.initiatorId === user.id ? r.participantId : r.initiatorId))
 
   // 상대방 정보 일괄 조회
   const otherUsers = await db
     .select({ id: users.id, nickname: users.nickname, avatarUrl: users.avatarUrl })
     .from(users)
-    .where(sql`${users.id} = ANY(ARRAY[${sql.join(otherIds.map((id) => sql`${id}::uuid`), sql`, `)}])`)
+    .where(
+      sql`${users.id} = ANY(ARRAY[${sql.join(
+        otherIds.map((id) => sql`${id}::uuid`),
+        sql`, `
+      )}])`
+    )
 
   const otherMap = new Map(otherUsers.map((u) => [u.id, u]))
 
@@ -38,7 +41,10 @@ export default defineEventHandler(async (event) => {
   const lastMsgs = (await db.execute(sql`
     SELECT DISTINCT ON (room_id) room_id, content, is_deleted, created_at
     FROM messages
-    WHERE room_id = ANY(ARRAY[${sql.join(roomIds.map((id) => sql`${id}::uuid`), sql`, `)}])
+    WHERE room_id = ANY(ARRAY[${sql.join(
+      roomIds.map((id) => sql`${id}::uuid`),
+      sql`, `
+    )}])
     ORDER BY room_id, created_at DESC
   `)) as LastMsgRow[]
 
@@ -49,7 +55,10 @@ export default defineEventHandler(async (event) => {
   const unreadCounts = (await db.execute(sql`
     SELECT room_id, COUNT(*)::int AS cnt
     FROM messages
-    WHERE room_id = ANY(ARRAY[${sql.join(roomIds.map((id) => sql`${id}::uuid`), sql`, `)}])
+    WHERE room_id = ANY(ARRAY[${sql.join(
+      roomIds.map((id) => sql`${id}::uuid`),
+      sql`, `
+    )}])
       AND sender_id != ${user.id}
       AND is_read = false
       AND is_deleted = false
@@ -60,15 +69,21 @@ export default defineEventHandler(async (event) => {
 
   // 출처 게시글 삭제 여부 일괄 확인
   const sourcePostIds = rooms.map((r) => r.sourcePostId).filter(Boolean) as string[]
-  const activePosts = sourcePostIds.length > 0
-    ? await db
-        .select({ id: posts.id })
-        .from(posts)
-        .where(and(
-          sql`${posts.id} = ANY(ARRAY[${sql.join(sourcePostIds.map((id) => sql`${id}::uuid`), sql`, `)}])`,
-          isNull(posts.deletedAt),
-        ))
-    : []
+  const activePosts =
+    sourcePostIds.length > 0
+      ? await db
+          .select({ id: posts.id })
+          .from(posts)
+          .where(
+            and(
+              sql`${posts.id} = ANY(ARRAY[${sql.join(
+                sourcePostIds.map((id) => sql`${id}::uuid`),
+                sql`, `
+              )}])`,
+              isNull(posts.deletedAt)
+            )
+          )
+      : []
 
   const activePostIds = new Set(activePosts.map((p) => p.id))
 
@@ -84,9 +99,7 @@ export default defineEventHandler(async (event) => {
       otherNickname: nickname,
       otherInitial: getAuthorInitial(nickname),
       otherAvatarUrl: getAvatarUrl(other?.avatarUrl, nickname),
-      lastMessage: lastMsg
-        ? lastMsg.is_deleted ? '삭제된 메시지예요' : lastMsg.content
-        : '',
+      lastMessage: lastMsg ? (lastMsg.is_deleted ? '삭제된 메시지예요' : lastMsg.content) : '',
       lastMessageAt: lastMsg ? formatCommunityDate(lastMsg.created_at) : '',
       // 정렬용 raw timestamp (클라이언트 반환 안 함)
       _ts: lastMsg ? lastMsg.created_at.getTime() : 0,

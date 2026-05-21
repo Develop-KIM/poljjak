@@ -1,6 +1,17 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Camera, Lock, Unlock, Heart, MessageSquare, ArrowUpRight, Pencil, Check, X } from '@lucide/vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import {
+  Camera,
+  Lock,
+  Unlock,
+  Heart,
+  MessageSquare,
+  ArrowUpRight,
+  Pencil,
+  Check,
+  X,
+  Loader2,
+} from '@lucide/vue'
 
 const showWithdrawDialog = ref(false)
 const withdrawing = ref(false)
@@ -16,12 +27,37 @@ const editAvatarPreview = ref<string | null>(null)
 const editAvatarFile = ref<File | null>(null)
 const saving = ref(false)
 const avatarInput = ref<HTMLInputElement | null>(null)
+const NICKNAME_REGEX = /^[가-힣a-zA-Z0-9]{2,15}$/
+type NicknameCheckState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+const nicknameCheckState = ref<NicknameCheckState>('idle')
+const nicknameCheckTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+
+const nicknameHint = computed(() => {
+  switch (nicknameCheckState.value) {
+    case 'available':
+      return '사용할 수 있는 닉네임이에요'
+    case 'taken':
+      return '이미 사용 중인 닉네임이에요'
+    case 'invalid':
+      return '한글·영문·숫자만 2~15자로 입력해주세요'
+    default:
+      return '한글·영문·숫자만 사용 가능, 특수문자·공백 불가'
+  }
+})
+
+const nicknameHintColor = computed(() => {
+  if (nicknameCheckState.value === 'available') return 'text-emerald-600'
+  if (nicknameCheckState.value === 'taken' || nicknameCheckState.value === 'invalid')
+    return 'text-destructive'
+  return 'text-muted-foreground'
+})
 
 function openEdit() {
   editNickname.value = authStore.profile?.nickname ?? ''
   editJobType.value = authStore.profile?.jobType ?? null
   editAvatarPreview.value = null
   editAvatarFile.value = null
+  nicknameCheckState.value = 'available'
   editMode.value = true
 }
 
@@ -39,8 +75,8 @@ function onAvatarChange(e: Event) {
 async function saveProfile() {
   if (saving.value) return
   const nick = editNickname.value.trim()
-  if (!nick || nick.length < 2 || nick.length > 15) {
-    toast.error('닉네임은 2~15자로 입력해주세요')
+  if (nicknameCheckState.value !== 'available') {
+    toast.error(nicknameHint.value)
     return
   }
   saving.value = true
@@ -57,9 +93,9 @@ async function saveProfile() {
     }
 
     // 닉네임·직업 업데이트
-    const res = await $fetch<{ data: { nickname: string; jobType: string | null; avatarUrl: string | null } }>(
+    await $fetch<{ data: { nickname: string; jobType: string | null; avatarUrl: string | null } }>(
       '/api/users/me',
-      { method: 'PATCH', body: { nickname: nick, jobType: editJobType.value } },
+      { method: 'PATCH', body: { nickname: nick, jobType: editJobType.value } }
     )
     await authStore.fetchProfile()
     toast.success('프로필이 업데이트됐어요')
@@ -71,6 +107,43 @@ async function saveProfile() {
     saving.value = false
   }
 }
+
+watch(editNickname, (value) => {
+  if (!editMode.value) return
+  if (nicknameCheckTimer.value) clearTimeout(nicknameCheckTimer.value)
+
+  const nextNickname = value.trim()
+  if (!nextNickname) {
+    nicknameCheckState.value = 'idle'
+    return
+  }
+  if (!NICKNAME_REGEX.test(nextNickname)) {
+    nicknameCheckState.value = 'invalid'
+    return
+  }
+  if (nextNickname === authStore.profile?.nickname) {
+    nicknameCheckState.value = 'available'
+    return
+  }
+
+  nicknameCheckState.value = 'checking'
+  nicknameCheckTimer.value = setTimeout(async () => {
+    try {
+      const res = await $fetch<{ data: { available: boolean } }>('/api/users/check-nickname', {
+        query: { nickname: nextNickname },
+      })
+      if (editNickname.value.trim() !== nextNickname) return
+      nicknameCheckState.value = res.data.available ? 'available' : 'taken'
+    } catch {
+      if (editNickname.value.trim() !== nextNickname) return
+      nicknameCheckState.value = 'taken'
+    }
+  }, 500)
+})
+
+onUnmounted(() => {
+  if (nicknameCheckTimer.value) clearTimeout(nicknameCheckTimer.value)
+})
 
 async function handleWithdraw() {
   if (withdrawing.value) return
@@ -136,7 +209,7 @@ function paged<T>(list: T[], tab: keyof typeof pages.value) {
   return list.slice((p - 1) * PAGE_SIZE, p * PAGE_SIZE)
 }
 
-function totalPages(list: { length: number }, tab: keyof typeof pages.value) {
+function totalPages(list: { length: number }, _tab: keyof typeof pages.value) {
   return Math.max(1, Math.ceil(list.length / PAGE_SIZE))
 }
 
@@ -170,7 +243,9 @@ onMounted(async () => {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('ko-KR', {
-    year: 'numeric', month: 'long', day: 'numeric',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
 }
 
@@ -184,7 +259,6 @@ const tabs = [
 
 <template>
   <div class="mx-auto max-w-[1120px] px-5 py-8 md:px-8 md:py-10">
-
     <!-- ── 프로필 카드 ── -->
     <div class="rounded-2xl border border-border bg-card p-6 md:p-8">
       <div class="flex items-start justify-between gap-3">
@@ -211,16 +285,24 @@ const tabs = [
 
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-1.5">
-              <p class="text-lg font-black text-foreground sm:text-xl">{{ profile?.nickname ?? '사용자' }}</p>
+              <p class="text-lg font-black text-foreground sm:text-xl">
+                {{ profile?.nickname ?? '사용자' }}
+              </p>
               <span
                 v-if="jobTypeLabel"
                 class="rounded-full px-2 py-0.5 text-xs font-semibold"
-                :class="profile?.jobType === 'developer' ? 'bg-blue-50 text-blue-700' : 'bg-violet-50 text-violet-700'"
+                :class="
+                  profile?.jobType === 'developer'
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'bg-violet-50 text-violet-700'
+                "
               >
                 {{ jobTypeLabel }}
               </span>
             </div>
-            <p class="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">{{ profile?.email ?? '' }}</p>
+            <p class="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
+              {{ profile?.email ?? '' }}
+            </p>
           </div>
         </div>
 
@@ -257,10 +339,15 @@ const tabs = [
         :key="tab.key"
         type="button"
         class="flex-1 py-3 text-xs font-semibold transition-colors outline-none border-r border-border last:border-r-0 sm:text-sm"
-        :class="activeTab === tab.key
-          ? 'bg-primary/[0.07] text-primary'
-          : 'bg-white text-muted-foreground hover:bg-slate-50 hover:text-foreground'"
-        @click="activeTab = tab.key; pages[tab.key] = 1"
+        :class="
+          activeTab === tab.key
+            ? 'bg-primary/[0.07] text-primary'
+            : 'bg-white text-muted-foreground hover:bg-slate-50 hover:text-foreground'
+        "
+        @click="
+          activeTab = tab.key
+          pages[tab.key] = 1
+        "
       >
         <!-- 모바일: 짧은 라벨, 데스크탑: 전체 라벨 -->
         <span class="sm:hidden">{{ tab.shortLabel }}</span>
@@ -270,7 +357,6 @@ const tabs = [
 
     <!-- ── 탭 콘텐츠 ── -->
     <div class="mt-4">
-
       <!-- 분석 기록 -->
       <template v-if="activeTab === 'analyses'">
         <div v-if="analysesPending" class="flex justify-center py-12">
@@ -337,8 +423,12 @@ const tabs = [
               </div>
               <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
                 <span>{{ post.createdAt }}</span>
-                <span class="flex items-center gap-1"><Heart class="size-3" />{{ post.likeCount }}</span>
-                <span class="flex items-center gap-1"><MessageSquare class="size-3" />{{ post.commentCount }}</span>
+                <span class="flex items-center gap-1"
+                  ><Heart class="size-3" />{{ post.likeCount }}</span
+                >
+                <span class="flex items-center gap-1"
+                  ><MessageSquare class="size-3" />{{ post.commentCount }}</span
+                >
               </div>
             </div>
             <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -385,7 +475,10 @@ const tabs = [
                 <span class="truncate">{{ comment.postTitle ?? '삭제된 게시글' }}</span>
               </div>
             </div>
-            <ArrowUpRight v-if="comment.postTitle" class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <ArrowUpRight
+              v-if="comment.postTitle"
+              class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+            />
           </NuxtLink>
 
           <Pagination
@@ -396,7 +489,11 @@ const tabs = [
           />
         </div>
 
-        <AppEmptyState v-else title="아직 작성한 댓글이 없어요" description="게시글에 댓글을 달아보세요." />
+        <AppEmptyState
+          v-else
+          title="아직 작성한 댓글이 없어요"
+          description="게시글에 댓글을 달아보세요."
+        />
       </template>
 
       <!-- 좋아요한 글 -->
@@ -419,8 +516,12 @@ const tabs = [
               </div>
               <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
                 <span>{{ post.createdAt }}</span>
-                <span class="flex items-center gap-1"><Heart class="size-3 text-rose-400" />{{ post.likeCount }}</span>
-                <span class="flex items-center gap-1"><MessageSquare class="size-3" />{{ post.commentCount }}</span>
+                <span class="flex items-center gap-1"
+                  ><Heart class="size-3 text-rose-400" />{{ post.likeCount }}</span
+                >
+                <span class="flex items-center gap-1"
+                  ><MessageSquare class="size-3" />{{ post.commentCount }}</span
+                >
               </div>
             </div>
             <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -440,12 +541,13 @@ const tabs = [
           description="마음에 드는 게시글에 좋아요를 눌러보세요."
         >
           <template #action>
-            <NuxtLink to="/community?tab=feedback"><AppButton>커뮤니티 보러 가기</AppButton></NuxtLink>
+            <NuxtLink to="/community?tab=feedback"
+              ><AppButton>커뮤니티 보러 가기</AppButton></NuxtLink
+            >
           </template>
         </AppEmptyState>
       </template>
     </div>
-
   </div>
 
   <!-- 프로필 수정 모달 -->
@@ -494,7 +596,9 @@ const tabs = [
                     {{ userInitial }}
                   </div>
                 </div>
-                <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                <div
+                  class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
+                >
                   <Camera class="size-5 text-white" />
                 </div>
                 <input
@@ -511,28 +615,58 @@ const tabs = [
             <!-- 닉네임·직업 폼 -->
             <div class="grid flex-1 gap-4">
               <div>
-                <label class="text-sm font-bold text-foreground">닉네임</label>
-                <input
-                  v-model="editNickname"
-                  type="text"
-                  maxlength="15"
-                  placeholder="2~15자"
-                  class="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
-                />
+                <div class="flex items-center justify-between">
+                  <label class="text-sm font-bold text-foreground">닉네임</label>
+                  <span class="text-xs text-muted-foreground">{{ editNickname.length }}/15</span>
+                </div>
+                <div class="relative mt-1.5">
+                  <input
+                    v-model="editNickname"
+                    type="text"
+                    maxlength="15"
+                    placeholder="2~15자"
+                    class="h-10 w-full rounded-lg border border-border bg-background px-3 pr-9 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                  <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2
+                      v-if="nicknameCheckState === 'checking'"
+                      class="size-4 animate-spin text-muted-foreground"
+                    />
+                    <Check
+                      v-else-if="nicknameCheckState === 'available'"
+                      class="size-4 text-emerald-500"
+                    />
+                    <X
+                      v-else-if="nicknameCheckState === 'taken' || nicknameCheckState === 'invalid'"
+                      class="size-4 text-destructive"
+                    />
+                  </div>
+                </div>
+                <p class="mt-1.5 text-xs" :class="nicknameHintColor">
+                  {{ nicknameHint }}
+                </p>
               </div>
 
               <div>
                 <label class="text-sm font-bold text-foreground">직업</label>
                 <div class="mt-1.5 flex gap-2">
                   <button
-                    v-for="opt in [{ value: 'developer', label: '개발자' }, { value: 'designer', label: '디자이너' }]"
+                    v-for="opt in [
+                      { value: 'developer', label: '개발자' },
+                      { value: 'designer', label: '디자이너' },
+                    ]"
                     :key="opt.value"
                     type="button"
                     class="flex-1 rounded-lg border py-2 text-sm font-semibold transition-colors"
-                    :class="editJobType === opt.value
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'"
-                    @click="editJobType = editJobType === opt.value ? null : opt.value as 'developer' | 'designer'"
+                    :class="
+                      editJobType === opt.value
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                    "
+                    @click="
+                      editJobType =
+                        editJobType === opt.value ? null : (opt.value as 'developer' | 'designer')
+                    "
                   >
                     {{ opt.label }}
                   </button>
@@ -545,10 +679,11 @@ const tabs = [
           </div>
 
           <div class="mt-6 flex justify-end gap-2">
-            <AppButton variant="outline" @click="cancelEdit">
-              취소
-            </AppButton>
-            <AppButton :disabled="saving" @click="saveProfile">
+            <AppButton variant="outline" @click="cancelEdit"> 취소 </AppButton>
+            <AppButton
+              :disabled="saving || nicknameCheckState !== 'available'"
+              @click="saveProfile"
+            >
               <Check class="size-3.5" />
               {{ saving ? '저장 중...' : '저장' }}
             </AppButton>
@@ -573,7 +708,10 @@ const tabs = [
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
         @click.self="showWithdrawDialog = false"
       >
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showWithdrawDialog = false" />
+        <div
+          class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          @click="showWithdrawDialog = false"
+        />
         <div class="relative w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
           <h2 class="text-xl font-black text-foreground">정말 탈퇴하시겠어요?</h2>
           <p class="mt-3 text-sm leading-6 text-muted-foreground">
@@ -581,8 +719,15 @@ const tabs = [
             게시글 등 모든 데이터가 영구적으로 삭제돼요.
           </p>
           <div class="mt-6 flex gap-3">
-            <AppButton variant="outline" class="flex-1" @click="showWithdrawDialog = false">취소</AppButton>
-            <AppButton variant="destructive" class="flex-1" :disabled="withdrawing" @click="handleWithdraw">
+            <AppButton variant="outline" class="flex-1" @click="showWithdrawDialog = false"
+              >취소</AppButton
+            >
+            <AppButton
+              variant="destructive"
+              class="flex-1"
+              :disabled="withdrawing"
+              @click="handleWithdraw"
+            >
               {{ withdrawing ? '처리 중...' : '탈퇴 신청' }}
             </AppButton>
           </div>

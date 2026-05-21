@@ -21,5 +21,6 @@ export default defineEventHandler(async (event) => {
   }
 
   await db.insert(likes).values({ postId: id, userId: user.id })
+  await createLikeNotification(id, user.id)
   return { data: { liked: true } }
 })

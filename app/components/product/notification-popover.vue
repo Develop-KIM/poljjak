@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Bell, MessageSquare, MessageCircle, Sparkles } from '@lucide/vue'
+import { Bell, MessageSquare, Sparkles } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
 import { useAuthStore } from '~/stores/auth'
 import { useNotificationStore } from '~/stores/notification'
@@ -12,7 +12,9 @@ const client = useSupabaseClient()
 const open = ref(false)
 const popoverRef = ref<HTMLElement | null>(null)
 
-onClickOutside(popoverRef, () => { open.value = false })
+onClickOutside(popoverRef, () => {
+  open.value = false
+})
 
 async function markAllRead() {
   try {
@@ -49,12 +51,16 @@ onMounted(async () => {
         table: 'notifications',
         filter: `user_id=eq.${authStore.profile!.id}`,
       },
-      () => { notifStore.fetch() },
+      () => {
+        notifStore.fetch()
+      }
     )
     .subscribe()
 })
 
-onUnmounted(() => { channel?.unsubscribe() })
+onUnmounted(() => {
+  channel?.unsubscribe()
+})
 </script>
 
 <template>

@@ -1,4 +1,4 @@
-import { eq, isNull } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import { notifications, posts } from '../db/schema'
 
@@ -28,7 +28,7 @@ export async function createNotification(opts: CreateNotifOptions) {
 export async function createCommentNotification(
   commentId: string,
   postId: string,
-  actorId: string,
+  actorId: string
 ) {
   const [post] = await db
     .select({ userId: posts.userId })

@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onUnmounted, watch } from 'vue'
 import { Camera, Check, X, Loader2 } from '@lucide/vue'
 
 definePageMeta({ layout: false })
+
+const toast = useToastStore()
 
 // ── 단계 ──────────────────────────────────────────────
 const step = ref<1 | 2 | 3>(1)
@@ -61,23 +63,36 @@ const nicknameHintColor = computed(() => {
 
 watch(nickname, (val) => {
   if (checkTimer.value) clearTimeout(checkTimer.value)
-  if (!val.trim()) {
+  const nextNickname = val.trim()
+  if (!nextNickname) {
     checkState.value = 'idle'
     return
   }
-  if (!NICKNAME_REGEX.test(val)) {
+  if (!NICKNAME_REGEX.test(nextNickname)) {
     checkState.value = 'invalid'
     return
   }
 
   checkState.value = 'checking'
-  checkTimer.value = setTimeout(() => {
-    // 3차 구현에서 GET /api/users/check-nickname?nickname={val} 호출
-    checkState.value = 'available' // 정적 UI 임시값
+  checkTimer.value = setTimeout(async () => {
+    try {
+      const res = await $fetch<{ data: { available: boolean } }>('/api/users/check-nickname', {
+        query: { nickname: nextNickname },
+      })
+      if (nickname.value.trim() !== nextNickname) return
+      checkState.value = res.data.available ? 'available' : 'taken'
+    } catch {
+      if (nickname.value.trim() !== nextNickname) return
+      checkState.value = 'taken'
+    }
   }, 500)
 })
 
 const canProceedStep2 = computed(() => checkState.value === 'available')
+
+onUnmounted(() => {
+  if (checkTimer.value) clearTimeout(checkTimer.value)
+})
 
 function handleAvatarChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
@@ -112,20 +127,20 @@ const jobs = [
 const completing = ref(false)
 
 async function handleComplete() {
-  if (completing.value) return
+  if (completing.value || checkState.value !== 'available') return
   completing.value = true
   try {
     await $fetch('/api/users/me', {
       method: 'PATCH',
       body: {
-        nickname: nickname.value,
+        nickname: nickname.value.trim(),
         jobType: selectedJob.value,
       },
     })
     await navigateTo('/')
-  } catch {
-    // 실패해도 홈으로 이동 (온보딩 재시도는 나중에)
-    await navigateTo('/')
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '프로필 저장에 실패했어요')
   } finally {
     completing.value = false
   }

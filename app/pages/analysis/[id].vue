@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { Link, Lock, Unlock, MessageSquare, ChevronDown, Check, Download, CheckCircle2, Loader2 } from '@lucide/vue'
+import {
+  Link,
+  Lock,
+  Unlock,
+  MessageSquare,
+  ChevronDown,
+  Check,
+  Download,
+  CheckCircle2,
+  Loader2,
+} from '@lucide/vue'
 import type { AnalysisResult } from '~~/server/utils/clova'
 
 const route = useRoute()
@@ -10,7 +20,7 @@ const toast = useToastStore()
 interface Analysis {
   id: string
   title: string
-  status: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
   isPublic: boolean
   shareToken: string | null
   result: AnalysisResult | null
@@ -26,9 +36,15 @@ const toggling = ref(false)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let stepTimer: ReturnType<typeof setInterval> | null = null
 
-const isProcessing = computed(() =>
-  analysis.value?.status === 'pending' || analysis.value?.status === 'processing',
+const isProcessing = computed(
+  () => analysis.value?.status === 'pending' || analysis.value?.status === 'processing'
 )
+const shouldShowProgress = computed(() => {
+  if (pending.value) return true
+  if (!analysis.value) return false
+  if (analysis.value.status === 'failed') return false
+  return isProcessing.value || !analysis.value.result
+})
 
 const processingStep = ref(0)
 const processingSteps = [
@@ -50,30 +66,44 @@ async function fetchAnalysis() {
   try {
     const res = await $fetch<{ data: Analysis }>(`/api/analyses/${id}`)
     analysis.value = res.data
-    if (isProcessing.value) {
-      // 단계별 애니메이션 시작
-      if (!stepTimer) {
-        stepTimer = setInterval(() => {
-          if (processingStep.value < processingSteps.length - 1) processingStep.value++
-        }, 3000)
-      }
+    error.value = res.data.status === 'failed' ? '분석에 실패했어요' : null
+
+    if (shouldShowProgress.value) {
+      startProcessingAnimation()
       pollTimer = setTimeout(fetchAnalysis, 4000)
     } else {
-      if (stepTimer) { clearInterval(stepTimer); stepTimer = null }
+      stopProcessingAnimation()
     }
   } catch (e: unknown) {
     const err = e as { data?: { statusMessage?: string } }
+    if (analysis.value && shouldShowProgress.value) {
+      pollTimer = setTimeout(fetchAnalysis, 4000)
+      return
+    }
     error.value = err.data?.statusMessage ?? '분석 결과를 불러오지 못했어요'
   } finally {
     pending.value = false
   }
 }
 
+function startProcessingAnimation() {
+  if (stepTimer) return
+  stepTimer = setInterval(() => {
+    if (processingStep.value < processingSteps.length - 1) processingStep.value++
+  }, 3000)
+}
+
+function stopProcessingAnimation() {
+  if (!stepTimer) return
+  clearInterval(stepTimer)
+  stepTimer = null
+}
+
 onMounted(fetchAnalysis)
 
 onUnmounted(() => {
   if (pollTimer) clearTimeout(pollTimer)
-  if (stepTimer) clearInterval(stepTimer)
+  stopProcessingAnimation()
 })
 
 async function togglePublic() {
@@ -132,13 +162,8 @@ function downloadAsPdf() {
 
 <template>
   <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8 md:py-14">
-    <!-- 초기 로딩 -->
-    <div v-if="pending" class="flex justify-center py-32">
-      <div class="size-10 animate-spin rounded-full border-4 border-border border-t-primary" />
-    </div>
-
     <!-- 분석 진행 중 (analyze.vue와 동일한 UI) -->
-    <div v-else-if="isProcessing" class="flex flex-col items-center justify-center py-24">
+    <div v-if="shouldShowProgress" class="flex flex-col items-center justify-center py-24">
       <p class="text-sm text-muted-foreground">{{ analysis?.title ?? '포트폴리오 분석 결과' }}</p>
       <div class="relative mt-8">
         <div class="size-20 animate-spin rounded-full border-4 border-border border-t-primary" />
@@ -159,7 +184,10 @@ function downloadAsPdf() {
             <div v-else class="size-5 rounded-full border-2 border-border" />
           </div>
           <div>
-            <p class="text-sm font-bold" :class="i <= processingStep ? 'text-foreground' : 'text-muted-foreground'">
+            <p
+              class="text-sm font-bold"
+              :class="i <= processingStep ? 'text-foreground' : 'text-muted-foreground'"
+            >
               {{ step.label }}
             </p>
             <p v-if="i === processingStep" class="mt-0.5 text-xs text-muted-foreground">
@@ -264,7 +292,11 @@ function downloadAsPdf() {
           enter-from-class="opacity-0 -translate-y-2"
           enter-to-class="opacity-100 translate-y-0"
         >
-          <div v-if="showScores" data-print-open class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-if="showScores"
+            data-print-open
+            class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2 lg:grid-cols-3"
+          >
             <AnalysisScoreCard
               v-for="score in analysis.result.scores"
               :key="score.title"

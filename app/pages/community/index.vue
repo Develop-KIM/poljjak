@@ -178,7 +178,14 @@ function goPage(p: number) {
         description="로그인하면 포트폴리오 피드백을 요청하고 다른 분들의 피드백을 볼 수 있어요."
       >
         <template #action>
-          <AppButton @click="() => { loginContext = '피드백 보기'; showLoginModal = true }">
+          <AppButton
+            @click="
+              () => {
+                loginContext = '피드백 보기'
+                showLoginModal = true
+              }
+            "
+          >
             로그인하기
           </AppButton>
         </template>
@@ -188,14 +195,14 @@ function goPage(p: number) {
     <template v-else>
       <!-- 검색 -->
       <div class="mt-5">
-        <form class="relative flex gap-2" @submit.prevent="submitSearch">
+        <form class="relative flex flex-col gap-2 sm:flex-row" @submit.prevent="submitSearch">
           <div class="relative flex-1">
             <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               v-model="searchInput"
               type="text"
               placeholder="제목 검색..."
-              class="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-9 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+              class="h-11 w-full rounded-lg border border-border bg-background pl-9 pr-9 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
             />
             <button
               v-if="searchInput"
@@ -206,11 +213,11 @@ function goPage(p: number) {
               <X class="size-4" />
             </button>
           </div>
-          <AppButton type="submit" variant="outline" size="sm">검색</AppButton>
+          <AppButton type="submit" variant="outline" class="w-full sm:w-auto">검색</AppButton>
         </form>
         <p v-if="keyword" class="mt-2 text-xs text-muted-foreground">
-          "<span class="font-semibold text-foreground">{{ keyword }}</span>" 검색 결과
-          {{ totalCount }}건
+          "<span class="font-semibold text-foreground">{{ keyword }}</span
+          >" 검색 결과 {{ totalCount }}건
         </p>
       </div>
 

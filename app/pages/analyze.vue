@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { ArrowRight, CheckCircle2, Loader2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
-import type { AnalysisResult } from '~~/server/utils/clova'
 
 const authStore = useAuthStore()
 const toast = useToastStore()
@@ -92,7 +91,9 @@ async function handleStartAnalysis() {
     >
       <div v-if="analyzing" class="flex flex-col items-center justify-center py-24">
         <!-- 파일명 -->
-        <p class="text-sm text-muted-foreground">{{ uploadedFiles.map(f => f.name).join(', ') }}</p>
+        <p class="text-sm text-muted-foreground">
+          {{ uploadedFiles.map((f) => f.name).join(', ') }}
+        </p>
 
         <!-- 스피너 -->
         <div class="relative mt-8">
@@ -150,7 +151,8 @@ async function handleStartAnalysis() {
           <!-- 모바일 전용: 안내 + 업로드 전 확인 -->
           <div class="mb-5 grid gap-3 lg:hidden">
             <AppAlert>
-              이미지 스캔 PDF는 텍스트를 추출할 수 없어 분석이 제한됩니다. 텍스트 선택이 가능한 PDF를 올려주세요.
+              이미지 스캔 PDF는 텍스트를 추출할 수 없어 분석이 제한됩니다. 텍스트 선택이 가능한
+              PDF를 올려주세요.
             </AppAlert>
             <div class="rounded-xl border border-border bg-slate-50/60 p-4">
               <h2 class="text-sm font-black text-foreground">업로드 전 확인</h2>
@@ -186,7 +188,12 @@ async function handleStartAnalysis() {
           </div>
 
           <div class="mt-6 lg:flex lg:justify-end">
-            <AppButton size="lg" class="w-full lg:w-auto" :disabled="!canAnalyze" @click="handleStartAnalysis">
+            <AppButton
+              size="lg"
+              class="w-full lg:w-auto"
+              :disabled="!canAnalyze"
+              @click="handleStartAnalysis"
+            >
               분석 시작
               <ArrowRight class="size-4" />
             </AppButton>
