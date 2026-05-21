@@ -90,104 +90,46 @@ async function handleStartAnalysis() {
       enter-from-class="opacity-0 scale-95"
       enter-to-class="opacity-100 scale-100"
     >
-      <div v-if="analyzing" class="grid gap-12 lg:grid-cols-[340px_1fr] lg:items-start lg:gap-16">
-        <!-- 좌측: 진행 상태 -->
-        <div class="flex flex-col items-center pt-10">
-          <p class="text-sm text-muted-foreground">{{ uploadedFile?.name }}</p>
+      <div v-if="analyzing" class="flex flex-col items-center justify-center py-24">
+        <!-- 파일명 -->
+        <p class="text-sm text-muted-foreground">{{ uploadedFile?.name }}</p>
 
-          <div class="relative mt-8">
-            <div
-              class="size-20 animate-spin rounded-full border-4 border-border border-t-primary"
-            />
-            <div class="absolute inset-0 flex items-center justify-center">
-              <span class="text-xs font-bold text-primary">AI</span>
-            </div>
+        <!-- 스피너 -->
+        <div class="relative mt-8">
+          <div class="size-20 animate-spin rounded-full border-4 border-border border-t-primary" />
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span class="text-xs font-bold text-primary">AI</span>
           </div>
-
-          <div class="mt-10 w-full">
-            <div
-              v-for="(step, i) in steps"
-              :key="step.label"
-              class="flex items-start gap-3 py-3"
-              :class="i < steps.length - 1 ? 'border-b border-border' : ''"
-            >
-              <div class="mt-0.5 shrink-0">
-                <CheckCircle2 v-if="i < analysisStep" class="size-5 text-emerald-500" />
-                <Loader2 v-else-if="i === analysisStep" class="size-5 animate-spin text-primary" />
-                <div v-else class="size-5 rounded-full border-2 border-border" />
-              </div>
-              <div>
-                <p
-                  class="text-sm font-bold"
-                  :class="i <= analysisStep ? 'text-foreground' : 'text-muted-foreground'"
-                >
-                  {{ step.label }}
-                </p>
-                <p v-if="i === analysisStep" class="mt-0.5 text-xs text-muted-foreground">
-                  {{ step.sublabel }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <p class="mt-8 text-sm text-muted-foreground">보통 30초~1분 정도 소요돼요</p>
         </div>
 
-        <!-- 우측: 결과 미리보기 스켈레톤 -->
-        <div class="animate-pulse space-y-5 pt-10">
-          <!-- 헤더 스켈레톤 -->
-          <div class="space-y-2">
-            <div class="flex items-center gap-2">
-              <div class="h-5 w-16 rounded-full bg-emerald-100" />
-              <div class="h-5 w-12 rounded bg-slate-100" />
-            </div>
-            <div class="h-8 w-2/3 rounded-lg bg-slate-100" />
-            <div class="h-4 w-1/3 rounded bg-slate-100" />
-          </div>
-
-          <!-- 종합 피드백 스켈레톤 -->
-          <div class="rounded-xl border border-border bg-card p-5 space-y-2">
-            <div class="h-5 w-24 rounded bg-slate-100" />
-            <div class="h-4 w-full rounded bg-slate-100" />
-            <div class="h-4 w-5/6 rounded bg-slate-100" />
-            <div class="h-4 w-4/6 rounded bg-slate-100" />
-          </div>
-
-          <!-- 개선 포인트 타이틀 -->
-          <div class="flex items-center gap-2 pt-2">
-            <div class="h-6 w-28 rounded-lg bg-slate-100" />
-            <div class="h-4 w-8 rounded bg-slate-100" />
-          </div>
-
-          <!-- Before/After 스켈레톤 3개 -->
+        <!-- 단계별 진행 -->
+        <div class="mt-10 w-full max-w-sm">
           <div
-            v-for="n in 3"
-            :key="n"
-            class="overflow-hidden rounded-xl border border-border bg-card"
+            v-for="(step, i) in steps"
+            :key="step.label"
+            class="flex items-start gap-3 py-3"
+            :class="i < steps.length - 1 ? 'border-b border-border' : ''"
           >
-            <!-- 카테고리 바 -->
-            <div class="border-b border-border bg-accent/40 px-5 py-3">
-              <div class="flex items-center gap-2">
-                <div class="h-4 w-20 rounded-full bg-primary/10" />
-                <div class="h-3 w-40 rounded bg-slate-100" />
-              </div>
+            <div class="mt-0.5 shrink-0">
+              <CheckCircle2 v-if="i < analysisStep" class="size-5 text-emerald-500" />
+              <Loader2 v-else-if="i === analysisStep" class="size-5 animate-spin text-primary" />
+              <div v-else class="size-5 rounded-full border-2 border-border" />
             </div>
-            <!-- Before / After -->
-            <div class="grid md:grid-cols-2 divide-y md:divide-x md:divide-y-0 divide-border">
-              <div class="p-5 space-y-2">
-                <div class="h-4 w-12 rounded bg-slate-100" />
-                <div class="h-3.5 w-full rounded bg-slate-100" />
-                <div class="h-3.5 w-4/5 rounded bg-slate-100" />
-              </div>
-              <div class="p-5 space-y-2 bg-primary/[0.03]">
-                <div class="h-4 w-12 rounded bg-primary/10" />
-                <div class="h-3.5 w-full rounded bg-primary/10" />
-                <div class="h-3.5 w-4/5 rounded bg-primary/10" />
-                <div class="h-3.5 w-3/5 rounded bg-primary/10" />
-              </div>
+            <div>
+              <p
+                class="text-sm font-bold"
+                :class="i <= analysisStep ? 'text-foreground' : 'text-muted-foreground'"
+              >
+                {{ step.label }}
+              </p>
+              <p v-if="i === analysisStep" class="mt-0.5 text-xs text-muted-foreground">
+                {{ step.sublabel }}
+              </p>
             </div>
           </div>
         </div>
+
+        <p class="mt-8 text-sm text-muted-foreground">보통 30초~1분 정도 소요돼요</p>
       </div>
     </Transition>
 
