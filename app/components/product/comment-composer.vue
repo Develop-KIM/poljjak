@@ -2,7 +2,10 @@
 import { ref } from 'vue'
 import { Send } from '@lucide/vue'
 
-const props = defineProps<{ isLoggedIn: boolean }>()
+const props = defineProps<{
+  isLoggedIn: boolean
+  loading?: boolean
+}>()
 const emit = defineEmits<{
   submit: [content: string]
   'open-login': []
@@ -19,6 +22,7 @@ function handleSubmit() {
     emit('open-login')
     return
   }
+  if (props.loading) return
   const trimmed = content.value.trim()
   if (!trimmed) return
   emit('submit', trimmed)
@@ -41,7 +45,12 @@ function handleSubmit() {
         @keydown.meta.enter.prevent="handleSubmit"
       />
     </div>
-    <AppButton size="icon" :disabled="!content.trim()" @click="handleSubmit">
+    <AppButton
+      size="icon"
+      :disabled="!content.trim() || loading"
+      :loading="loading"
+      @click="handleSubmit"
+    >
       <Send class="size-4" />
     </AppButton>
   </div>

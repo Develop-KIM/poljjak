@@ -97,18 +97,34 @@ onMounted(async () => {
   }
 
   $fetch(`/api/posts/${id}/views`, { method: 'POST' }).catch(() => {})
+  fetchComments()
 })
 
 interface Comment {
-  id: number
+  id: string
   author: string
-  initial: string
-  avatarUrl: string | null
+  authorInitial: string
+  authorAvatarUrl: string | null
   content: string
   createdAt: string
+  isOwner: boolean
 }
 
 const comments = ref<Comment[]>([])
+const commentsPending = ref(false)
+const submittingComment = ref(false)
+
+async function fetchComments() {
+  commentsPending.value = true
+  try {
+    const res = await $fetch<{ data: Comment[] }>(`/api/posts/${id}/comments`)
+    comments.value = res.data
+  } catch {
+    // 댓글 로드 실패는 조용히 무시
+  } finally {
+    commentsPending.value = false
+  }
+}
 
 function renderBody(raw: string): string {
   const escaped = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -149,16 +165,31 @@ function handleDM() {
   navigateTo('/chat')
 }
 
-function handleComment(content: string) {
-  const profile = authStore.profile
-  comments.value.push({
-    id: Date.now(),
-    author: profile?.nickname ?? '나',
-    initial: (profile?.nickname?.[0] ?? '나').toUpperCase(),
-    avatarUrl: profile?.avatarUrl ?? null,
-    content,
-    createdAt: '방금',
-  })
+async function handleComment(content: string) {
+  if (submittingComment.value) return
+  submittingComment.value = true
+  try {
+    const res = await $fetch<{ data: Comment }>(`/api/posts/${id}/comments`, {
+      method: 'POST',
+      body: { content },
+    })
+    comments.value.push(res.data)
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '댓글 등록에 실패했어요')
+  } finally {
+    submittingComment.value = false
+  }
+}
+
+async function deleteComment(commentId: string) {
+  try {
+    await $fetch(`/api/posts/${id}/comments/${commentId}`, { method: 'DELETE' })
+    comments.value = comments.value.filter((c) => c.id !== commentId)
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '댓글 삭제에 실패했어요')
+  }
 }
 
 function startEdit() {
@@ -398,7 +429,7 @@ async function deletePost() {
             class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
           >
             <MessageSquare class="size-4" />
-            {{ post.commentCount + comments.length }}
+            {{ commentsPending ? post.commentCount : comments.length }}
           </button>
 
           <button
@@ -424,14 +455,21 @@ async function deletePost() {
         <section class="mt-8">
           <h2 class="text-base font-black text-foreground">
             댓글
-            <span class="text-muted-foreground">{{ post.commentCount + comments.length }}</span>
+            <span class="text-muted-foreground">
+              {{ commentsPending ? post.commentCount : comments.length }}
+            </span>
           </h2>
 
-          <div class="mt-5 grid gap-5">
-            <div v-for="comment in comments" :key="comment.id" class="flex gap-3">
+          <!-- 댓글 로딩 -->
+          <div v-if="commentsPending" class="mt-5 flex justify-center py-8">
+            <div class="size-5 animate-spin rounded-full border-2 border-border border-t-primary" />
+          </div>
+
+          <div v-else class="mt-5 grid gap-5">
+            <div v-for="comment in comments" :key="comment.id" class="group flex gap-3">
               <img
-                v-if="comment.avatarUrl"
-                :src="comment.avatarUrl"
+                v-if="comment.authorAvatarUrl"
+                :src="comment.authorAvatarUrl"
                 alt=""
                 class="size-8 shrink-0 rounded-full object-cover"
               />
@@ -439,21 +477,34 @@ async function deletePost() {
                 v-else
                 class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700"
               >
-                {{ comment.initial }}
+                {{ comment.authorInitial }}
               </div>
               <div class="flex-1">
-                <div class="flex items-baseline gap-2">
+                <div class="flex items-center gap-2">
                   <span class="text-sm font-semibold text-foreground">{{ comment.author }}</span>
                   <span class="text-xs text-muted-foreground">{{ comment.createdAt }}</span>
+                  <button
+                    v-if="comment.isOwner"
+                    type="button"
+                    class="ml-auto hidden text-xs text-muted-foreground transition-colors hover:text-destructive group-hover:block"
+                    @click="deleteComment(comment.id)"
+                  >
+                    삭제
+                  </button>
                 </div>
                 <p class="mt-1.5 text-sm leading-6 text-foreground">{{ comment.content }}</p>
               </div>
             </div>
+
+            <p v-if="comments.length === 0" class="py-4 text-center text-sm text-muted-foreground">
+              첫 번째 댓글을 남겨보세요.
+            </p>
           </div>
 
           <div class="mt-6">
             <CommentComposer
               :is-logged-in="authStore.isLoggedIn"
+              :loading="submittingComment"
               @submit="handleComment"
               @open-login="
                 () => {
