@@ -55,8 +55,8 @@ const nicknameHintColor = computed(() => {
 })
 
 function openEdit() {
-  editNickname.value = authStore.profile?.nickname ?? ''
-  editJobType.value = authStore.profile?.jobType ?? null
+  editNickname.value = profile.value?.nickname ?? ''
+  editJobType.value = profile.value?.jobType ?? null
   editAvatarPreview.value = null
   editAvatarFile.value = null
   nicknameCheckState.value = 'available'
@@ -91,7 +91,7 @@ async function saveProfile() {
         method: 'POST',
         body: fd,
       })
-      authStore.profile!.avatarUrl = res.data.avatarUrl
+      void res.data.avatarUrl
     }
 
     // 닉네임·직업 업데이트
@@ -123,7 +123,7 @@ watch(editNickname, (value) => {
     nicknameCheckState.value = 'invalid'
     return
   }
-  if (nextNickname === authStore.profile?.nickname) {
+  if (nextNickname === profile.value?.nickname) {
     nicknameCheckState.value = 'available'
     return
   }
@@ -159,7 +159,7 @@ async function handleWithdraw() {
   }
 }
 
-const profile = computed(() => authStore.profile)
+const profile = computed(() => authStore.profile ?? authStore.displayProfile)
 const userInitial = computed(() => profile.value?.nickname?.[0]?.toUpperCase() ?? 'U')
 const jobTypeLabel = computed(() => {
   if (profile.value?.jobType === 'developer') return '개발자'
