@@ -67,6 +67,12 @@ const userName = computed(
     user.value?.email ??
     '사용자'
 )
+
+const userJobLabel = computed(() => {
+  if (authStore.profile?.jobType === 'developer') return '개발자'
+  if (authStore.profile?.jobType === 'designer') return '디자이너'
+  return null
+})
 </script>
 
 <template>
@@ -76,7 +82,7 @@ const userName = computed(
       <div class="mx-auto flex h-16 max-w-[1120px] items-center justify-between px-5 md:px-8">
         <!-- 로고 -->
         <NuxtLink to="/">
-          <img src="/images/logo.png" alt="폴짝" class="h-8 w-auto" />
+          <img src="/images/logo.png" alt="폴짝" class="h-10 w-auto" />
         </NuxtLink>
 
         <!-- 데스크탑 네비게이션 -->
@@ -145,6 +151,9 @@ const userName = computed(
               >
                 <div class="border-b border-border px-4 py-3">
                   <p class="truncate text-sm font-semibold text-foreground">{{ userName }}</p>
+                  <p v-if="userJobLabel" class="mt-0.5 text-xs text-muted-foreground">
+                    {{ userJobLabel }}
+                  </p>
                 </div>
                 <NuxtLink
                   to="/my"
@@ -261,6 +270,9 @@ const userName = computed(
                   </div>
                   <div class="min-w-0">
                     <p class="truncate text-sm font-semibold text-foreground">{{ userName }}</p>
+                    <p v-if="userJobLabel" class="mt-0.5 text-xs text-muted-foreground">
+                      {{ userJobLabel }}
+                    </p>
                   </div>
                 </div>
                 <div class="mt-4 grid gap-1">
