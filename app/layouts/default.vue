@@ -99,7 +99,7 @@ const userJobLabel = computed(() => {
             포트폴리오 분석
           </NuxtLink>
           <NuxtLink
-            to="/community"
+            to="/community?tab=feedback"
             class="rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
             :class="
               isActive('/community')
@@ -263,7 +263,7 @@ const userJobLabel = computed(() => {
                 포트폴리오 분석
               </NuxtLink>
               <NuxtLink
-                to="/community"
+                to="/community?tab=feedback"
                 class="flex items-center rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
                 :class="
                   isActive('/community')
@@ -374,7 +374,7 @@ const userJobLabel = computed(() => {
               <NuxtLink to="/analyze" class="transition-colors hover:text-foreground"
                 >포트폴리오 분석</NuxtLink
               >
-              <NuxtLink to="/community" class="transition-colors hover:text-foreground"
+              <NuxtLink to="/community?tab=feedback" class="transition-colors hover:text-foreground"
                 >커뮤니티</NuxtLink
               >
             </div>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Link, Lock, Unlock, MessageSquare, ChevronDown, Check } from '@lucide/vue'
-import type { AnalysisResult } from '~/server/utils/clova'
+import type { AnalysisResult } from '~~/server/utils/clova'
 
 const route = useRoute()
 const id = route.params.id as string
@@ -23,20 +23,6 @@ const error = ref<string | null>(null)
 const showScores = ref(false)
 const linkCopied = ref(false)
 const toggling = ref(false)
-
-const overallScore = computed(() => {
-  const scores = analysis.value?.result?.scores
-  if (!scores?.length) return null
-  return Math.round(scores.reduce((sum, s) => sum + s.score, 0) / scores.length)
-})
-
-const scoreColor = computed(() => {
-  const s = overallScore.value
-  if (s === null) return 'text-muted-foreground'
-  if (s >= 8) return 'text-emerald-600'
-  if (s >= 6) return 'text-primary'
-  return 'text-orange-500'
-})
 
 const createdAtLabel = computed(() => {
   if (!analysis.value?.createdAt) return ''
@@ -122,9 +108,6 @@ function shareToCommunity() {
         <div>
           <div class="flex items-center gap-3">
             <AppBadge variant="green">분석 완료</AppBadge>
-            <span v-if="overallScore !== null" class="text-base font-black" :class="scoreColor">
-              종합 {{ overallScore }}/10
-            </span>
           </div>
           <h1 class="mt-4 text-3xl font-black leading-tight text-foreground md:text-4xl">
             {{ analysis.title }}
