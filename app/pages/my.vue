@@ -1,8 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Camera, ExternalLink, Lock, Unlock } from '@lucide/vue'
 
 const showWithdrawDialog = ref(false)
+const authStore = useAuthStore()
+
+const profile = authStore.profile
+
+const userInitial = computed(() => profile?.nickname?.[0]?.toUpperCase() ?? 'U')
+
+const jobTypeLabel = computed(() => {
+  if (profile?.jobType === 'developer') return '개발자'
+  if (profile?.jobType === 'designer') return '디자이너'
+  return null
+})
 
 interface AnalysisItem {
   id: string
@@ -11,18 +22,7 @@ interface AnalysisItem {
   isPublic: boolean
 }
 
-const analyses: AnalysisItem[] = [
-  { id: '1', title: '포트폴리오 분석 결과', createdAt: '2026년 5월 21일', isPublic: false },
-  { id: '2', title: '포트폴리오 분석 결과', createdAt: '2026년 5월 10일', isPublic: true },
-  { id: '3', title: '포트폴리오 분석 결과', createdAt: '2026년 4월 28일', isPublic: false },
-]
-
-// 실제로는 authStore에서 가져옴
-const profile = {
-  name: '김개발',
-  email: 'kim@kakao.com',
-  initial: '김',
-}
+const analyses: AnalysisItem[] = []
 </script>
 
 <template>
@@ -34,10 +34,19 @@ const profile = {
       <div class="mt-6 flex items-center gap-5">
         <!-- 프로필 사진 -->
         <label class="group relative cursor-pointer">
-          <div
-            class="flex size-16 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground"
-          >
-            {{ profile.initial }}
+          <div class="size-16 overflow-hidden rounded-full bg-primary">
+            <img
+              v-if="profile?.avatarUrl"
+              :src="profile.avatarUrl"
+              alt="프로필 이미지"
+              class="h-full w-full object-cover"
+            />
+            <div
+              v-else
+              class="flex h-full w-full items-center justify-center text-xl font-bold text-primary-foreground"
+            >
+              {{ userInitial }}
+            </div>
           </div>
           <div
             class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
@@ -48,8 +57,16 @@ const profile = {
         </label>
 
         <div>
-          <p class="text-lg font-black text-foreground">{{ profile.name }}</p>
-          <p class="mt-0.5 text-sm text-muted-foreground">{{ profile.email }}</p>
+          <p class="text-lg font-black text-foreground">{{ profile?.nickname ?? '사용자' }}</p>
+          <div class="mt-0.5 flex items-center gap-2">
+            <p class="text-sm text-muted-foreground">{{ profile?.email ?? '' }}</p>
+            <span
+              v-if="jobTypeLabel"
+              class="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-primary"
+            >
+              {{ jobTypeLabel }}
+            </span>
+          </div>
         </div>
       </div>
     </section>
