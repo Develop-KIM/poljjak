@@ -75,8 +75,8 @@ const userName = computed(
     <header class="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-sm">
       <div class="mx-auto flex h-16 max-w-[1120px] items-center justify-between px-5 md:px-8">
         <!-- 로고 -->
-        <NuxtLink to="/" class="text-lg font-black tracking-normal text-foreground">
-          폴짝
+        <NuxtLink to="/">
+          <img src="/images/logo.png" alt="폴짝" class="h-8 w-auto" />
         </NuxtLink>
 
         <!-- 데스크탑 네비게이션 -->
@@ -211,7 +211,7 @@ const userName = computed(
           <div class="relative flex h-full w-72 flex-col bg-white shadow-2xl">
             <!-- 패널 헤더 -->
             <div class="flex items-center justify-between border-b border-border px-5 py-4">
-              <span class="text-lg font-black text-foreground">폴짝</span>
+              <img src="/images/logo.png" alt="폴짝" class="h-7 w-auto" />
               <button
                 type="button"
                 class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100"
@@ -315,7 +315,7 @@ const userName = computed(
       <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8">
         <div class="flex flex-col gap-8 md:flex-row md:justify-between">
           <div>
-            <span class="text-base font-black text-foreground">폴짝</span>
+            <img src="/images/logo.png" alt="폴짝" class="h-7 w-auto" />
             <p class="mt-1.5 text-sm text-muted-foreground">포트폴리오로 한 단계 폴짝</p>
           </div>
           <div class="flex flex-col gap-4 text-sm text-muted-foreground md:flex-row md:gap-12">
