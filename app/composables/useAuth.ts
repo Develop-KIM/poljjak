@@ -7,7 +7,10 @@ export function useAuth() {
     const redirectTo = `${window.location.origin}/auth/confirm`
     const { error } = await client.auth.signInWithOAuth({
       provider: 'kakao',
-      options: { redirectTo },
+      options: {
+        redirectTo,
+        scopes: 'profile_nickname profile_image account_email',
+      },
     })
     if (error) throw error
   }

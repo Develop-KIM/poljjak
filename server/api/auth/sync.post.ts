@@ -1,11 +1,16 @@
-import { serverSupabaseUser } from '#supabase/server'
+import { serverSupabaseClient } from '#supabase/server'
 import { eq } from 'drizzle-orm'
 import { db } from '../../db'
 import { users } from '../../db/schema'
 
 export default defineEventHandler(async (event) => {
-  const supabaseUser = await serverSupabaseUser(event)
-  if (!supabaseUser) {
+  const client = await serverSupabaseClient(event)
+  const {
+    data: { user: supabaseUser },
+    error,
+  } = await client.auth.getUser()
+
+  if (error || !supabaseUser) {
     throw createError({ statusCode: 401, statusMessage: '로그인이 필요해요' })
   }
 
