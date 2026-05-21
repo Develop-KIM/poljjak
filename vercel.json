@@ -1,0 +1,9 @@
+{
+  "regions": ["syd1"],
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-notifications",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}
