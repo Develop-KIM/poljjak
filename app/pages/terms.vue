@@ -53,8 +53,8 @@ useHead({ title: '이용약관 · 폴짝' })
     <section class="mt-10">
       <h2 class="text-lg font-black text-foreground">제3조 (회원 가입 및 탈퇴)</h2>
       <p class="mt-4 text-sm leading-7 text-muted-foreground">
-        서비스는 카카오 OAuth 방식의 소셜 로그인만 지원합니다. 만 14세 미만은 서비스를 이용할 수
-        없습니다.
+        서비스는 카카오 및 구글 OAuth 방식의 소셜 로그인을 지원합니다. 만 14세 미만은 서비스를
+        이용할 수 없습니다.
       </p>
       <p class="mt-3 text-sm leading-7 text-muted-foreground">
         회원은 마이페이지에서 탈퇴 신청을 할 수 있습니다. 탈퇴 신청 후 30일의 유예 기간이 경과하면
@@ -117,8 +117,8 @@ useHead({ title: '이용약관 · 폴짝' })
     <section class="mt-10">
       <h2 class="text-lg font-black text-foreground">제6조 (서비스 이용 제한)</h2>
       <p class="mt-4 text-sm leading-7 text-muted-foreground">
-        비로그인 이용자는 브라우저당 1회에 한해 무료로 AI 포트폴리오 분석을 체험할 수 있습니다. 회원
-        가입 후에는 이용 횟수 제한 없이 서비스를 이용할 수 있습니다.
+        서비스 이용은 로그인이 필요합니다. 로그인 후에는 이용 횟수 제한 없이 AI 포트폴리오 분석을
+        포함한 모든 서비스를 이용할 수 있습니다.
       </p>
     </section>
 

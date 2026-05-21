@@ -24,6 +24,13 @@ useHead({ title: '개인정보처리방침 · 폴짝' })
           <li>프로필 사진 URL</li>
           <li>이메일 주소 (제공 동의 시)</li>
         </ul>
+        <p class="mt-4 font-semibold text-foreground">구글 OAuth 로그인 시 수집</p>
+        <ul class="mt-2 list-inside list-disc space-y-1">
+          <li>구글 회원 고유 식별자</li>
+          <li>이름</li>
+          <li>프로필 사진 URL</li>
+          <li>이메일 주소</li>
+        </ul>
         <p class="mt-4 font-semibold text-foreground">서비스 이용 과정에서 자동 수집</p>
         <ul class="mt-2 list-inside list-disc space-y-1">
           <li>서비스 이용 기록, 접속 로그</li>

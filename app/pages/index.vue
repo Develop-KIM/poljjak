@@ -1,7 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { ArrowRight, Sparkles, MessageSquare, Users, Zap, Link, Share2,
-  CheckCircle2, Loader2, Lock, ChevronDown, FileUp, Download } from '@lucide/vue'
+import {
+  ArrowRight,
+  Sparkles,
+  MessageSquare,
+  Users,
+  Zap,
+  Link,
+  Share2,
+  CheckCircle2,
+  Loader2,
+  Lock,
+  ChevronDown,
+  FileUp,
+  Download,
+} from '@lucide/vue'
 
 const demoStep = ref(0)
 const analysisStep = ref(0)
@@ -31,7 +44,9 @@ function schedulNext() {
   }, durations[demoStep.value])
 }
 
-onMounted(() => { schedulNext() })
+onMounted(() => {
+  schedulNext()
+})
 onUnmounted(() => {
   if (demoTimer) clearTimeout(demoTimer)
   if (analysisStepTimer) clearInterval(analysisStepTimer)
@@ -45,7 +60,9 @@ onUnmounted(() => {
       <div class="mx-auto max-w-3xl">
         <AppBadge variant="blue">AI 포트폴리오 분석 서비스</AppBadge>
 
-        <h1 class="mt-6 text-4xl font-black leading-[1.15] tracking-tight text-foreground md:text-5xl lg:text-6xl">
+        <h1
+          class="mt-6 text-4xl font-black leading-[1.15] tracking-tight text-foreground md:text-5xl lg:text-6xl"
+        >
           PDF 하나로<br />
           포트폴리오의 약점을<br class="hidden sm:block" />
           정확히 파악하세요.
@@ -56,7 +73,9 @@ onUnmounted(() => {
           구체적인 Before/After 개선안까지 제시해드려요.
         </p>
 
-        <div class="mt-10 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
+        <div
+          class="mt-10 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center"
+        >
           <NuxtLink to="/analyze" class="sm:w-auto">
             <AppButton size="lg" class="w-full">
               무료로 분석 시작하기
@@ -68,7 +87,7 @@ onUnmounted(() => {
           </NuxtLink>
         </div>
 
-        <p class="mt-4 text-sm text-muted-foreground">카카오 · 구글 로그인 · 무제한 분석 · 결과 저장 및 공유</p>
+        <p class="mt-4 text-sm text-muted-foreground">AI 심층 분석 · PDF 다운 · 링크로 바로 공유</p>
       </div>
     </section>
 
@@ -85,7 +104,7 @@ onUnmounted(() => {
             <p class="mt-1 text-sm text-muted-foreground">이내 분석 완료</p>
           </div>
           <div class="px-8 py-6 text-center">
-            <p class="text-2xl font-black text-foreground">Before→After</p>
+            <p class="text-xl font-black text-foreground md:text-2xl">Before→After</p>
             <p class="mt-1 text-sm text-muted-foreground">즉시 개선안 제공</p>
           </div>
           <div class="px-8 py-6 text-center">
@@ -113,7 +132,9 @@ onUnmounted(() => {
             :key="i"
             type="button"
             class="rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-300"
-            :class="demoStep === i ? 'bg-primary text-white shadow-sm' : 'bg-muted text-muted-foreground'"
+            :class="
+              demoStep === i ? 'bg-primary text-white shadow-sm' : 'bg-muted text-muted-foreground'
+            "
             @click="demoStep = i"
           >
             {{ label }}
@@ -121,7 +142,9 @@ onUnmounted(() => {
         </div>
 
         <!-- 데모 화면 -->
-        <div class="mx-auto mt-8 max-w-3xl overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
+        <div
+          class="mx-auto mt-8 max-w-3xl overflow-hidden rounded-2xl border border-border bg-white shadow-xl"
+        >
           <!-- 브라우저 크롬 -->
           <div class="flex items-center gap-2 border-b border-border bg-slate-50 px-4 py-3">
             <div class="flex gap-1.5">
@@ -129,8 +152,12 @@ onUnmounted(() => {
               <div class="size-3 rounded-full bg-amber-400" />
               <div class="size-3 rounded-full bg-emerald-400" />
             </div>
-            <div class="mx-auto flex h-6 w-56 items-center rounded-md bg-white px-3 text-xs text-muted-foreground ring-1 ring-border">
-              {{ demoStep === 2 ? 'poljjak.vercel.app/analysis/...' : 'poljjak.vercel.app/analyze' }}
+            <div
+              class="mx-auto flex h-6 w-56 items-center rounded-md bg-white px-3 text-xs text-muted-foreground ring-1 ring-border"
+            >
+              {{
+                demoStep === 2 ? 'poljjak.vercel.app/analysis/...' : 'poljjak.vercel.app/analyze'
+              }}
             </div>
           </div>
 
@@ -148,12 +175,20 @@ onUnmounted(() => {
                 <!-- 왼쪽: 업로드 카드 -->
                 <div class="rounded-xl border border-border bg-card p-5">
                   <!-- PDF 드롭존 (실제 PdfUploadDropzone 빈 상태 재현) -->
-                  <div class="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-200 bg-accent/50 px-6 py-7 text-center">
-                    <span class="mb-3 inline-flex size-12 items-center justify-center rounded-full bg-white text-primary ring-1 ring-blue-100">
+                  <div
+                    class="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-200 bg-accent/50 px-6 py-7 text-center"
+                  >
+                    <span
+                      class="mb-3 inline-flex size-12 items-center justify-center rounded-full bg-white text-primary ring-1 ring-blue-100"
+                    >
                       <FileUp class="size-6" />
                     </span>
-                    <span class="text-sm font-bold text-foreground">PDF 포트폴리오를 올려주세요</span>
-                    <span class="mt-1 text-xs text-muted-foreground">파일을 끌어오거나 클릭해서 선택 · 최대 5개</span>
+                    <span class="text-sm font-bold text-foreground"
+                      >PDF 포트폴리오를 올려주세요</span
+                    >
+                    <span class="mt-1 text-xs text-muted-foreground"
+                      >파일을 끌어오거나 클릭해서 선택 · 최대 5개</span
+                    >
                     <div class="mt-2.5 flex flex-wrap justify-center gap-1.5">
                       <AppBadge variant="blue">PDF 전용</AppBadge>
                       <AppBadge variant="gray">파일당 10MB 이하</AppBadge>
@@ -161,13 +196,19 @@ onUnmounted(() => {
                   </div>
                   <!-- 추가 요청사항 -->
                   <div class="mt-4">
-                    <p class="text-sm font-bold text-foreground">추가 요청사항 <span class="font-normal text-muted-foreground">(선택)</span></p>
-                    <div class="mt-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    <p class="text-sm font-bold text-foreground">
+                      추가 요청사항 <span class="font-normal text-muted-foreground">(선택)</span>
+                    </p>
+                    <div
+                      class="mt-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+                    >
                       프로젝트 설명이 설득력 있는지 봐주세요.
                     </div>
                   </div>
                   <div class="mt-4 flex justify-end">
-                    <div class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
+                    <div
+                      class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+                    >
                       분석 시작 <ArrowRight class="size-3.5" />
                     </div>
                   </div>
@@ -177,7 +218,11 @@ onUnmounted(() => {
                   <div class="rounded-xl border border-border bg-card p-4">
                     <p class="text-sm font-black text-foreground">업로드 전 확인</p>
                     <ul class="mt-3 grid gap-2">
-                      <li v-for="item in ['PDF 파일만 가능', '10MB 이하', '텍스트 선택 가능한 PDF']" :key="item" class="flex items-center gap-2 text-xs font-semibold text-foreground">
+                      <li
+                        v-for="item in ['PDF 파일만 가능', '10MB 이하', '텍스트 선택 가능한 PDF']"
+                        :key="item"
+                        class="flex items-center gap-2 text-xs font-semibold text-foreground"
+                      >
                         <CheckCircle2 class="size-4 shrink-0 text-emerald-500" />{{ item }}
                       </li>
                     </ul>
@@ -189,10 +234,15 @@ onUnmounted(() => {
 
           <!-- 스텝 1: 분석 중 (실제 analyze.vue analyzing 화면 재현) -->
           <Transition name="demo">
-            <div v-if="demoStep === 1" class="flex flex-col items-center justify-center px-6 py-14 text-center">
+            <div
+              v-if="demoStep === 1"
+              class="flex flex-col items-center justify-center px-6 py-14 text-center"
+            >
               <p class="text-sm text-muted-foreground">portfolio_2026.pdf</p>
               <div class="relative mt-8">
-                <div class="size-20 animate-spin rounded-full border-4 border-border border-t-primary" />
+                <div
+                  class="size-20 animate-spin rounded-full border-4 border-border border-t-primary"
+                />
                 <div class="absolute inset-0 flex items-center justify-center">
                   <span class="text-xs font-bold text-primary">AI</span>
                 </div>
@@ -206,14 +256,22 @@ onUnmounted(() => {
                 >
                   <div class="mt-0.5 shrink-0">
                     <CheckCircle2 v-if="i < analysisStep" class="size-5 text-emerald-500" />
-                    <Loader2 v-else-if="i === analysisStep" class="size-5 animate-spin text-primary" />
+                    <Loader2
+                      v-else-if="i === analysisStep"
+                      class="size-5 animate-spin text-primary"
+                    />
                     <div v-else class="size-5 rounded-full border-2 border-border" />
                   </div>
                   <div class="text-left">
-                    <p class="text-sm font-bold" :class="i <= analysisStep ? 'text-foreground' : 'text-muted-foreground'">
+                    <p
+                      class="text-sm font-bold"
+                      :class="i <= analysisStep ? 'text-foreground' : 'text-muted-foreground'"
+                    >
                       {{ step.label }}
                     </p>
-                    <p v-if="i === analysisStep" class="mt-0.5 text-xs text-muted-foreground">{{ step.sublabel }}</p>
+                    <p v-if="i === analysisStep" class="mt-0.5 text-xs text-muted-foreground">
+                      {{ step.sublabel }}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -228,20 +286,30 @@ onUnmounted(() => {
               <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <AppBadge variant="green">분석 완료</AppBadge>
-                  <h3 class="mt-3 text-xl font-black leading-tight text-foreground">포트폴리오 분석 결과</h3>
+                  <h3 class="mt-3 text-xl font-black leading-tight text-foreground">
+                    포트폴리오 분석 결과
+                  </h3>
                   <p class="mt-1 text-sm text-muted-foreground">2026년 5월 21일</p>
                 </div>
                 <div class="flex shrink-0 flex-wrap gap-2">
-                  <div class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground">
+                  <div
+                    class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground"
+                  >
                     <Download class="size-3.5" /> PDF 저장
                   </div>
-                  <div class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground">
+                  <div
+                    class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground"
+                  >
                     <Link class="size-3.5" /> 링크 복사
                   </div>
-                  <div class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground">
+                  <div
+                    class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground"
+                  >
                     <Lock class="size-3.5" /> 비공개
                   </div>
-                  <div class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white">
+                  <div
+                    class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white"
+                  >
                     <MessageSquare class="size-3.5" /> 커뮤니티에 공유
                   </div>
                 </div>
@@ -251,30 +319,46 @@ onUnmounted(() => {
               <div class="mt-5 rounded-xl border border-border bg-card p-5">
                 <h4 class="text-base font-black text-foreground">종합 피드백</h4>
                 <p class="mt-2.5 text-sm leading-7 text-muted-foreground">
-                  프로젝트 설명의 구체성은 양호하나 성과 수치 표현이 부족합니다. "개선했다" 대신 "응답 속도를 40% 단축했다"처럼 수치를 넣으면 설득력이 크게 높아져요.
+                  프로젝트 설명의 구체성은 양호하나 성과 수치 표현이 부족합니다. "개선했다" 대신
+                  "응답 속도를 40% 단축했다"처럼 수치를 넣으면 설득력이 크게 높아져요.
                 </p>
               </div>
 
               <!-- 개선 포인트 -->
               <div class="mt-5">
-                <h4 class="text-base font-black text-foreground">개선 포인트 <span class="ml-1 text-sm font-semibold text-muted-foreground">3개</span></h4>
-                <p class="mt-1 text-sm text-muted-foreground">아래 개선안을 포트폴리오에 바로 적용해보세요.</p>
+                <h4 class="text-base font-black text-foreground">
+                  개선 포인트
+                  <span class="ml-1 text-sm font-semibold text-muted-foreground">3개</span>
+                </h4>
+                <p class="mt-1 text-sm text-muted-foreground">
+                  아래 개선안을 포트폴리오에 바로 적용해보세요.
+                </p>
                 <div class="mt-3 overflow-hidden rounded-xl border border-border bg-card">
                   <div class="border-b border-border bg-accent/40 px-4 py-2.5">
                     <div class="flex items-center gap-2">
-                      <span class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">성과 표현</span>
+                      <span
+                        class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary"
+                        >성과 표현</span
+                      >
                       <p class="text-xs text-muted-foreground">프로젝트 성과 수치화</p>
                     </div>
                   </div>
                   <div class="grid divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0">
                     <div class="p-4">
-                      <span class="rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">Before</span>
-                      <p class="mt-2.5 text-sm leading-6 text-muted-foreground line-through decoration-slate-300">
+                      <span
+                        class="rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500"
+                        >Before</span
+                      >
+                      <p
+                        class="mt-2.5 text-sm leading-6 text-muted-foreground line-through decoration-slate-300"
+                      >
                         "성능을 크게 개선했습니다."
                       </p>
                     </div>
                     <div class="bg-primary/[0.03] p-4">
-                      <span class="rounded bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">After</span>
+                      <span class="rounded bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary"
+                        >After</span
+                      >
                       <p class="mt-2.5 text-sm font-semibold leading-6 text-foreground">
                         "쿼리 최적화로 응답 속도를 40% 단축했습니다."
                       </p>
@@ -291,11 +375,26 @@ onUnmounted(() => {
                   @click="showScores = !showScores"
                 >
                   항목별 점수 보기
-                  <ChevronDown class="size-4 text-muted-foreground transition-transform" :class="{ 'rotate-180': showScores }" />
+                  <ChevronDown
+                    class="size-4 text-muted-foreground transition-transform"
+                    :class="{ 'rotate-180': showScores }"
+                  />
                 </button>
-                <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0">
+                <Transition
+                  enter-active-class="transition duration-200 ease-out"
+                  enter-from-class="opacity-0 -translate-y-2"
+                  enter-to-class="opacity-100 translate-y-0"
+                >
                   <div v-if="showScores" class="mt-3 grid gap-2 md:grid-cols-3">
-                    <div v-for="s in [{ title: '프로젝트 설명', score: 70 }, { title: '성과 표현', score: 60 }, { title: '구조와 흐름', score: 80 }]" :key="s.title" class="rounded-xl border border-border bg-card p-3">
+                    <div
+                      v-for="s in [
+                        { title: '프로젝트 설명', score: 70 },
+                        { title: '성과 표현', score: 60 },
+                        { title: '구조와 흐름', score: 80 },
+                      ]"
+                      :key="s.title"
+                      class="rounded-xl border border-border bg-card p-3"
+                    >
                       <div class="flex justify-between text-xs">
                         <span class="font-semibold text-foreground">{{ s.title }}</span>
                         <span class="font-bold text-primary">{{ s.score }}</span>
@@ -330,7 +429,8 @@ onUnmounted(() => {
             </div>
             <h3 class="mt-4 font-black text-foreground">항목별 AI 분석</h3>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
-              구성, 임팩트, 기술 스택 등 10가지 항목을 점수와 이유와 함께 알려드려요. 무엇이 부족한지 바로 파악할 수 있어요.
+              구성, 임팩트, 기술 스택 등 10가지 항목을 점수와 이유와 함께 알려드려요. 무엇이
+              부족한지 바로 파악할 수 있어요.
             </p>
           </div>
           <div class="rounded-xl border border-border bg-white p-6">
@@ -339,7 +439,8 @@ onUnmounted(() => {
             </div>
             <h3 class="mt-4 font-black text-foreground">Before/After 개선안</h3>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
-              막막했던 문장을 구체적으로 어떻게 고칠지 바로 보여드려요. 수정 방향을 고민할 필요 없어요.
+              막막했던 문장을 구체적으로 어떻게 고칠지 바로 보여드려요. 수정 방향을 고민할 필요
+              없어요.
             </p>
           </div>
           <div class="rounded-xl border border-border bg-white p-6">
@@ -348,7 +449,8 @@ onUnmounted(() => {
             </div>
             <h3 class="mt-4 font-black text-foreground">커뮤니티로 연결</h3>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
-              AI 피드백에서 그치지 않아요. 분석 결과를 커뮤니티에 공유해 실무자·취준생 피드백까지 받을 수 있어요.
+              AI 피드백에서 그치지 않아요. 분석 결과를 커뮤니티에 공유해 실무자·취준생 피드백까지
+              받을 수 있어요.
             </p>
           </div>
           <div class="rounded-xl border border-border bg-white p-6">
@@ -389,7 +491,7 @@ onUnmounted(() => {
         <h2 class="mt-3 text-3xl font-black leading-tight text-white md:text-4xl">
           준비된 포트폴리오가<br />합격을 만듭니다.
         </h2>
-        <p class="mt-4 text-white/70">카카오 · 구글 로그인 후 무제한 분석 · 결과 저장 및 공유 가능</p>
+        <p class="mt-4 text-white/70">AI 심층 분석 · PDF 다운 · 링크로 바로 공유</p>
         <div class="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
           <NuxtLink to="/analyze" class="sm:w-auto">
             <button
@@ -408,7 +510,9 @@ onUnmounted(() => {
 
 <style scoped>
 .demo-enter-active {
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
 }
 .demo-leave-active {
   transition: opacity 0.25s ease;
