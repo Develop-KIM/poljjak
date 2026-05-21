@@ -10,6 +10,7 @@ const initialTab = validTabs.includes(route.query.tab as string)
   ? (route.query.tab as string)
   : 'project'
 const activeTab = ref(initialTab)
+const feedbackJobType = ref<'all' | 'developer' | 'designer'>('all')
 const showLoginModal = ref(false)
 const loginContext = ref('계속하기')
 const toast = useToastStore()
@@ -19,6 +20,12 @@ const tabs = [
   { label: '피드백', value: 'feedback' },
   { label: '프로젝트 모집', value: 'project' },
   { label: '스터디 모집', value: 'study' },
+]
+
+const feedbackSubTabs = [
+  { label: '전체', value: 'all' },
+  { label: '개발자', value: 'developer' },
+  { label: '디자이너', value: 'designer' },
 ]
 
 type PostCategory = '피드백' | '프로젝트 모집' | '스터디 모집'
@@ -45,9 +52,11 @@ async function fetchPosts() {
 
   pending.value = true
   try {
-    const res = await $fetch<{ data: Post[] }>('/api/posts', {
-      query: { category: activeTab.value },
-    })
+    const query: Record<string, string> = { category: activeTab.value }
+    if (activeTab.value === 'feedback' && feedbackJobType.value !== 'all') {
+      query.jobType = feedbackJobType.value
+    }
+    const res = await $fetch<{ data: Post[] }>('/api/posts', { query })
     posts.value = res.data
   } catch (e: unknown) {
     const error = e as { data?: { statusMessage?: string } }
@@ -59,7 +68,11 @@ async function fetchPosts() {
 }
 
 onMounted(fetchPosts)
-watch(activeTab, fetchPosts)
+watch(activeTab, () => {
+  feedbackJobType.value = 'all'
+  fetchPosts()
+})
+watch(feedbackJobType, fetchPosts)
 
 function handleTabChange(value: string) {
   if (value === 'feedback' && !authStore.isLoggedIn) {
@@ -99,6 +112,27 @@ function handleWrite() {
     <!-- 탭 -->
     <div class="mt-6">
       <AppTabs :model-value="activeTab" :tabs="tabs" @update:model-value="handleTabChange" />
+    </div>
+
+    <!-- 피드백 서브 탭 (개발자/디자이너) -->
+    <div
+      v-if="activeTab === 'feedback' && authStore.isLoggedIn"
+      class="mt-4 flex gap-2"
+    >
+      <button
+        v-for="sub in feedbackSubTabs"
+        :key="sub.value"
+        type="button"
+        class="rounded-full px-4 py-1.5 text-sm font-semibold transition-colors"
+        :class="
+          feedbackJobType === sub.value
+            ? 'bg-foreground text-background'
+            : 'bg-muted text-muted-foreground hover:text-foreground'
+        "
+        @click="feedbackJobType = sub.value as typeof feedbackJobType"
+      >
+        {{ sub.label }}
+      </button>
     </div>
 
     <!-- 피드백 탭 비로그인 안내 -->

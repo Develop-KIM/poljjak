@@ -14,29 +14,39 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: '로그인이 필요해요' })
   }
 
-  // 카카오 provider ID (provider_id 또는 identities[0].id)
-  const kakaoId =
+  // provider ID (카카오/구글 공통으로 사용)
+  const providerId =
     supabaseUser.user_metadata?.provider_id ?? supabaseUser.identities?.[0]?.id ?? supabaseUser.id
+
+  const nickname =
+    supabaseUser.user_metadata?.full_name ?? supabaseUser.user_metadata?.name ?? '사용자'
+
+  const oauthAvatarUrl =
+    supabaseUser.user_metadata?.avatar_url ?? supabaseUser.user_metadata?.picture ?? null
+
+  // OAuth 아바타 없으면 dicebear 기본 이미지 생성
+  const avatarUrl =
+    oauthAvatarUrl ??
+    `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(nickname)}&backgroundColor=6366f1&textColor=ffffff`
 
   const [existing] = await db
     .select()
     .from(users)
-    .where(eq(users.kakaoId, String(kakaoId)))
+    .where(eq(users.kakaoId, String(providerId)))
     .limit(1)
 
   // 탈퇴 후 재가입: 기존 레코드 삭제 후 신규 삽입
   if (existing?.deletedAt) {
-    await db.delete(users).where(eq(users.kakaoId, String(kakaoId)))
+    await db.delete(users).where(eq(users.kakaoId, String(providerId)))
   }
 
   if (!existing || existing.deletedAt) {
     await db.insert(users).values({
       id: supabaseUser.id,
-      kakaoId: String(kakaoId),
-      nickname: supabaseUser.user_metadata?.full_name ?? supabaseUser.user_metadata?.name ?? '',
+      kakaoId: String(providerId),
+      nickname,
       email: supabaseUser.email ?? null,
-      avatarUrl:
-        supabaseUser.user_metadata?.avatar_url ?? supabaseUser.user_metadata?.picture ?? null,
+      avatarUrl,
       lastLoginAt: new Date(),
     })
     return { data: { needsOnboarding: true } }
@@ -48,11 +58,10 @@ export default defineEventHandler(async (event) => {
     .set({
       lastLoginAt: new Date(),
       email: supabaseUser.email ?? null,
-      avatarUrl:
-        supabaseUser.user_metadata?.avatar_url ?? supabaseUser.user_metadata?.picture ?? null,
+      avatarUrl: oauthAvatarUrl ?? existing.avatarUrl,
       updatedAt: new Date(),
     })
-    .where(eq(users.kakaoId, String(kakaoId)))
+    .where(eq(users.kakaoId, String(providerId)))
 
   return { data: { needsOnboarding: !existing.onboardingCompletedAt } }
 })

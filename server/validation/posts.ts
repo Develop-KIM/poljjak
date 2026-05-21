@@ -32,6 +32,7 @@ export const postCreateSchema = z
       .max(100, '제목은 100자 이하로 입력해주세요'),
     body: z.string().trim().max(5000, '본문은 5000자 이하로 입력해주세요').default(''),
     analysisId: z.string().uuid('잘못된 분석 결과예요').optional().nullable(),
+    imageUrls: z.array(z.string().url()).max(1).optional().default([]),
   })
   .superRefine((value, ctx) => {
     if (value.analysisId && value.category !== 'feedback') {
@@ -50,3 +51,13 @@ export const postCreateSchema = z
       })
     }
   })
+
+export const postUpdateSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, '제목을 입력해주세요')
+    .max(100, '제목은 100자 이하로 입력해주세요'),
+  body: z.string().trim().max(5000, '본문은 5000자 이하로 입력해주세요').default(''),
+  imageUrls: z.array(z.string().url()).max(1).optional().default([]),
+})

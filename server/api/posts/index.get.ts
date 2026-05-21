@@ -8,12 +8,20 @@ import { createPostExcerpt, formatCommunityDate, postCategoryLabels } from '../.
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const category = parsePostCategory(query.category) ?? 'project'
+  const jobTypeParam = query.jobType as string | undefined
+  const jobType =
+    jobTypeParam === 'developer' || jobTypeParam === 'designer' ? jobTypeParam : null
 
   if (category === 'feedback') {
     const user = await getAuthUser(event)
     if (!user) {
       throw createError({ statusCode: 401, statusMessage: '로그인이 필요해요' })
     }
+  }
+
+  const whereConditions = [eq(posts.category, category), isNull(posts.deletedAt)]
+  if (jobType) {
+    whereConditions.push(eq(users.jobType, jobType))
   }
 
   const rows = await db
@@ -31,7 +39,7 @@ export default defineEventHandler(async (event) => {
     .leftJoin(users, eq(posts.userId, users.id))
     .leftJoin(comments, eq(comments.postId, posts.id))
     .leftJoin(likes, eq(likes.postId, posts.id))
-    .where(and(eq(posts.category, category), isNull(posts.deletedAt)))
+    .where(and(...whereConditions))
     .groupBy(posts.id, posts.category, posts.title, posts.body, posts.createdAt, users.nickname)
     .orderBy(desc(posts.createdAt))
     .limit(30)

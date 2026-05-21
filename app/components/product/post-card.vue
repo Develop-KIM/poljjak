@@ -24,14 +24,14 @@ const badgeVariant: Record<PostCategory, 'blue' | 'green' | 'yellow'> = {
 <template>
   <NuxtLink
     :to="`/community/${id}`"
-    class="block rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/30 hover:bg-slate-50"
+    class="flex h-full flex-col rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/30 hover:bg-slate-50"
   >
-    <AppBadge :variant="badgeVariant[category]">{{ category }}</AppBadge>
+    <AppBadge :variant="badgeVariant[category]" class="self-start">{{ category }}</AppBadge>
     <h3 class="mt-3 line-clamp-2 font-semibold leading-6 text-foreground">{{ title }}</h3>
     <p v-if="excerpt" class="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
       {{ excerpt }}
     </p>
-    <div class="mt-4 flex items-center justify-between gap-4">
+    <div class="mt-auto pt-4 flex items-center justify-between gap-4">
       <span class="truncate text-sm text-muted-foreground">{{ author }}</span>
       <div class="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
         <span class="flex items-center gap-1">

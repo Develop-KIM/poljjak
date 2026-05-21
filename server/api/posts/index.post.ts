@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { requireAuth } from '../../utils/auth'
 import { db } from '../../db'
-import { analyses, posts } from '../../db/schema'
+import { analyses, postImages, posts } from '../../db/schema'
 import { postCreateSchema } from '../../validation/posts'
 
 export default defineEventHandler(async (event) => {
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { analysisId, category, title, body: postBody } = parsed.data
+  const { analysisId, category, title, body: postBody, imageUrls } = parsed.data
 
   if (analysisId) {
     const [analysis] = await db
@@ -55,6 +55,12 @@ export default defineEventHandler(async (event) => {
 
   if (!post) {
     throw createError({ statusCode: 500, statusMessage: '게시글 저장에 실패했어요' })
+  }
+
+  if (imageUrls && imageUrls.length > 0) {
+    await db.insert(postImages).values(
+      imageUrls.map((url, order) => ({ postId: post.id, url, order })),
+    )
   }
 
   return { data: post }

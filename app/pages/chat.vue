@@ -1,107 +1,173 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { Send, ArrowLeft } from '@lucide/vue'
+import { useAuthStore } from '~/stores/auth'
+
+definePageMeta({ middleware: 'auth' })
+
+const authStore = useAuthStore()
+const client = useSupabaseClient()
+const route = useRoute()
 
 interface Room {
   id: string
-  name: string
-  initial: string
+  otherId: string
+  otherNickname: string
+  otherInitial: string
+  otherAvatarUrl: string | null
   lastMessage: string
-  time: string
-  unread: number
+  lastMessageAt: string
+  unreadCount: number
+  sourcePostId: string | null
+  sourcePostTitle: string | null
+  sourcePostDeleted: boolean
 }
 
 interface Message {
-  id: number
-  content: string
+  id: string
+  content: string | null
   isMine: boolean
-  time: string
-  isDeleted?: boolean
+  isDeleted: boolean
+  senderNickname: string
+  senderAvatarUrl: string | null
+  createdAt: string
 }
 
-const rooms: Room[] = [
-  {
-    id: '1',
-    name: '박리뷰어',
-    initial: '박',
-    lastMessage: '네, 감사합니다!',
-    time: '10분 전',
-    unread: 0,
-  },
-  {
-    id: '2',
-    name: '이멘토',
-    initial: '이',
-    lastMessage: '포트폴리오 잘 봤어요',
-    time: '1시간 전',
-    unread: 2,
-  },
-  {
-    id: '3',
-    name: '김민준',
-    initial: '김',
-    lastMessage: '스터디 참여 가능하신가요?',
-    time: '어제',
-    unread: 0,
-  },
-]
-
-const messages: Message[] = [
-  {
-    id: 1,
-    content: '안녕하세요! 포트폴리오 피드백 남겨주셔서 감사해요.',
-    isMine: false,
-    time: '오후 2:30',
-  },
-  {
-    id: 2,
-    content: '도움이 됐으면 좋겠어요. 궁금한 점 있으면 편하게 물어보세요!',
-    isMine: true,
-    time: '오후 2:31',
-  },
-  {
-    id: 3,
-    content: '성과 수치 표현을 어떻게 하면 좋을지 더 여쭤봐도 될까요?',
-    isMine: false,
-    time: '오후 2:33',
-  },
-  {
-    id: 4,
-    content: '이 메시지는 삭제되었습니다.',
-    isMine: false,
-    time: '오후 2:34',
-    isDeleted: true,
-  },
-  {
-    id: 5,
-    content:
-      '물론이죠! "성능을 개선했다"보다 "쿼리 최적화로 응답 속도를 40% 단축했다"처럼 수치를 넣으면 훨씬 설득력 있어요.',
-    isMine: true,
-    time: '오후 2:35',
-  },
-  { id: 6, content: '네, 감사합니다!', isMine: false, time: '오후 2:40' },
-]
-
-const selectedRoomId = ref<string | null>('1')
-const selectedRoom = computed(() => rooms.find((r) => r.id === selectedRoomId.value) ?? null)
+const rooms = ref<Room[]>([])
+const messages = ref<Message[]>([])
+const selectedRoomId = ref<string | null>(null)
+const selectedRoom = computed(() => rooms.value.find((r) => r.id === selectedRoomId.value) ?? null)
 const newMessage = ref('')
 const messageListRef = ref<HTMLElement | null>(null)
+const sending = ref(false)
+const roomsPending = ref(true)
+const messagesPending = ref(false)
 
 const isMobileChat = computed(() => !!selectedRoomId.value)
 
-function selectRoom(id: string) {
+let messageChannel: ReturnType<typeof client.channel> | null = null
+
+function formatTime(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+}
+
+async function fetchRooms() {
+  try {
+    const res = await $fetch<{ data: Room[] }>('/api/chats')
+    rooms.value = res.data
+  } catch {
+    // 조용히 실패
+  } finally {
+    roomsPending.value = false
+  }
+}
+
+async function fetchMessages(roomId: string) {
+  messagesPending.value = true
+  try {
+    const res = await $fetch<{ data: Message[] }>(`/api/chats/${roomId}/messages`)
+    messages.value = res.data
+    // 해당 방 unread 초기화
+    const room = rooms.value.find((r) => r.id === roomId)
+    if (room) room.unreadCount = 0
+    await nextTick()
+    scrollToBottom()
+  } catch {
+    // 조용히 실패
+  } finally {
+    messagesPending.value = false
+  }
+}
+
+function scrollToBottom() {
+  if (messageListRef.value) {
+    messageListRef.value.scrollTop = messageListRef.value.scrollHeight
+  }
+}
+
+async function selectRoom(id: string) {
+  if (selectedRoomId.value === id) return
+
+  messageChannel?.unsubscribe()
   selectedRoomId.value = id
-  nextTick(() => {
-    if (messageListRef.value) {
-      messageListRef.value.scrollTop = messageListRef.value.scrollHeight
-    }
+  await fetchMessages(id)
+
+  // Broadcast 방식 — postgres_changes 대신 사용
+  await new Promise<void>((resolve) => {
+    messageChannel = client
+      .channel(`room:${id}`, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'new_message' }, async (payload) => {
+        const msg = payload.payload as Message & { senderId: string }
+        if (msg.senderId === authStore.profile?.id) return
+        messages.value.push({
+          id: msg.id,
+          content: msg.content,
+          isMine: false,
+          isDeleted: msg.isDeleted,
+          senderNickname: msg.senderNickname,
+          senderAvatarUrl: msg.senderAvatarUrl,
+          createdAt: msg.createdAt,
+        })
+        await nextTick()
+        scrollToBottom()
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') resolve()
+      })
   })
 }
 
-function sendMessage() {
-  if (!newMessage.value.trim()) return
+async function sendMessage() {
+  if (!newMessage.value.trim() || !selectedRoomId.value || sending.value) return
+
+  const content = newMessage.value.trim()
   newMessage.value = ''
+  sending.value = true
+
+  try {
+    const res = await $fetch<{ data: Message }>(`/api/chats/${selectedRoomId.value}/messages`, {
+      method: 'POST',
+      body: { content },
+    })
+    messages.value.push(res.data)
+
+    // 구독 중인 채널로 브로드캐스트
+    if (messageChannel) {
+      await messageChannel.send({
+        type: 'broadcast',
+        event: 'new_message',
+        payload: { ...res.data, senderId: authStore.profile?.id },
+      })
+    }
+
+    // 채팅방 목록 마지막 메시지 업데이트
+    const room = rooms.value.find((r) => r.id === selectedRoomId.value)
+    if (room) {
+      room.lastMessage = content
+      room.lastMessageAt = '방금'
+    }
+    await nextTick()
+    scrollToBottom()
+  } catch {
+    newMessage.value = content
+  } finally {
+    sending.value = false
+  }
 }
+
+onMounted(async () => {
+  await fetchRooms()
+  // DM 버튼에서 직접 진입한 경우 해당 방 자동 선택
+  const targetRoomId = route.query.roomId as string | undefined
+  if (targetRoomId) {
+    await selectRoom(targetRoomId)
+  }
+})
+
+onUnmounted(() => {
+  messageChannel?.unsubscribe()
+})
 </script>
 
 <template>
@@ -116,8 +182,15 @@ function sendMessage() {
       </div>
 
       <div class="flex-1 overflow-y-auto">
+        <div v-if="roomsPending" class="flex justify-center py-10">
+          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+        </div>
+        <p v-else-if="rooms.length === 0" class="py-12 text-center text-sm text-muted-foreground">
+          채팅 내역이 없어요
+        </p>
         <button
           v-for="room in rooms"
+          v-else
           :key="room.id"
           type="button"
           class="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50"
@@ -125,22 +198,29 @@ function sendMessage() {
           @click="selectRoom(room.id)"
         >
           <div
+            v-if="room.otherAvatarUrl"
+            class="size-10 shrink-0 overflow-hidden rounded-full"
+          >
+            <img :src="room.otherAvatarUrl" alt="" class="h-full w-full object-cover" />
+          </div>
+          <div
+            v-else
             class="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-700"
           >
-            {{ room.initial }}
+            {{ room.otherInitial }}
           </div>
           <div class="min-w-0 flex-1">
             <div class="flex items-baseline justify-between gap-2">
-              <span class="text-sm font-semibold text-foreground">{{ room.name }}</span>
-              <span class="shrink-0 text-xs text-muted-foreground">{{ room.time }}</span>
+              <span class="text-sm font-semibold text-foreground">{{ room.otherNickname }}</span>
+              <span class="shrink-0 text-xs text-muted-foreground">{{ room.lastMessageAt }}</span>
             </div>
             <p class="mt-0.5 truncate text-sm text-muted-foreground">{{ room.lastMessage }}</p>
           </div>
           <span
-            v-if="room.unread > 0"
+            v-if="room.unreadCount > 0"
             class="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white"
           >
-            {{ room.unread }}
+            {{ room.unreadCount > 9 ? '9+' : room.unreadCount }}
           </span>
         </button>
       </div>
@@ -159,24 +239,49 @@ function sendMessage() {
             <ArrowLeft class="size-5" />
           </button>
           <div
+            v-if="selectedRoom.otherAvatarUrl"
+            class="size-8 overflow-hidden rounded-full"
+          >
+            <img :src="selectedRoom.otherAvatarUrl" alt="" class="h-full w-full object-cover" />
+          </div>
+          <div
+            v-else
             class="flex size-8 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-700"
           >
-            {{ selectedRoom.initial }}
+            {{ selectedRoom.otherInitial }}
           </div>
-          <span class="text-sm font-semibold text-foreground">{{ selectedRoom.name }}</span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-foreground">{{ selectedRoom.otherNickname }}</p>
+            <NuxtLink
+              v-if="selectedRoom.sourcePostTitle && !selectedRoom.sourcePostDeleted"
+              :to="`/community/${selectedRoom.sourcePostId}`"
+              class="mt-0.5 block truncate text-xs text-primary hover:underline"
+            >
+              {{ selectedRoom.sourcePostTitle }}
+            </NuxtLink>
+            <p
+              v-else-if="selectedRoom.sourcePostTitle && selectedRoom.sourcePostDeleted"
+              class="mt-0.5 truncate text-xs text-muted-foreground line-through"
+            >
+              {{ selectedRoom.sourcePostTitle }} (삭제된 게시글)
+            </p>
+          </div>
         </div>
 
         <!-- 메시지 목록 -->
         <div ref="messageListRef" class="flex-1 overflow-y-auto px-5 py-6">
-          <div class="grid gap-4">
+          <div v-if="messagesPending" class="flex justify-center py-10">
+            <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+          </div>
+          <div v-else class="grid gap-4">
             <ChatMessageBubble
               v-for="msg in messages"
               :key="msg.id"
-              :content="msg.content"
+              :content="msg.content ?? ''"
               :is-mine="msg.isMine"
-              :time="msg.time"
-              :sender-initial="selectedRoom.initial"
-              :sender-name="selectedRoom.name"
+              :time="formatTime(msg.createdAt)"
+              :sender-initial="selectedRoom.otherInitial"
+              :sender-name="selectedRoom.otherNickname"
               :is-deleted="msg.isDeleted"
             />
           </div>
@@ -185,18 +290,16 @@ function sendMessage() {
         <!-- 입력창 -->
         <div class="border-t border-border px-4 py-3">
           <div class="flex gap-2">
-            <div
-              class="flex flex-1 items-center rounded-xl border border-input bg-white px-3.5 py-2.5 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/20 transition-colors"
-            >
+            <div class="flex flex-1 items-center rounded-xl border border-input bg-white px-3.5 py-2.5 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/20">
               <input
                 v-model="newMessage"
                 type="text"
                 placeholder="메시지를 입력해주세요."
                 class="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                @keydown.enter.prevent="sendMessage"
+                @keydown.enter.prevent="(e: KeyboardEvent) => !e.isComposing && sendMessage()"
               />
             </div>
-            <AppButton size="icon" :disabled="!newMessage.trim()" @click="sendMessage">
+            <AppButton size="icon" :disabled="!newMessage.trim() || sending" @click="sendMessage">
               <Send class="size-4" />
             </AppButton>
           </div>

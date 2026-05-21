@@ -15,10 +15,19 @@ export function useAuth() {
     if (error) throw error
   }
 
+  async function signInWithGoogle() {
+    const redirectTo = `${window.location.origin}/auth/confirm`
+    const { error } = await client.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo },
+    })
+    if (error) throw error
+  }
+
   async function signOut() {
     await client.auth.signOut()
     navigateTo('/')
   }
 
-  return { user, isLoggedIn, signInWithKakao, signOut }
+  return { user, isLoggedIn, signInWithKakao, signInWithGoogle, signOut }
 }

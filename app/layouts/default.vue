@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { ChevronDown, UserRound, LogOut, Menu, X } from '@lucide/vue'
+import { ChevronDown, UserRound, LogOut, Menu, X, MessageCircle } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
 
 const route = useRoute()
@@ -116,6 +116,13 @@ const userJobLabel = computed(() => {
           <!-- 데스크탑에서만 표시 -->
           <div class="hidden md:flex md:items-center md:gap-2">
             <template v-if="isLoggedIn">
+              <NuxtLink
+                to="/chat"
+                class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+                active-class="text-foreground bg-slate-100"
+              >
+                <MessageCircle class="size-5" />
+              </NuxtLink>
               <NotificationPopover />
             </template>
           </div>
@@ -273,6 +280,19 @@ const userJobLabel = computed(() => {
                 @click="mobileMenuOpen = false"
               >
                 커뮤니티
+              </NuxtLink>
+              <NuxtLink
+                v-if="isLoggedIn"
+                to="/chat"
+                class="flex items-center rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
+                :class="
+                  isActive('/chat')
+                    ? 'bg-accent text-primary'
+                    : 'text-foreground hover:bg-slate-50'
+                "
+                @click="mobileMenuOpen = false"
+              >
+                채팅
               </NuxtLink>
             </nav>
 

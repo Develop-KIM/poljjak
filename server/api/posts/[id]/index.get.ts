@@ -1,8 +1,8 @@
-import { and, count, eq, isNull } from 'drizzle-orm'
+import { and, asc, count, eq, isNull } from 'drizzle-orm'
 import { getAuthUser } from '../../../utils/auth'
 import { db } from '../../../db'
-import { analyses, comments, likes, posts, users } from '../../../db/schema'
-import { formatCommunityDate, getAuthorInitial, postCategoryLabels } from '../../../utils/community'
+import { analyses, comments, likes, postImages, posts, users } from '../../../db/schema'
+import { formatCommunityDate, getAuthorInitial, getAvatarUrl, postCategoryLabels } from '../../../utils/community'
 import type { AnalysisResult } from '../../../utils/clova'
 
 export default defineEventHandler(async (event) => {
@@ -79,6 +79,12 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const imageRows = await db
+    .select({ url: postImages.url })
+    .from(postImages)
+    .where(eq(postImages.postId, post.id))
+    .orderBy(asc(postImages.order))
+
   const author = post.author ?? '알 수 없음'
 
   return {
@@ -89,15 +95,17 @@ export default defineEventHandler(async (event) => {
       body: post.body,
       author,
       authorInitial: getAuthorInitial(author),
-      authorAvatarUrl: post.authorAvatarUrl ?? null,
+      authorAvatarUrl: getAvatarUrl(post.authorAvatarUrl, author),
       viewCount: post.viewCount,
       createdAt: formatCommunityDate(post.createdAt),
       commentCount: commentCountRow?.value ?? 0,
       likeCount: likeCountRow?.value ?? 0,
+      authorId: post.userId,
       isOwner,
       isLiked: likedRow.length > 0,
       analysisId: post.analysisId,
       analysis,
+      imageUrls: imageRows.map((r) => r.url),
     },
   }
 })

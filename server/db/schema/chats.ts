@@ -9,6 +9,9 @@ export const chatRooms = pgTable(
     // FK 없음 — 앱 레이어에서 users 조회 (DDD)
     initiatorId: uuid('initiator_id').notNull(),
     participantId: uuid('participant_id').notNull(),
+    // DM 시작 게시글 (선택)
+    sourcePostId: uuid('source_post_id'),
+    sourcePostTitle: text('source_post_title'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (t) => [
@@ -25,5 +28,6 @@ export const messages = pgTable('messages', {
   senderId: uuid('sender_id').notNull(),
   content: text('content').notNull(),
   isDeleted: boolean('is_deleted').notNull().default(false),
+  isRead: boolean('is_read').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })

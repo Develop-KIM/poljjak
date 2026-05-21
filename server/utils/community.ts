@@ -10,6 +10,12 @@ export function getAuthorInitial(nickname: string): string {
   return Array.from(nickname.trim())[0] ?? '?'
 }
 
+export function getAvatarUrl(avatarUrl: string | null | undefined, nickname: string): string {
+  if (avatarUrl) return avatarUrl
+  const seed = encodeURIComponent(nickname.trim() || '?')
+  return `https://api.dicebear.com/9.x/initials/svg?seed=${seed}&backgroundColor=6366f1&textColor=ffffff`
+}
+
 export function formatCommunityDate(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return ''

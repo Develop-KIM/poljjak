@@ -14,6 +14,7 @@ const analysisId = Array.isArray(route.query.analysisId)
 const category = ref(analysisId ? '피드백' : '')
 const title = ref('')
 const body = ref('')
+const imageUrls = ref<string[]>([])
 const submitting = ref(false)
 
 const MAX_BODY = 5000
@@ -25,6 +26,15 @@ const categoryOptions = [
 ]
 
 const isFromAnalysis = computed(() => !!analysisId)
+const isFeedbackCategory = computed(() => category.value === '피드백')
+
+const bodyLabel = computed(() => (isFeedbackCategory.value ? '피드백 내용' : '본문'))
+const bodyPlaceholder = computed(() =>
+  isFeedbackCategory.value
+    ? '어떤 피드백이 필요한지 적어주세요.'
+    : '내용을 입력해주세요.',
+)
+
 const canSubmit = computed(() => {
   if (!category.value || title.value.trim().length === 0) return false
   return isFromAnalysis.value || body.value.trim().length > 0
@@ -65,6 +75,7 @@ async function handleSubmit() {
         title: title.value.trim(),
         body: body.value.trim(),
         analysisId: analysisId ?? null,
+        imageUrls: imageUrls.value,
       },
     })
 
@@ -80,7 +91,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1120px] px-5 py-8 md:px-8 md:py-10">
+  <div class="mx-auto px-5 py-8 md:px-8 md:py-10" :class="isFromAnalysis ? 'max-w-[1120px]' : 'max-w-2xl'">
     <NuxtLink
       :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'"
       class="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -93,11 +104,11 @@ async function handleSubmit() {
       {{ isFromAnalysis ? '피드백 요청 글 작성' : '글 작성' }}
     </h1>
 
-    <!-- ── 2열 레이아웃 ── -->
-    <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
-      <!-- 좌측: 분석 결과 (분석에서 진입 시) / 일반 글쓰기 폼 (아닐 때) -->
-      <div>
-        <template v-if="isFromAnalysis">
+    <!-- ── 분석에서 진입: 2열 레이아웃 ── -->
+    <template v-if="isFromAnalysis">
+      <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
+        <!-- 좌: 분석 결과 -->
+        <div>
           <div v-if="analysisPending" class="flex justify-center py-8">
             <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
           </div>
@@ -150,37 +161,60 @@ async function handleSubmit() {
               </div>
             </div>
           </template>
-        </template>
+        </div>
 
-        <!-- 일반 글쓰기일 때 본문 좌측 배치 -->
-        <template v-else>
+        <!-- 우: 폼 -->
+        <div class="grid gap-5">
           <div>
-            <label class="text-sm font-bold text-foreground">본문</label>
+            <label class="text-sm font-bold text-foreground">카테고리</label>
+            <div class="mt-2 flex h-10 items-center rounded-lg border border-border bg-muted px-3 text-sm font-semibold text-foreground">
+              피드백
+            </div>
+          </div>
+
+          <div>
+            <label class="text-sm font-bold text-foreground">제목</label>
+            <AppInput v-model="title" placeholder="제목을 입력해주세요" class="mt-2" />
+          </div>
+
+          <div>
+            <label class="text-sm font-bold text-foreground">
+              추가로 하고 싶은 말
+              <span class="ml-1 font-normal text-muted-foreground">(선택)</span>
+            </label>
             <AppTextarea
               v-model="body"
-              placeholder="내용을 입력해주세요."
-              :rows="14"
+              placeholder="특별히 봐줬으면 하는 부분이나 궁금한 점을 적어주세요."
+              :rows="6"
               :maxlength="MAX_BODY"
               :show-count="true"
               class="mt-2"
             />
           </div>
-        </template>
-      </div>
 
-      <!-- 우측: 글쓰기 폼 -->
-      <div class="grid gap-5">
-        <!-- 카테고리 -->
+          <div class="flex gap-3">
+            <NuxtLink :to="`/analysis/${analysisId}`" class="flex-1">
+              <AppButton variant="outline" class="w-full">취소</AppButton>
+            </NuxtLink>
+            <AppButton
+              class="flex-1"
+              :disabled="!canSubmit"
+              :loading="submitting"
+              @click="handleSubmit"
+            >
+              게시하기
+            </AppButton>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ── 커뮤니티 직접 작성: 단일 컬럼 ── -->
+    <template v-else>
+      <div class="mt-6 grid gap-5">
         <div>
           <label class="text-sm font-bold text-foreground">카테고리</label>
-          <div
-            v-if="isFromAnalysis"
-            class="mt-2 flex h-10 items-center rounded-lg border border-border bg-muted px-3 text-sm font-semibold text-foreground"
-          >
-            피드백
-          </div>
           <AppSelect
-            v-else
             v-model="category"
             :options="categoryOptions"
             placeholder="카테고리를 선택해주세요"
@@ -188,32 +222,27 @@ async function handleSubmit() {
           />
         </div>
 
-        <!-- 제목 -->
         <div>
           <label class="text-sm font-bold text-foreground">제목</label>
           <AppInput v-model="title" placeholder="제목을 입력해주세요" class="mt-2" />
         </div>
 
-        <!-- 추가로 하고 싶은 말 (피드백만) -->
-        <div v-if="isFromAnalysis">
-          <label class="text-sm font-bold text-foreground">
-            추가로 하고 싶은 말
-            <span class="ml-1 font-normal text-muted-foreground">(선택)</span>
-          </label>
+        <PostImageUploader v-model="imageUrls" />
+
+        <div>
+          <label class="text-sm font-bold text-foreground">{{ bodyLabel }}</label>
           <AppTextarea
             v-model="body"
-            placeholder="특별히 봐줬으면 하는 부분이나 궁금한 점을 적어주세요."
-            :rows="6"
+            :placeholder="bodyPlaceholder"
+            :rows="12"
             :maxlength="MAX_BODY"
             :show-count="true"
             class="mt-2"
           />
         </div>
 
-        <AppAlert>URL은 자동으로 링크로 변환돼요.</AppAlert>
-
         <div class="flex gap-3">
-          <NuxtLink :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'" class="flex-1">
+          <NuxtLink to="/community" class="flex-1">
             <AppButton variant="outline" class="w-full">취소</AppButton>
           </NuxtLink>
           <AppButton
@@ -226,6 +255,6 @@ async function handleSubmit() {
           </AppButton>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>

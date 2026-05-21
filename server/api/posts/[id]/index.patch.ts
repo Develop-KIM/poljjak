@@ -1,17 +1,8 @@
 import { and, eq, isNull } from 'drizzle-orm'
-import { z } from 'zod'
 import { requireAuth } from '../../../utils/auth'
 import { db } from '../../../db'
-import { posts } from '../../../db/schema'
-
-const postUpdateSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, '제목을 입력해주세요')
-    .max(100, '제목은 100자 이하로 입력해주세요'),
-  body: z.string().trim().max(5000, '본문은 5000자 이하로 입력해주세요').default(''),
-})
+import { postImages, posts } from '../../../db/schema'
+import { postUpdateSchema } from '../../../validation/posts'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
@@ -37,10 +28,19 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const { imageUrls } = parsed.data
+
   await db
     .update(posts)
     .set({ title: parsed.data.title, body: parsed.data.body, updatedAt: new Date() })
     .where(eq(posts.id, id))
+
+  await db.delete(postImages).where(eq(postImages.postId, id))
+  if (imageUrls && imageUrls.length > 0) {
+    await db.insert(postImages).values(
+      imageUrls.map((url, order) => ({ postId: id, url, order })),
+    )
+  }
 
   return { data: { id } }
 })

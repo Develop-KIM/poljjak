@@ -65,7 +65,7 @@ async function handleStartAnalysis() {
       formData.append('additionalNote', additionalNote.value.trim())
     }
 
-    const res = await $fetch<{ data: { id: string; result: AnalysisResult } }>('/api/analyses', {
+    const res = await $fetch<{ data: { id: string; status: string } }>('/api/analyses', {
       method: 'POST',
       body: formData,
     })

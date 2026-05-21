@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { requireAuth } from '../../../utils/auth'
 import { db } from '../../../db'
 import { likes } from '../../../db/schema'
+import { createLikeNotification } from '../../../utils/notifications'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)

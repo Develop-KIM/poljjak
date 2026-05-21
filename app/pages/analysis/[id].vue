@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Link, Lock, Unlock, MessageSquare, ChevronDown, Check } from '@lucide/vue'
 import type { AnalysisResult } from '~~/server/utils/clova'
 
@@ -23,6 +23,11 @@ const error = ref<string | null>(null)
 const showScores = ref(false)
 const linkCopied = ref(false)
 const toggling = ref(false)
+let pollTimer: ReturnType<typeof setTimeout> | null = null
+
+const isProcessing = computed(() =>
+  analysis.value?.status === 'pending' || analysis.value?.status === 'processing',
+)
 
 const createdAtLabel = computed(() => {
   if (!analysis.value?.createdAt) return ''
@@ -33,16 +38,25 @@ const createdAtLabel = computed(() => {
   })
 })
 
-onMounted(async () => {
+async function fetchAnalysis() {
   try {
     const res = await $fetch<{ data: Analysis }>(`/api/analyses/${id}`)
     analysis.value = res.data
+    if (isProcessing.value) {
+      pollTimer = setTimeout(fetchAnalysis, 4000)
+    }
   } catch (e: unknown) {
     const err = e as { data?: { statusMessage?: string } }
     error.value = err.data?.statusMessage ?? '분석 결과를 불러오지 못했어요'
   } finally {
     pending.value = false
   }
+}
+
+onMounted(fetchAnalysis)
+
+onUnmounted(() => {
+  if (pollTimer) clearTimeout(pollTimer)
 })
 
 async function togglePublic() {
@@ -96,6 +110,19 @@ function shareToCommunity() {
     <div v-if="pending" class="flex flex-col items-center gap-4 py-32">
       <div class="size-10 animate-spin rounded-full border-4 border-border border-t-primary" />
       <p class="text-sm text-muted-foreground">분석 결과를 불러오는 중...</p>
+    </div>
+
+    <!-- 분석 중 (비동기) -->
+    <div v-else-if="isProcessing" class="flex flex-col items-center gap-5 py-32 text-center">
+      <div class="size-12 animate-spin rounded-full border-4 border-border border-t-primary" />
+      <div>
+        <p class="text-lg font-black text-foreground">AI가 포트폴리오를 분석하고 있어요</p>
+        <p class="mt-2 text-sm text-muted-foreground">
+          보통 30초~1분 정도 걸려요. 다른 화면을 둘러봐도 괜찮아요.
+          <br />분석이 완료되면 알림으로 알려드릴게요.
+        </p>
+      </div>
+      <NuxtLink to="/" class="text-sm text-primary hover:underline">홈으로 이동</NuxtLink>
     </div>
 
     <!-- 에러 -->

@@ -21,7 +21,6 @@ const route = useRoute()
 const id = route.params.id as string
 const showLoginModal = ref(false)
 const loginContext = ref('계속하기')
-const showShareDialog = ref(false)
 const showReportDialog = ref(false)
 const pending = ref(true)
 const error = ref<string | null>(null)
@@ -34,6 +33,8 @@ const liking = ref(false)
 const editing = ref(false)
 const editTitle = ref('')
 const editBody = ref('')
+const editImageUrls = ref<string[]>([])
+const editShowScores = ref(false)
 const saving = ref(false)
 const deleting = ref(false)
 const showDeleteConfirm = ref(false)
@@ -55,10 +56,12 @@ interface PostDetail {
   createdAt: string
   commentCount: number
   likeCount: number
+  authorId: string
   isOwner: boolean
   isLiked: boolean
   analysisId?: string | null
   analysis?: AnalysisEmbed | null
+  imageUrls?: string[]
 }
 
 const categoryTabMap: Record<string, string> = {
@@ -74,6 +77,9 @@ const backLink = computed(() => {
 })
 
 const canSaveEdit = computed(() => editTitle.value.trim().length > 0)
+
+const isFromAnalysis = computed(() => !!post.value?.analysisId)
+const editBodyLabel = computed(() => (post.value?.category === '피드백' && !isFromAnalysis.value) ? '피드백 내용' : '본문')
 
 const post = ref<PostDetail | null>(null)
 const analysisEmbed = ref<AnalysisEmbed | null>(null)
@@ -189,13 +195,31 @@ async function toggleLike() {
   }
 }
 
-function handleDM() {
+const dmPending = ref(false)
+
+async function handleDM() {
   if (!authStore.isLoggedIn) {
     loginContext.value = 'DM 보내기'
     showLoginModal.value = true
     return
   }
-  navigateTo('/chat')
+  if (!post.value || dmPending.value) return
+  dmPending.value = true
+  try {
+    const res = await $fetch<{ data: { id: string } }>('/api/chats', {
+      method: 'POST',
+      body: {
+        targetUserId: post.value.authorId,
+        sourcePostId: post.value.id,
+        sourcePostTitle: post.value.title,
+      },
+    })
+    await navigateTo(`/chat?roomId=${res.data.id}`)
+  } catch {
+    toast.error('채팅방을 열 수 없어요')
+  } finally {
+    dmPending.value = false
+  }
 }
 
 async function handleComment(content: string) {
@@ -257,6 +281,7 @@ function startEdit() {
   if (!post.value) return
   editTitle.value = post.value.title
   editBody.value = post.value.body
+  editImageUrls.value = [...(post.value.imageUrls ?? [])]
   editing.value = true
 }
 
@@ -266,11 +291,16 @@ async function saveEdit() {
   try {
     await $fetch(`/api/posts/${id}`, {
       method: 'PATCH',
-      body: { title: editTitle.value.trim(), body: editBody.value.trim() },
+      body: {
+        title: editTitle.value.trim(),
+        body: editBody.value.trim(),
+        imageUrls: editImageUrls.value,
+      },
     })
     if (post.value) {
       post.value.title = editTitle.value.trim()
       post.value.body = editBody.value.trim()
+      post.value.imageUrls = [...editImageUrls.value]
     }
     editing.value = false
     toast.success('게시글이 수정됐어요')
@@ -280,6 +310,11 @@ async function saveEdit() {
   } finally {
     saving.value = false
   }
+}
+
+async function copyLink() {
+  await navigator.clipboard.writeText(window.location.href)
+  toast.success('링크가 복사됐어요')
 }
 
 async function deletePost() {
@@ -306,7 +341,7 @@ async function deletePost() {
       class="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
     >
       <ArrowLeft class="size-4" />
-      커뮤니티
+      뒤로가기
     </NuxtLink>
 
     <!-- 로딩 -->
@@ -325,32 +360,110 @@ async function deletePost() {
     <template v-else>
       <!-- ── 수정 모드 ── -->
       <template v-if="editing">
-        <div class="grid gap-4">
-          <div>
-            <label class="text-sm font-bold text-foreground">제목</label>
-            <AppInput v-model="editTitle" placeholder="제목을 입력해주세요" class="mt-2" />
+        <!-- 분석 기반: 2열 (분석 결과 + 폼) -->
+        <template v-if="isFromAnalysis && analysisEmbed?.result">
+          <div class="grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
+            <!-- 좌: 분석 결과 -->
+            <div class="rounded-xl border border-primary/20 bg-accent/30 p-5">
+              <div class="mb-4 flex items-center gap-2">
+                <AppBadge variant="green">AI 분석 결과</AppBadge>
+              </div>
+              <AppCard>
+                <h3 class="text-sm font-black text-foreground">종합 피드백</h3>
+                <p class="mt-2 text-sm leading-7 text-muted-foreground">
+                  {{ analysisEmbed.result.summary }}
+                </p>
+              </AppCard>
+              <div class="mt-4 grid gap-3">
+                <BeforeAfterBlock
+                  v-for="(s, i) in analysisEmbed.result.suggestions"
+                  :key="i"
+                  :category="s.category"
+                  :context="s.context"
+                  :before="s.before"
+                  :after="s.after"
+                />
+              </div>
+              <button
+                type="button"
+                class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:bg-slate-50"
+                @click="editShowScores = !editShowScores"
+              >
+                항목별 점수 보기
+                <ChevronDown
+                  class="size-4 text-muted-foreground transition-transform"
+                  :class="{ 'rotate-180': editShowScores }"
+                />
+              </button>
+              <div v-if="editShowScores" class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2">
+                <AnalysisScoreCard
+                  v-for="score in analysisEmbed.result.scores"
+                  :key="score.title"
+                  :title="score.title"
+                  :score="score.score"
+                  :comment="score.comment"
+                  :improvement="score.improvement"
+                />
+              </div>
+            </div>
+
+            <!-- 우: 폼 -->
+            <div class="grid gap-5">
+              <div>
+                <label class="text-sm font-bold text-foreground">제목</label>
+                <AppInput v-model="editTitle" placeholder="제목을 입력해주세요" class="mt-2" />
+              </div>
+              <div>
+                <label class="text-sm font-bold text-foreground">
+                  추가로 하고 싶은 말
+                  <span class="ml-1 font-normal text-muted-foreground">(선택)</span>
+                </label>
+                <AppTextarea
+                  v-model="editBody"
+                  placeholder="특별히 봐줬으면 하는 부분이나 궁금한 점을 적어주세요."
+                  :rows="6"
+                  :maxlength="5000"
+                  :show-count="true"
+                  class="mt-2"
+                />
+              </div>
+              <div class="flex gap-3">
+                <AppButton variant="outline" class="flex-1" @click="editing = false">취소</AppButton>
+                <AppButton class="flex-1" :disabled="!canSaveEdit" :loading="saving" @click="saveEdit">
+                  저장
+                </AppButton>
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="text-sm font-bold text-foreground">
-              본문
-              <span class="ml-1 font-normal text-muted-foreground">(선택)</span>
-            </label>
-            <AppTextarea
-              v-model="editBody"
-              placeholder="내용을 입력해주세요."
-              :rows="10"
-              :maxlength="5000"
-              :show-count="true"
-              class="mt-2"
-            />
+        </template>
+
+        <!-- 커뮤니티 직접 작성: 단일 컬럼 -->
+        <template v-else>
+          <div class="grid gap-5">
+            <div>
+              <label class="text-sm font-bold text-foreground">제목</label>
+              <AppInput v-model="editTitle" placeholder="제목을 입력해주세요" class="mt-2" />
+            </div>
+            <PostImageUploader v-model="editImageUrls" />
+            <div>
+              <label class="text-sm font-bold text-foreground">{{ editBodyLabel }}</label>
+              <AppTextarea
+                v-model="editBody"
+                placeholder="내용을 입력해주세요."
+                :rows="12"
+                :maxlength="5000"
+                :show-count="true"
+                class="mt-2"
+              />
+            </div>
+            <div class="flex gap-3">
+              <AppButton variant="outline" class="flex-1" @click="editing = false">취소</AppButton>
+              <AppButton class="flex-1" :disabled="!canSaveEdit" :loading="saving" @click="saveEdit">
+                저장
+              </AppButton>
+            </div>
           </div>
-          <div class="flex gap-3">
-            <AppButton variant="outline" class="flex-1" @click="editing = false">취소</AppButton>
-            <AppButton class="flex-1" :disabled="!canSaveEdit" :loading="saving" @click="saveEdit">
-              저장
-            </AppButton>
-          </div>
-        </div>
+        </template>
       </template>
 
       <!-- ── 조회 모드 ── -->
@@ -400,7 +513,7 @@ async function deletePost() {
                   삭제
                 </AppButton>
               </template>
-              <AppButton v-else variant="outline" size="sm" @click="handleDM">
+              <AppButton v-else variant="outline" size="sm" :loading="dmPending" @click="handleDM">
                 <Send class="size-3.5" />
                 DM 보내기
               </AppButton>
@@ -460,11 +573,14 @@ async function deletePost() {
 
         <hr v-if="post.body.trim()" class="my-6 border-border" />
 
+        <!-- 이미지 -->
+        <PostImageGrid v-if="post.imageUrls?.length" :urls="post.imageUrls" class="mt-6" />
+
         <!-- 본문 -->
         <!-- eslint-disable vue/no-v-html -->
         <div
           v-if="post.body.trim()"
-          class="text-base leading-8 text-foreground"
+          class="mt-6 text-base leading-8 text-foreground"
           v-html="renderBody(post.body)"
         />
         <!-- eslint-enable vue/no-v-html -->
@@ -492,7 +608,7 @@ async function deletePost() {
           <button
             type="button"
             class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
-            @click="showShareDialog = true"
+            @click="copyLink"
           >
             <Share2 class="size-4" />
             공유
@@ -501,7 +617,7 @@ async function deletePost() {
           <button
             type="button"
             class="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-slate-100 hover:text-destructive"
-            @click="showReportDialog = true"
+            @click="authStore.isLoggedIn ? (showReportDialog = true) : (loginContext = '신고하기', showLoginModal = true)"
           >
             <Flag class="size-4" />
             신고
@@ -700,7 +816,6 @@ async function deletePost() {
     </Transition>
   </Teleport>
 
-  <ShareLinkDialog :open="showShareDialog" @close="showShareDialog = false" />
   <ReportDialog :open="showReportDialog" @close="showReportDialog = false" />
   <LoginModal :open="showLoginModal" :context="loginContext" @close="showLoginModal = false" />
 </template>

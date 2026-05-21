@@ -2,7 +2,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm'
 import { getAuthUser } from '../../../utils/auth'
 import { db } from '../../../db'
 import { comments, users } from '../../../db/schema'
-import { formatCommunityDate, getAuthorInitial } from '../../../utils/community'
+import { formatCommunityDate, getAuthorInitial, getAvatarUrl } from '../../../utils/community'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
       id: row.id,
       author,
       authorInitial: getAuthorInitial(author),
-      authorAvatarUrl: row.authorAvatarUrl ?? null,
+      authorAvatarUrl: getAvatarUrl(row.authorAvatarUrl, author),
       content: row.content,
       createdAt: formatCommunityDate(row.createdAt),
       isOwner: !!user && row.userId === user.id,

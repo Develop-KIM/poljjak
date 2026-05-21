@@ -4,6 +4,7 @@ import { requireAuth } from '../../../utils/auth'
 import { db } from '../../../db'
 import { comments, posts } from '../../../db/schema'
 import { formatCommunityDate, getAuthorInitial } from '../../../utils/community'
+import { createCommentNotification } from '../../../utils/notifications'
 
 const commentCreateSchema = z.object({
   content: z
@@ -62,6 +63,9 @@ export default defineEventHandler(async (event) => {
     .returning({ id: comments.id, createdAt: comments.createdAt })
 
   if (!inserted) throw createError({ statusCode: 500, statusMessage: '댓글 저장에 실패했어요' })
+
+  // 알림 전송 (실패해도 댓글 응답엔 영향 없음)
+  createCommentNotification(inserted.id, postId, user.id).catch(() => {})
 
   return {
     data: {

@@ -1,44 +1,89 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Bell, MessageSquare, Heart, MessageCircle } from '@lucide/vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { Bell, MessageSquare, MessageCircle, Sparkles } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
+import { useAuthStore } from '~/stores/auth'
 
-type NotifType = 'comment' | 'like' | 'dm'
+type NotifType = 'comment' | 'like' | 'dm' | 'analysis'
 
 interface Notification {
-  id: number
+  id: string
   type: NotifType
   message: string
-  time: string
-  read: boolean
+  linkUrl: string
+  isRead: boolean
+  actorAvatarUrl: string | null
+  createdAt: string
 }
 
+const authStore = useAuthStore()
+const client = useSupabaseClient()
 const open = ref(false)
 const popoverRef = ref<HTMLElement | null>(null)
+const notifications = ref<Notification[]>([])
 
 onClickOutside(popoverRef, () => {
   open.value = false
 })
 
-const notifications = ref<Notification[]>([
-  {
-    id: 1,
-    type: 'comment',
-    message: '박리뷰어님이 내 게시글에 댓글을 달았어요',
-    time: '방금',
-    read: false,
-  },
-  { id: 2, type: 'like', message: '이멘토님이 내 게시글을 좋아해요', time: '5분 전', read: false },
-  { id: 3, type: 'dm', message: '김민준님이 메시지를 보냈어요', time: '1시간 전', read: true },
-])
+const visibleNotifications = computed(() => notifications.value.filter((n) => n.type !== 'dm'))
+const unreadCount = computed(() => visibleNotifications.value.filter((n) => !n.isRead).length)
 
-const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
-
-function markAllRead() {
-  notifications.value.forEach((n) => {
-    n.read = true
-  })
+async function fetchNotifications() {
+  if (!authStore.isLoggedIn) return
+  try {
+    const res = await $fetch<{ data: Notification[] }>('/api/notifications')
+    notifications.value = res.data
+  } catch {
+    // 조용히 실패
+  }
 }
+
+async function markAllRead() {
+  try {
+    await $fetch('/api/notifications/read-all', { method: 'POST' })
+    notifications.value.forEach((n) => { n.isRead = true })
+  } catch {
+    // 조용히 실패
+  }
+}
+
+async function handleNotifClick(n: Notification) {
+  if (!n.isRead) {
+    n.isRead = true
+  }
+  open.value = false
+  await navigateTo(n.linkUrl)
+}
+
+// Supabase Realtime — 내 알림 INSERT 구독
+let channel: ReturnType<typeof client.channel> | null = null
+
+onMounted(async () => {
+  await fetchNotifications()
+
+  if (!authStore.profile?.id) return
+
+  channel = client
+    .channel(`notifications:${authStore.profile!.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${authStore.profile!.id}`,
+      },
+      () => {
+        fetchNotifications()
+      },
+    )
+    .subscribe()
+})
+
+onUnmounted(() => {
+  channel?.unsubscribe()
+})
 </script>
 
 <template>
@@ -81,31 +126,38 @@ function markAllRead() {
           </button>
         </div>
 
-        <div v-if="notifications.length > 0" class="max-h-80 overflow-y-auto py-1">
-          <div
-            v-for="n in notifications"
+        <div v-if="visibleNotifications.length > 0" class="max-h-80 overflow-y-auto py-1">
+          <button
+            v-for="n in visibleNotifications"
             :key="n.id"
-            class="flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-slate-50"
-            :class="{ 'bg-accent/40': !n.read }"
+            type="button"
+            class="flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
+            :class="{ 'bg-accent/40': !n.isRead }"
+            @click="handleNotifClick(n)"
           >
             <div
               class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full"
               :class="
-                n.type === 'like' ? 'bg-red-50' : n.type === 'dm' ? 'bg-emerald-50' : 'bg-accent'
+                n.type === 'dm'
+                  ? 'bg-emerald-50'
+                  : n.type === 'analysis'
+                    ? 'bg-violet-50'
+                    : 'bg-accent'
               "
             >
               <MessageSquare v-if="n.type === 'comment'" class="size-4 text-primary" />
-              <Heart v-else-if="n.type === 'like'" class="size-4 text-red-500" />
-              <MessageCircle v-else class="size-4 text-emerald-500" />
+              <MessageCircle v-else-if="n.type === 'dm'" class="size-4 text-emerald-500" />
+              <Sparkles v-else-if="n.type === 'analysis'" class="size-4 text-violet-500" />
+              <MessageSquare v-else class="size-4 text-primary" />
             </div>
             <div class="flex-1">
-              <p class="text-sm leading-5 text-foreground" :class="{ 'font-semibold': !n.read }">
+              <p class="text-sm leading-5 text-foreground" :class="{ 'font-semibold': !n.isRead }">
                 {{ n.message }}
               </p>
-              <p class="mt-0.5 text-xs text-muted-foreground">{{ n.time }}</p>
+              <p class="mt-0.5 text-xs text-muted-foreground">{{ n.createdAt }}</p>
             </div>
-            <div v-if="!n.read" class="mt-2 size-2 shrink-0 rounded-full bg-primary" />
-          </div>
+            <div v-if="!n.isRead" class="mt-2 size-2 shrink-0 rounded-full bg-primary" />
+          </button>
         </div>
 
         <div v-else class="py-12 text-center text-sm text-muted-foreground">
