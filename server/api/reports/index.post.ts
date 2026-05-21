@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { requireAuth } from '../../utils/auth'
 import { db } from '../../db'
-import { reports } from '../../db/schema'
+import { comments, posts, reports } from '../../db/schema'
 
 const reportCreateSchema = z.object({
   targetType: z.enum(['post', 'comment']),
@@ -24,6 +24,23 @@ export default defineEventHandler(async (event) => {
 
   const { targetType, targetId, reason } = parsed.data
 
+  const targetExists =
+    targetType === 'post'
+      ? await db
+          .select({ id: posts.id })
+          .from(posts)
+          .where(and(eq(posts.id, targetId), isNull(posts.deletedAt)))
+          .limit(1)
+      : await db
+          .select({ id: comments.id })
+          .from(comments)
+          .where(and(eq(comments.id, targetId), isNull(comments.deletedAt)))
+          .limit(1)
+
+  if (targetExists.length === 0) {
+    throw createError({ statusCode: 404, statusMessage: '신고 대상을 찾을 수 없어요' })
+  }
+
   // 중복 신고 방지
   const [existing] = await db
     .select({ id: reports.id })
@@ -41,12 +58,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: '이미 신고한 게시물이에요' })
   }
 
-  await db.insert(reports).values({
-    reporterId: user.id,
-    targetType,
-    targetId,
-    reason,
-  })
+  try {
+    await db.insert(reports).values({
+      reporterId: user.id,
+      targetType,
+      targetId,
+      reason,
+    })
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('reports_reporter_target_unique')) {
+      throw createError({ statusCode: 409, statusMessage: '이미 신고한 게시물이에요' })
+    }
+    throw error
+  }
 
   return { data: { ok: true } }
 })
