@@ -60,5 +60,9 @@ export default defineEventHandler(async (event) => {
     })
     .returning()
 
+  if (!analysis) {
+    throw createError({ statusCode: 500, statusMessage: '분석 결과 저장에 실패했어요' })
+  }
+
   return { data: { id: analysis.id, result } }
 })

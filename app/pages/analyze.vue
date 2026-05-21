@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ArrowRight, CheckCircle2, Loader2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
-import type { AnalysisResult } from '~/server/utils/clova'
+import type { AnalysisResult } from '~~/server/utils/clova'
 
 const authStore = useAuthStore()
 const toast = useToastStore()

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ChevronDown } from '@lucide/vue'
-import type { AnalysisResult } from '~/server/utils/clova'
+import type { AnalysisResult } from '~~/server/utils/clova'
 
 const route = useRoute()
 const token = route.params.token as string
