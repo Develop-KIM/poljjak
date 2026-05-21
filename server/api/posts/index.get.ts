@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
     whereConditions.push(eq(users.jobType, jobType))
   }
 
+  // 썸네일을 서브쿼리로 메인 쿼리에 합침 — DB 왕복 1회
   const rows = await db
     .select({
       id: posts.id,
@@ -32,6 +33,7 @@ export default defineEventHandler(async (event) => {
       body: posts.body,
       createdAt: posts.createdAt,
       author: users.nickname,
+      thumbnailUrl: sql<string | null>`(SELECT url FROM post_images WHERE post_id = ${posts.id} AND "order" = 0 LIMIT 1)`,
       commentCount: sql<number>`CAST(COUNT(DISTINCT CASE WHEN ${comments.deletedAt} IS NULL THEN ${comments.id} END) AS INTEGER)`,
       likeCount: sql<number>`CAST(COUNT(DISTINCT ${likes.id}) AS INTEGER)`,
     })
@@ -44,21 +46,6 @@ export default defineEventHandler(async (event) => {
     .orderBy(desc(posts.createdAt))
     .limit(30)
 
-  // 첫 번째 이미지 일괄 조회
-  const postIds = rows.map((r) => r.id)
-  const imageMap = new Map<string, string>()
-
-  if (postIds.length > 0) {
-    const imageRows = await db
-      .select({ postId: postImages.postId, url: postImages.url })
-      .from(postImages)
-      .where(sql`${postImages.postId} = ANY(ARRAY[${sql.join(postIds.map((id) => sql`${id}::uuid`), sql`, `)}]) AND ${postImages.order} = 0`)
-
-    for (const img of imageRows) {
-      imageMap.set(img.postId, img.url)
-    }
-  }
-
   const list = rows.map((post) => ({
     id: post.id,
     category: postCategoryLabels[post.category],
@@ -68,7 +55,7 @@ export default defineEventHandler(async (event) => {
     commentCount: post.commentCount,
     likeCount: post.likeCount,
     createdAt: formatCommunityDate(post.createdAt),
-    thumbnailUrl: imageMap.get(post.id) ?? null,
+    thumbnailUrl: post.thumbnailUrl ?? null,
   }))
 
   return { data: list }

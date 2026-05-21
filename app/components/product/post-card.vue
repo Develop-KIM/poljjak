@@ -28,11 +28,31 @@ const badgeVariant: Record<PostCategory, 'blue' | 'green' | 'yellow'> = {
     class="flex h-full flex-col rounded-lg border border-border bg-card transition-colors hover:border-primary/30 hover:bg-slate-50"
   >
     <!-- 썸네일 -->
-    <div
-      v-if="thumbnailUrl"
-      class="aspect-video w-full overflow-hidden rounded-t-lg bg-muted"
-    >
-      <img :src="thumbnailUrl" alt="" class="h-full w-full object-cover" />
+    <div class="aspect-video w-full overflow-hidden rounded-t-lg">
+      <img
+        v-if="thumbnailUrl"
+        :src="thumbnailUrl"
+        alt=""
+        class="h-full w-full object-cover"
+      />
+      <div
+        v-else
+        class="flex h-full w-full items-center justify-center"
+        :class="{
+          'bg-blue-50': category === '피드백',
+          'bg-emerald-50': category === '프로젝트 모집',
+          'bg-amber-50': category === '스터디 모집',
+        }"
+      >
+        <span
+          class="text-4xl font-black opacity-20"
+          :class="{
+            'text-blue-600': category === '피드백',
+            'text-emerald-600': category === '프로젝트 모집',
+            'text-amber-600': category === '스터디 모집',
+          }"
+        >{{ category[0] }}</span>
+      </div>
     </div>
 
     <div class="flex flex-1 flex-col p-5">
