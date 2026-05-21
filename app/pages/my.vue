@@ -3,7 +3,21 @@ import { ref, computed } from 'vue'
 import { Camera, ExternalLink, Lock, Unlock } from '@lucide/vue'
 
 const showWithdrawDialog = ref(false)
+const withdrawing = ref(false)
 const authStore = useAuthStore()
+const { signOut } = useAuth()
+
+async function handleWithdraw() {
+  if (withdrawing.value) return
+  withdrawing.value = true
+  try {
+    await $fetch('/api/users/me', { method: 'DELETE' })
+    authStore.clear()
+    await signOut()
+  } catch {
+    withdrawing.value = false
+  }
+}
 
 const profile = authStore.profile
 
@@ -168,7 +182,14 @@ const analyses: AnalysisItem[] = []
             <AppButton variant="outline" class="flex-1" @click="showWithdrawDialog = false">
               취소
             </AppButton>
-            <AppButton variant="destructive" class="flex-1"> 탈퇴 신청 </AppButton>
+            <AppButton
+              variant="destructive"
+              class="flex-1"
+              :disabled="withdrawing"
+              @click="handleWithdraw"
+            >
+              {{ withdrawing ? '처리 중...' : '탈퇴 신청' }}
+            </AppButton>
           </div>
         </div>
       </div>

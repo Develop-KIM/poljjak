@@ -327,7 +327,7 @@ const userJobLabel = computed(() => {
       <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8">
         <div class="flex flex-col gap-8 md:flex-row md:justify-between">
           <div>
-            <img src="/images/logo.png" alt="폴짝" class="h-7 w-auto" />
+            <img src="/images/logo.png" alt="폴짝" class="h-9 w-auto" />
             <p class="mt-1.5 text-sm text-muted-foreground">포트폴리오로 한 단계 폴짝</p>
           </div>
           <div class="flex flex-col gap-4 text-sm text-muted-foreground md:flex-row md:gap-12">
