@@ -51,6 +51,7 @@ async function markAllRead() {
 async function handleNotifClick(n: Notification) {
   if (!n.isRead) {
     n.isRead = true
+    $fetch(`/api/notifications/${n.id}/read`, { method: 'POST' }).catch(() => {})
   }
   open.value = false
   await navigateTo(n.linkUrl)
