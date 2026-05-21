@@ -176,9 +176,13 @@ const userJobLabel = computed(() => {
               >
                 <div class="border-b border-border px-4 py-3">
                   <p class="truncate text-sm font-semibold text-foreground">{{ userName }}</p>
-                  <p v-if="userJobLabel" class="mt-0.5 text-xs text-muted-foreground">
+                  <span
+                    v-if="userJobLabel"
+                    class="mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                    :class="authStore.profile?.jobType === 'developer' ? 'bg-blue-50 text-blue-700' : 'bg-violet-50 text-violet-700'"
+                  >
                     {{ userJobLabel }}
-                  </p>
+                  </span>
                 </div>
                 <NuxtLink
                   to="/my"

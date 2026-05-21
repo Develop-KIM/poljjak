@@ -171,7 +171,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto flex h-[calc(100vh-4rem-1px)] max-w-[1120px] overflow-hidden">
+  <div class="mx-auto flex max-w-[1120px] overflow-hidden" style="height: calc(100vh - 65px)">
     <!-- 채팅방 목록 -->
     <div
       class="flex flex-col border-r border-border bg-background"
@@ -227,7 +227,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 대화 영역 -->
-    <div class="flex flex-1 flex-col" :class="!isMobileChat ? 'hidden md:flex' : 'flex'">
+    <div class="flex min-h-0 flex-1 flex-col" :class="!isMobileChat ? 'hidden md:flex' : 'flex'">
       <template v-if="selectedRoom">
         <!-- 대화방 헤더 -->
         <div class="flex items-center gap-3 border-b border-border px-5 py-4">
