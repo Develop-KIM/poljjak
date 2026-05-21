@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { getAuthUser } from '../../utils/auth'
 import { db } from '../../db'
-import { comments, likes, posts, users } from '../../db/schema'
+import { comments, likes, postImages, posts, users } from '../../db/schema'
 import { parsePostCategory } from '../../validation/posts'
 import { createPostExcerpt, formatCommunityDate, postCategoryLabels } from '../../utils/community'
 
@@ -44,6 +44,21 @@ export default defineEventHandler(async (event) => {
     .orderBy(desc(posts.createdAt))
     .limit(30)
 
+  // 첫 번째 이미지 일괄 조회
+  const postIds = rows.map((r) => r.id)
+  const imageMap = new Map<string, string>()
+
+  if (postIds.length > 0) {
+    const imageRows = await db
+      .select({ postId: postImages.postId, url: postImages.url })
+      .from(postImages)
+      .where(sql`${postImages.postId} = ANY(ARRAY[${sql.join(postIds.map((id) => sql`${id}::uuid`), sql`, `)}]) AND ${postImages.order} = 0`)
+
+    for (const img of imageRows) {
+      imageMap.set(img.postId, img.url)
+    }
+  }
+
   const list = rows.map((post) => ({
     id: post.id,
     category: postCategoryLabels[post.category],
@@ -53,6 +68,7 @@ export default defineEventHandler(async (event) => {
     commentCount: post.commentCount,
     likeCount: post.likeCount,
     createdAt: formatCommunityDate(post.createdAt),
+    thumbnailUrl: imageMap.get(post.id) ?? null,
   }))
 
   return { data: list }

@@ -816,6 +816,11 @@ async function deletePost() {
     </Transition>
   </Teleport>
 
-  <ReportDialog :open="showReportDialog" @close="showReportDialog = false" />
+  <ReportDialog
+    :open="showReportDialog"
+    target-type="post"
+    :target-id="post?.id ?? ''"
+    @close="showReportDialog = false"
+  />
   <LoginModal :open="showLoginModal" :context="loginContext" @close="showLoginModal = false" />
 </template>

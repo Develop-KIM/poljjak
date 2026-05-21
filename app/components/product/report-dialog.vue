@@ -2,17 +2,39 @@
 import { ref } from 'vue'
 import { X, CheckCircle2 } from '@lucide/vue'
 
-defineProps<{ open: boolean }>()
+const props = defineProps<{
+  open: boolean
+  targetType: 'post' | 'comment'
+  targetId: string
+}>()
 const emit = defineEmits<{ close: [] }>()
 
+const toast = useToastStore()
 const selectedReason = ref('')
 const submitted = ref(false)
+const submitting = ref(false)
 
 const reasons = ['스팸 또는 광고', '부적절한 내용', '허위 정보', '저작권 침해', '기타']
 
-function submit() {
-  if (!selectedReason.value) return
-  submitted.value = true
+async function submit() {
+  if (!selectedReason.value || submitting.value) return
+  submitting.value = true
+  try {
+    await $fetch('/api/reports', {
+      method: 'POST',
+      body: {
+        targetType: props.targetType,
+        targetId: props.targetId,
+        reason: selectedReason.value,
+      },
+    })
+    submitted.value = true
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '신고 접수에 실패했어요')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function handleClose() {
@@ -82,7 +104,12 @@ function handleClose() {
                 </label>
               </li>
             </ul>
-            <AppButton class="mt-5 w-full" :disabled="!selectedReason" @click="submit">
+            <AppButton
+              class="mt-5 w-full"
+              :disabled="!selectedReason"
+              :loading="submitting"
+              @click="submit"
+            >
               신고 접수
             </AppButton>
           </div>

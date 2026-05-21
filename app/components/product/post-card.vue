@@ -12,6 +12,7 @@ defineProps<{
   commentCount: number
   likeCount: number
   createdAt: string
+  thumbnailUrl?: string | null
 }>()
 
 const badgeVariant: Record<PostCategory, 'blue' | 'green' | 'yellow'> = {
@@ -24,25 +25,35 @@ const badgeVariant: Record<PostCategory, 'blue' | 'green' | 'yellow'> = {
 <template>
   <NuxtLink
     :to="`/community/${id}`"
-    class="flex h-full flex-col rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/30 hover:bg-slate-50"
+    class="flex h-full flex-col rounded-lg border border-border bg-card transition-colors hover:border-primary/30 hover:bg-slate-50"
   >
-    <AppBadge :variant="badgeVariant[category]" class="self-start">{{ category }}</AppBadge>
-    <h3 class="mt-3 line-clamp-2 font-semibold leading-6 text-foreground">{{ title }}</h3>
-    <p v-if="excerpt" class="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
-      {{ excerpt }}
-    </p>
-    <div class="mt-auto pt-4 flex items-center justify-between gap-4">
-      <span class="truncate text-sm text-muted-foreground">{{ author }}</span>
-      <div class="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
-        <span class="flex items-center gap-1">
-          <MessageSquare class="size-3.5" />
-          {{ commentCount }}
-        </span>
-        <span class="flex items-center gap-1">
-          <Heart class="size-3.5" />
-          {{ likeCount }}
-        </span>
-        <span>{{ createdAt }}</span>
+    <!-- 썸네일 -->
+    <div
+      v-if="thumbnailUrl"
+      class="aspect-video w-full overflow-hidden rounded-t-lg bg-muted"
+    >
+      <img :src="thumbnailUrl" alt="" class="h-full w-full object-cover" />
+    </div>
+
+    <div class="flex flex-1 flex-col p-5">
+      <AppBadge :variant="badgeVariant[category]" class="self-start">{{ category }}</AppBadge>
+      <h3 class="mt-3 line-clamp-2 font-semibold leading-6 text-foreground">{{ title }}</h3>
+      <p v-if="excerpt" class="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
+        {{ excerpt }}
+      </p>
+      <div class="mt-auto pt-4 flex items-center justify-between gap-4">
+        <span class="truncate text-sm text-muted-foreground">{{ author }}</span>
+        <div class="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+          <span class="flex items-center gap-1">
+            <MessageSquare class="size-3.5" />
+            {{ commentCount }}
+          </span>
+          <span class="flex items-center gap-1">
+            <Heart class="size-3.5" />
+            {{ likeCount }}
+          </span>
+          <span>{{ createdAt }}</span>
+        </div>
       </div>
     </div>
   </NuxtLink>

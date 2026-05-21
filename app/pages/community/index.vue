@@ -39,6 +39,7 @@ interface Post {
   commentCount: number
   likeCount: number
   createdAt: string
+  thumbnailUrl?: string | null
 }
 
 const posts = ref<Post[]>([])
@@ -173,6 +174,7 @@ function handleWrite() {
           :comment-count="post.commentCount"
           :like-count="post.likeCount"
           :created-at="post.createdAt"
+          :thumbnail-url="post.thumbnailUrl"
         />
       </div>
       <AppEmptyState v-else title="아직 게시글이 없어요" description="첫 번째 글을 작성해보세요.">
