@@ -27,8 +27,11 @@ const badgeVariant: Record<PostCategory, 'blue' | 'green' | 'yellow'> = {
     :to="`/community/${id}`"
     class="flex h-full flex-col rounded-lg border border-border bg-card transition-colors hover:border-primary/30 hover:bg-slate-50"
   >
-    <!-- 썸네일 -->
-    <div class="aspect-video w-full overflow-hidden rounded-t-lg">
+    <!-- 썸네일 (피드백은 이미지 없으면 영역 숨김) -->
+    <div
+      v-if="thumbnailUrl || category !== '피드백'"
+      class="aspect-video w-full overflow-hidden rounded-t-lg"
+    >
       <img
         v-if="thumbnailUrl"
         :src="thumbnailUrl"
@@ -38,19 +41,11 @@ const badgeVariant: Record<PostCategory, 'blue' | 'green' | 'yellow'> = {
       <div
         v-else
         class="flex h-full w-full items-center justify-center"
-        :class="{
-          'bg-blue-50': category === '피드백',
-          'bg-emerald-50': category === '프로젝트 모집',
-          'bg-amber-50': category === '스터디 모집',
-        }"
+        :class="category === '프로젝트 모집' ? 'bg-emerald-50' : 'bg-amber-50'"
       >
         <span
           class="text-4xl font-black opacity-20"
-          :class="{
-            'text-blue-600': category === '피드백',
-            'text-emerald-600': category === '프로젝트 모집',
-            'text-amber-600': category === '스터디 모집',
-          }"
+          :class="category === '프로젝트 모집' ? 'text-emerald-600' : 'text-amber-600'"
         >{{ category[0] }}</span>
       </div>
     </div>
