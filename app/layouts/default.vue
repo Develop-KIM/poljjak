@@ -362,4 +362,7 @@ const userJobLabel = computed(() => {
     <!-- ─── 로그인 모달 ───────────────────────────────────── -->
     <LoginModal :open="showLoginModal" context="계속하기" @close="showLoginModal = false" />
   </div>
+
+  <!-- ─── 전역 토스트 ──────────────────────────────────── -->
+  <AppToast />
 </template>

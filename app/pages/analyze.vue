@@ -5,12 +5,12 @@ import { useAuthStore } from '~/stores/auth'
 import type { AnalysisResult } from '~/server/utils/clova'
 
 const authStore = useAuthStore()
+const toast = useToastStore()
 
 const uploadedFile = ref<File | null>(null)
 const additionalNote = ref('')
 const showLoginModal = ref(false)
 const analyzing = ref(false)
-const errorMsg = ref<string | null>(null)
 
 const checklist = ['PDF 파일만 가능', '10MB 이하', '최대 50페이지', '텍스트 선택이 가능한 PDF']
 
@@ -48,8 +48,9 @@ async function handleStartAnalysis() {
 
     await navigateTo(`/analysis/${res.data.id}`)
   } catch (e: unknown) {
-    const err = e as { data?: { statusMessage?: string }; message?: string }
-    errorMsg.value = err.data?.statusMessage ?? err.message ?? '분석 중 오류가 발생했어요'
+    const err = e as { data?: { statusMessage?: string }; statusCode?: number }
+    const msg = err.data?.statusMessage ?? '분석 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.'
+    toast.error(msg)
   } finally {
     analyzing.value = false
   }
@@ -87,8 +88,6 @@ async function handleStartAnalysis() {
             :show-count="true"
           />
         </div>
-
-        <p v-if="errorMsg" class="mt-4 text-sm text-destructive">{{ errorMsg }}</p>
 
         <div class="mt-6 flex justify-end">
           <AppButton size="lg" :disabled="!canAnalyze" @click="handleStartAnalysis">

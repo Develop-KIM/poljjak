@@ -42,26 +42,36 @@ ${noteSection}
 [포트폴리오 내용]
 ${text}`
 
-  const response = await $fetch<{
+  let response: {
     status: { code: string; message: string }
     result: { message: { role: string; content: string } }
-  }>(apiUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: {
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      maxTokens: 2048,
-      temperature: 0.3,
-      topP: 0.8,
-      stream: false,
-    },
-  })
+  }
+
+  try {
+    response = await $fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        maxTokens: 2048,
+        temperature: 0.3,
+        topP: 0.8,
+        stream: false,
+      },
+      timeout: 60000,
+    })
+  } catch {
+    throw createError({
+      statusCode: 502,
+      statusMessage: 'AI 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.',
+    })
+  }
 
   if (response.status.code !== '20000') {
     throw createError({ statusCode: 502, statusMessage: 'AI 분석 중 오류가 발생했어요' })
