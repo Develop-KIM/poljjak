@@ -17,6 +17,11 @@ export default defineEventHandler(async (event) => {
     if (!user) {
       throw createError({ statusCode: 401, statusMessage: '로그인이 필요해요' })
     }
+  } else {
+    // 비로그인 공개 탭은 CDN 캐시 활용
+    setResponseHeaders(event, {
+      'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=60',
+    })
   }
 
   const whereConditions = [eq(posts.category, category), isNull(posts.deletedAt)]
