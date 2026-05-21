@@ -64,9 +64,7 @@ async function handleLogin() {
           <div class="px-8 pb-8 pt-10">
             <!-- 로고 -->
             <div class="flex justify-center">
-              <div class="flex h-12 items-center justify-center rounded-xl bg-primary px-4">
-                <span class="text-base font-black text-white">폴짝</span>
-              </div>
+              <img src="/images/logo.png" alt="폴짝" class="h-10 w-auto" />
             </div>
 
             <div class="mt-5 text-center">
