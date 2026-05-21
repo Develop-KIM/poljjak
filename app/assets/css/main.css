@@ -67,3 +67,31 @@
     @apply bg-blue-100 text-blue-900;
   }
 }
+
+@media print {
+  /* 브라우저 기본 URL·날짜 제거 */
+  @page {
+    margin: 16mm;
+  }
+
+  /* 헤더·푸터·버튼 숨김 */
+  header,
+  footer,
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* 점수 섹션 강제 표시 */
+  [data-print-open] {
+    display: block !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* 페이지 나눔 방지 */
+  .rounded-xl {
+    break-inside: avoid;
+  }
+}

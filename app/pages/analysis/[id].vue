@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Link, Lock, Unlock, MessageSquare, ChevronDown, Check, Download, CheckCircle2, Loader2 } from '@lucide/vue'
 import type { AnalysisResult } from '~~/server/utils/clova'
 
@@ -120,7 +120,13 @@ function shareToCommunity() {
 }
 
 function downloadAsPdf() {
-  window.print()
+  // 점수 섹션을 열린 상태로 인쇄
+  const wasOpen = showScores.value
+  showScores.value = true
+  nextTick(() => {
+    window.print()
+    if (!wasOpen) showScores.value = false
+  })
 }
 </script>
 
@@ -256,7 +262,7 @@ function downloadAsPdf() {
           enter-from-class="opacity-0 -translate-y-2"
           enter-to-class="opacity-100 translate-y-0"
         >
-          <div v-if="showScores" class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div v-if="showScores" data-print-open class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2 lg:grid-cols-3">
             <AnalysisScoreCard
               v-for="score in analysis.result.scores"
               :key="score.title"
