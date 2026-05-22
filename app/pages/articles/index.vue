@@ -114,7 +114,7 @@ onMounted(fetchArticles)
 </script>
 
 <template>
-  <div class="mx-auto max-w-[760px] px-5 py-8 md:px-8 md:py-10">
+  <div class="mx-auto max-w-[1120px] px-5 py-8 md:px-8 md:py-10">
     <h1 class="mb-6 text-2xl font-black text-foreground">아티클</h1>
 
     <!-- 탭 -->
@@ -142,7 +142,7 @@ onMounted(fetchArticles)
 
     <!-- 목록 -->
     <div v-else-if="articles.length > 0">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div
           v-for="article in articles"
           :key="article.id"
