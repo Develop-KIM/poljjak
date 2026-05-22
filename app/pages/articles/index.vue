@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { Bookmark, BookmarkCheck, ArrowUpRight, Loader2 } from '@lucide/vue'
+import { Bookmark, BookmarkCheck, Loader2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 
@@ -173,10 +173,7 @@ onMounted(fetchArticles)
 
           <!-- 카드 하단: 날짜 + 북마크 -->
           <div class="flex items-center justify-between border-t border-border px-5 py-3">
-            <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <ArrowUpRight class="size-3 opacity-0 transition-opacity group-hover:opacity-100" />
-              <span>{{ formatDate(article.publishedAt) }}</span>
-            </div>
+            <span class="text-xs text-muted-foreground">{{ formatDate(article.publishedAt) }}</span>
             <button
               type="button"
               class="flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-accent"
