@@ -48,23 +48,9 @@ async function deleteStorageFiles(userId: string) {
     .where(eq(users.id, userId))
     .limit(1)
 
-  const analysisRows = await db
-    .select({ pdfUrl: analyses.pdfUrl })
-    .from(analyses)
-    .where(eq(analyses.userId, userId))
-
   const avatarPath = extractStoragePath(user?.avatarUrl ?? null, 'avatars')
   if (avatarPath) {
     const { error } = await supabase.storage.from('avatars').remove([avatarPath])
-    if (error) throw error
-  }
-
-  const portfolioPaths = analysisRows
-    .map((analysis) => extractStoragePath(analysis.pdfUrl, 'portfolios'))
-    .filter((path): path is string => !!path)
-
-  if (portfolioPaths.length > 0) {
-    const { error } = await supabase.storage.from('portfolios').remove(portfolioPaths)
     if (error) throw error
   }
 }

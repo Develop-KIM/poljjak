@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm'
-import { createClient } from '@supabase/supabase-js'
 import { requireAuth } from '../../utils/auth'
 import { extractPdfText } from '../../utils/pdf'
 import { analyzePortfolio } from '../../utils/clova'
@@ -42,22 +41,8 @@ export default defineEventHandler(async (event) => {
 
   const additionalNote = notePart?.data?.toString('utf8')?.trim()
 
-  // 모든 PDF 텍스트 추출 + 첫 번째 파일 Storage 업로드
-  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-  const firstFile = fileParts[0]!
-
-  const [texts, pdfUrl] = await Promise.all([
-    Promise.all(fileParts.map((fp) => extractPdfText(fp.data))),
-    (async () => {
-      const filename = `${user.id}/${Date.now()}.pdf`
-      const { error } = await supabase.storage
-        .from('portfolios')
-        .upload(filename, firstFile.data, { contentType: 'application/pdf' })
-      if (error) throw createError({ statusCode: 500, statusMessage: 'PDF 저장에 실패했어요' })
-      const { data } = supabase.storage.from('portfolios').getPublicUrl(filename)
-      return data.publicUrl
-    })(),
-  ])
+  // 모든 PDF 텍스트 추출
+  const texts = await Promise.all(fileParts.map((fp) => extractPdfText(fp.data)))
 
   // 여러 파일이면 구분선으로 텍스트 합치기
   const text = texts.join('\n\n--- 다음 파일 ---\n\n')
@@ -67,7 +52,6 @@ export default defineEventHandler(async (event) => {
     .insert(analyses)
     .values({
       userId: user.id,
-      pdfUrl,
       additionalNote: additionalNote || null,
       status: 'processing',
     })

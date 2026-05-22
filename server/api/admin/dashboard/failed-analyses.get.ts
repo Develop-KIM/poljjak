@@ -14,7 +14,6 @@ export default defineEventHandler(async (event) => {
       id: analyses.id,
       userId: analyses.userId,
       userNickname: sql<string>`COALESCE(${users.nickname}, '(탈퇴한 사용자)')`,
-      pdfUrl: analyses.pdfUrl,
       createdAt: analyses.createdAt,
     })
     .from(analyses)
@@ -28,7 +27,6 @@ export default defineEventHandler(async (event) => {
       id: row.id,
       userId: row.userId,
       userNickname: row.userNickname,
-      pdfUrl: row.pdfUrl,
       createdAt: formatCommunityDate(row.createdAt),
     })),
   }

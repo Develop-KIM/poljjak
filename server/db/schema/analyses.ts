@@ -12,7 +12,6 @@ export const analyses = pgTable('analyses', {
   // FK 없음 — 앱 레이어에서 users 조회 (DDD)
   userId: uuid('user_id').notNull(),
   title: text('title').notNull().default('포트폴리오 분석 결과'),
-  pdfUrl: text('pdf_url').notNull(),
   additionalNote: text('additional_note'),
   status: analysisStatusEnum('status').notNull().default('pending'),
   result: jsonb('result'),
