@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { ChevronDown, UserRound, LogOut, Menu, X, MessageCircle, Moon, Sun } from '@lucide/vue'
+import { ChevronDown, UserRound, LogOut, Menu, X, MessageCircle, Moon, Sun, Settings } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
 
 const route = useRoute()
@@ -234,6 +234,15 @@ function toggleProfileMenu() {
                   <UserRound class="size-4 text-muted-foreground" />
                   마이페이지
                 </NuxtLink>
+                <NuxtLink
+                  v-if="authStore.profile?.role === 'admin'"
+                  to="/admin"
+                  class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-primary transition-colors hover:bg-muted"
+                  @click="profileOpen = false"
+                >
+                  <Settings class="size-4 text-muted-foreground" />
+                  관리자
+                </NuxtLink>
                 <button
                   type="button"
                   class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
@@ -380,6 +389,15 @@ function toggleProfileMenu() {
                   >
                     <UserRound class="size-4 text-muted-foreground" />
                     마이페이지
+                  </NuxtLink>
+                  <NuxtLink
+                    v-if="authStore.profile?.role === 'admin'"
+                    to="/admin"
+                    class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-primary transition-colors hover:bg-muted"
+                    @click="mobileMenuOpen = false"
+                  >
+                    <Settings class="size-4 text-muted-foreground" />
+                    관리자
                   </NuxtLink>
                   <button
                     type="button"

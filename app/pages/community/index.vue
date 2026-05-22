@@ -77,9 +77,45 @@ interface Post {
   recruitmentStatus: 'open' | 'closed' | null
   createdAt: string
   thumbnailUrl?: string | null
+  isBookmarked?: boolean
 }
 
 const posts = ref<Post[]>([])
+
+/** 각 게시글의 북마크 상태를 로컬에서 관리 (Optimistic UI용) */
+const bookmarkStates = ref<Record<string, boolean>>({})
+
+/** 북마크 상태 조회 헬퍼 */
+function getBookmarked(postId: string): boolean {
+  return bookmarkStates.value[postId] ?? false
+}
+
+/** 북마크 토글 (Optimistic UI + 실패 시 롤백) */
+async function handleBookmarkToggle(postId: string) {
+  // 비로그인이면 로그인 모달 표시
+  if (!authStore.isLoggedIn) {
+    loginContext.value = '북마크 추가'
+    showLoginModal.value = true
+    return
+  }
+
+  // Optimistic: 즉시 로컬 상태 토글
+  const prev = getBookmarked(postId)
+  bookmarkStates.value[postId] = !prev
+
+  try {
+    const res = await $fetch<{ data: { bookmarked: boolean } }>(
+      `/api/posts/${postId}/bookmarks`,
+      { method: 'POST' }
+    )
+    // 서버 응답으로 상태 확정
+    bookmarkStates.value[postId] = res.data.bookmarked
+  } catch {
+    // 실패 시 이전 상태로 롤백
+    bookmarkStates.value[postId] = prev
+    toast.error('북마크 처리에 실패했어요')
+  }
+}
 const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
 
 async function fetchPosts() {
@@ -97,6 +133,10 @@ async function fetchPosts() {
     const res = await $fetch<{ data: Post[]; total: number; page: number }>('/api/posts', { query })
     posts.value = res.data
     totalCount.value = res.total
+    // API 응답에 isBookmarked 포함 시 로컬 상태 초기화
+    res.data.forEach((post) => {
+      bookmarkStates.value[post.id] = post.isBookmarked ?? false
+    })
   } catch (e: unknown) {
     const error = e as { data?: { statusMessage?: string } }
     posts.value = []
@@ -205,7 +245,7 @@ function goPage(p: number) {
           <input
             v-model="searchInput"
             type="text"
-            placeholder="제목 검색..."
+            placeholder="제목 검색"
             class="h-11 w-full rounded-lg border border-border bg-background pl-9 pr-9 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
           />
           <button
@@ -247,12 +287,15 @@ function goPage(p: number) {
           :created-at="post.createdAt"
           :thumbnail-url="post.thumbnailUrl"
           :requires-auth="post.category === '피드백' && !authStore.isLoggedIn"
+          :show-bookmark="true"
+          :is-bookmarked="getBookmarked(post.id)"
           @auth-required="
             () => {
               loginContext = '피드백 보기'
               showLoginModal = true
             }
           "
+          @bookmark-toggle="handleBookmarkToggle(post.id)"
         />
 
         <!-- 페이지네이션 -->

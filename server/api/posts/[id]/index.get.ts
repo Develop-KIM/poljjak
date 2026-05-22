@@ -1,7 +1,7 @@
 import { and, asc, count, eq, isNull } from 'drizzle-orm'
 import { getAuthUser } from '../../../utils/auth'
 import { db } from '../../../db'
-import { analyses, comments, likes, postImages, posts, users } from '../../../db/schema'
+import { analyses, bookmarks, comments, likes, postImages, posts, users } from '../../../db/schema'
 import { formatCommunityDate, getAuthorInitial, getAvatarUrl, postCategoryLabels } from '../../../utils/community'
 import type { AnalysisResult } from '../../../utils/clova'
 
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
 
   const isOwner = !!user && post.userId === user.id
 
-  const [[commentCountRow], [likeCountRow], likedRow] = await Promise.all([
+  const [[commentCountRow], [likeCountRow], likedRow, bookmarkedRow] = await Promise.all([
     db
       .select({ value: count(comments.id) })
       .from(comments)
@@ -56,6 +56,13 @@ export default defineEventHandler(async (event) => {
           .select({ id: likes.id })
           .from(likes)
           .where(and(eq(likes.postId, post.id), eq(likes.userId, user.id)))
+          .limit(1)
+      : Promise.resolve([]),
+    user
+      ? db
+          .select({ id: bookmarks.id })
+          .from(bookmarks)
+          .where(and(eq(bookmarks.postId, post.id), eq(bookmarks.userId, user.id)))
           .limit(1)
       : Promise.resolve([]),
   ])
@@ -103,6 +110,7 @@ export default defineEventHandler(async (event) => {
       authorId: post.userId,
       isOwner,
       isLiked: likedRow.length > 0,
+      isBookmarked: bookmarkedRow.length > 0,
       analysisId: post.analysisId,
       analysis,
       imageUrls: imageRows.map((r) => r.url),

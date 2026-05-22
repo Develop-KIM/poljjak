@@ -14,8 +14,11 @@ export const chatRooms = pgTable(
   },
   (t) => [
     uniqueIndex('chat_rooms_users_unique').on(t.initiatorId, t.participantId),
+    // OR 조건 쿼리 (initiatorId = ? OR participantId = ?) 각각 인덱스 필요
     index('chat_rooms_initiator_id_idx').on(t.initiatorId),
     index('chat_rooms_participant_id_idx').on(t.participantId),
+    // 최근 메시지 정렬용
+    index('chat_rooms_created_at_idx').on(t.createdAt),
   ]
 )
 

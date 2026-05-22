@@ -20,6 +20,11 @@ const additionalNote = ref('')
 const showLoginModal = ref(false)
 const analyzing = ref(false)
 
+// 로그인했지만 직군 미설정인 경우 분석 불가
+const noJobType = computed(
+  () => authStore.isLoggedIn && !authStore.profile?.jobType
+)
+
 // 분석 단계 시뮬레이션 (실제 진행은 서버에서 순차적으로 발생)
 const analysisStep = ref(0)
 const steps = [
@@ -92,6 +97,23 @@ async function handleStartAnalysis() {
 
 <template>
   <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8 md:py-14">
+    <!-- ── 직군 미설정 안내 ── -->
+    <div v-if="noJobType" class="flex flex-col items-center justify-center py-24 text-center">
+      <div class="flex size-16 items-center justify-center rounded-full bg-accent">
+        <span class="text-3xl">🎯</span>
+      </div>
+      <h2 class="mt-5 text-xl font-black text-foreground">직군을 먼저 설정해주세요</h2>
+      <p class="mt-2 text-sm text-muted-foreground">
+        AI가 직군에 맞는 기준으로 포트폴리오를 분석해드려요.<br />
+        마이페이지에서 개발자 또는 디자이너를 선택해주세요.
+      </p>
+      <NuxtLink to="/my">
+        <AppButton class="mt-6">마이페이지에서 직군 설정하기</AppButton>
+      </NuxtLink>
+    </div>
+
+    <!-- ── 분석 중·폼 (직군 설정된 경우만) ── -->
+    <template v-if="!noJobType">
     <!-- ── 분석 중 화면 ── -->
     <Transition
       enter-active-class="transition duration-300 ease-out"
@@ -243,5 +265,6 @@ async function handleStartAnalysis() {
         }
       "
     />
+    </template>
   </div>
 </template>

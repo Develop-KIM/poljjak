@@ -1,4 +1,4 @@
-import { boolean, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { boolean, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 export const analysisStatusEnum = pgEnum('analysis_status', [
   'pending',
@@ -16,6 +16,7 @@ export const analyses = pgTable('analyses', {
   additionalNote: text('additional_note'),
   status: analysisStatusEnum('status').notNull().default('pending'),
   result: jsonb('result'),
+  tokenUsage: integer('token_usage'),
   isPublic: boolean('is_public').notNull().default(false),
   shareToken: text('share_token').unique(),
   createdAt: timestamp('created_at').notNull().defaultNow(),

@@ -4,6 +4,20 @@ import { db } from '../db'
 import { users } from '../db/schema'
 import { eq } from 'drizzle-orm'
 
+// 실제로 핸들러에서 사용하는 컬럼만 조회 (전체 SELECT 방지)
+const userSelectFields = {
+  id: users.id,
+  providerId: users.providerId,
+  nickname: users.nickname,
+  email: users.email,
+  avatarUrl: users.avatarUrl,
+  jobType: users.jobType,
+  role: users.role,
+  onboardingCompletedAt: users.onboardingCompletedAt,
+  suspendedAt: users.suspendedAt,
+  deletedAt: users.deletedAt,
+}
+
 async function getSupabaseUserId(event: H3Event): Promise<string | null> {
   const client = await serverSupabaseClient(event)
   const {
@@ -19,9 +33,12 @@ export async function requireAuth(event: H3Event) {
     throw createError({ statusCode: 401, statusMessage: '로그인이 필요해요' })
   }
 
-  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
+  const [user] = await db.select(userSelectFields).from(users).where(eq(users.id, userId)).limit(1)
   if (!user || user.deletedAt) {
     throw createError({ statusCode: 401, statusMessage: '유효하지 않은 계정이에요' })
+  }
+  if (user.suspendedAt) {
+    throw createError({ statusCode: 403, statusMessage: '정지된 계정이에요. 운영팀에 문의해주세요.' })
   }
 
   return user
@@ -32,7 +49,7 @@ export async function getAuthUser(event: H3Event) {
   const userId = await getSupabaseUserId(event)
   if (!userId) return null
 
-  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
+  const [user] = await db.select(userSelectFields).from(users).where(eq(users.id, userId)).limit(1)
   if (!user || user.deletedAt) return null
 
   return user

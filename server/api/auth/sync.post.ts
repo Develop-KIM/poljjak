@@ -53,6 +53,11 @@ export default defineEventHandler(async (event) => {
     return { data: { needsOnboarding: true } }
   }
 
+  // 정지된 계정은 로그인 차단
+  if (existing.suspendedAt) {
+    throw createError({ statusCode: 403, statusMessage: '정지된 계정이에요. 운영팀에 문의해주세요.' })
+  }
+
   // 탈퇴 후 재로그인: 기존 사용자 ID를 유지해 게시글·댓글·분석 기록 연결을 복구한다.
   if (existing.deletedAt) {
     if (existing.deletedAt <= getDeletedUserCutoff()) {

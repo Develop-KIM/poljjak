@@ -11,6 +11,7 @@ import {
   Eye,
   Pencil,
   Trash2,
+  Bookmark,
 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import type { AnalysisResult } from '~~/server/utils/clova'
@@ -31,6 +32,10 @@ const liked = ref(false)
 const likeCount = ref(0)
 const showScores = ref(false)
 const liking = ref(false)
+
+/** 북마크 상태 */
+const bookmarked = ref(false)
+const bookmarking = ref(false)
 
 const editing = ref(false)
 const editTitle = ref('')
@@ -61,6 +66,7 @@ interface PostDetail {
   authorId: string
   isOwner: boolean
   isLiked: boolean
+  isBookmarked?: boolean
   analysisId?: string | null
   analysis?: AnalysisEmbed | null
   imageUrls?: string[]
@@ -103,6 +109,7 @@ onMounted(async () => {
     post.value = res.data
     likeCount.value = res.data.likeCount
     liked.value = res.data.isLiked
+    bookmarked.value = res.data.isBookmarked ?? false
     analysisEmbed.value = res.data.analysis ?? null
     loadedPost = true
   } catch (e: unknown) {
@@ -217,6 +224,32 @@ async function toggleLike() {
     toast.error('좋아요 처리에 실패했어요')
   } finally {
     liking.value = false
+  }
+}
+
+/** 북마크 토글 (Optimistic UI + 실패 시 롤백) */
+async function toggleBookmark() {
+  if (!authStore.isLoggedIn) {
+    loginContext.value = '북마크 추가'
+    showLoginModal.value = true
+    return
+  }
+  if (bookmarking.value) return
+  // Optimistic: 즉시 로컬 상태 토글
+  const prev = bookmarked.value
+  bookmarked.value = !prev
+  bookmarking.value = true
+  try {
+    const res = await $fetch<{ data: { bookmarked: boolean } }>(`/api/posts/${id}/bookmarks`, {
+      method: 'POST',
+    })
+    bookmarked.value = res.data.bookmarked
+  } catch {
+    // 실패 시 이전 상태로 롤백
+    bookmarked.value = prev
+    toast.error('북마크 처리에 실패했어요')
+  } finally {
+    bookmarking.value = false
   }
 }
 
@@ -660,6 +693,21 @@ async function deletePost() {
           >
             <Share2 class="size-4" />
             공유
+          </button>
+
+          <!-- 북마크 버튼 -->
+          <button
+            type="button"
+            class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
+            :class="
+              bookmarked
+                ? 'text-primary hover:bg-primary/10'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            "
+            @click="toggleBookmark"
+          >
+            <Bookmark class="size-4" :class="{ 'fill-current': bookmarked }" />
+            {{ bookmarked ? '저장됨' : '저장' }}
           </button>
 
           <button

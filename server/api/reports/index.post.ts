@@ -1,14 +1,8 @@
-import { z } from 'zod'
 import { and, eq, isNull } from 'drizzle-orm'
 import { requireAuth } from '../../utils/auth'
 import { db } from '../../db'
 import { comments, posts, reports } from '../../db/schema'
-
-const reportCreateSchema = z.object({
-  targetType: z.enum(['post', 'comment']),
-  targetId: z.string().uuid('잘못된 신고 대상이에요'),
-  reason: z.string().min(1, '신고 사유를 선택해주세요').max(100),
-})
+import { reportCreateSchema } from '../../validation/reports'
 
 function isDuplicateReportError(error: unknown) {
   const pgError = error as {

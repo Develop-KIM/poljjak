@@ -95,6 +95,7 @@ function formatMB(bytes: number): string {
       <span class="mt-3 flex flex-wrap justify-center gap-2">
         <AppBadge variant="blue">PDF 전용</AppBadge>
         <AppBadge variant="gray">파일당 10MB 이하</AppBadge>
+        <AppBadge variant="gray">50페이지 이하</AppBadge>
       </span>
       <input
         id="portfolio-pdf"

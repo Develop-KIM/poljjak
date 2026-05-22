@@ -1,20 +1,10 @@
-import { z } from 'zod'
 import { and, eq, isNull } from 'drizzle-orm'
 import { requireAuth } from '../../../utils/auth'
 import { db } from '../../../db'
 import { comments, posts } from '../../../db/schema'
 import { formatCommunityDate, getAuthorInitial } from '../../../utils/community'
 import { createCommentNotification } from '../../../utils/notifications'
-
-const commentCreateSchema = z.object({
-  content: z
-    .string()
-    .trim()
-    .min(1, '댓글을 입력해주세요')
-    .max(1000, '댓글은 1000자 이하로 입력해주세요'),
-  parentId: z.string().uuid().optional().nullable(),
-  mentionNickname: z.string().max(50).optional().nullable(),
-})
+import { commentCreateSchema } from '../../../validation/comments'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)

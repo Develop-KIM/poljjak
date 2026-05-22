@@ -20,6 +20,7 @@ export default defineNuxtPlugin(() => {
         return
       }
 
+      // 초기 알림 목록 로드
       await notifStore.fetch()
 
       channel = client
@@ -27,11 +28,12 @@ export default defineNuxtPlugin(() => {
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'INSERT',
             schema: 'public',
             table: 'notifications',
             filter: `user_id=eq.${userId}`,
           },
+          // INSERT 이벤트만 구독해 새 알림만 앞에 추가 (전체 재조회 불필요)
           () => {
             notifStore.fetch()
           }

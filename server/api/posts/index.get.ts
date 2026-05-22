@@ -1,20 +1,22 @@
-import { and, desc, eq, ilike, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, ilike, inArray, isNull, sql } from 'drizzle-orm'
+import { getAuthUser } from '../../utils/auth'
 import { db } from '../../db'
-import { comments, likes, posts, users } from '../../db/schema'
+import { bookmarks, comments, likes, posts, users } from '../../db/schema'
 import { parsePostCategory } from '../../validation/posts'
 import { createPostExcerpt, formatCommunityDate, postCategoryLabels } from '../../utils/community'
 
 const PAGE_SIZE = 15
 
 export default defineEventHandler(async (event) => {
-  const query = getQuery(event)
+  const [query, user] = [getQuery(event), await getAuthUser(event)]
   const category = parsePostCategory(query.category) ?? 'project'
   const jobTypeParam = query.jobType as string | undefined
   const jobType = jobTypeParam === 'developer' || jobTypeParam === 'designer' ? jobTypeParam : null
   const keyword = typeof query.keyword === 'string' ? query.keyword.trim() : ''
   const page = Math.max(1, parseInt(String(query.page ?? '1'), 10))
 
-  if (category !== 'feedback') {
+  // 비로그인 + 피드백 외 카테고리에만 캐시 적용 (로그인 사용자는 isBookmarked가 개인화됨)
+  if (category !== 'feedback' && !user) {
     setResponseHeaders(event, {
       'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=60',
     })
@@ -71,6 +73,17 @@ export default defineEventHandler(async (event) => {
 
   const total = countRows[0]?.count ?? 0
 
+  // 로그인 사용자의 북마크 목록 배치 조회
+  const postIds = rows.map((r) => r.id)
+  const bookmarkedSet = new Set<string>()
+  if (user && postIds.length > 0) {
+    const bookmarkedRows = await db
+      .select({ postId: bookmarks.postId })
+      .from(bookmarks)
+      .where(and(eq(bookmarks.userId, user.id), inArray(bookmarks.postId, postIds)))
+    bookmarkedRows.forEach((b) => bookmarkedSet.add(b.postId))
+  }
+
   const list = rows.map((post) => ({
     id: post.id,
     category: postCategoryLabels[post.category],
@@ -83,6 +96,7 @@ export default defineEventHandler(async (event) => {
     recruitmentStatus: post.recruitmentStatus ?? null,
     createdAt: formatCommunityDate(post.createdAt),
     thumbnailUrl: post.thumbnailUrl ?? null,
+    isBookmarked: bookmarkedSet.has(post.id),
   }))
 
   return { data: list, total, page, pageSize: PAGE_SIZE }

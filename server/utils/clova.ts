@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { $fetch } from 'ofetch'
+import { and, eq } from 'drizzle-orm'
+import { db } from '../db'
+import { prompts } from '../db/schema'
 
 export interface AnalysisResult {
   scores: Array<{
@@ -18,25 +19,33 @@ export interface AnalysisResult {
   }>
 }
 
-type JobType = 'developer' | 'designer' | null
+export type JobType = 'developer' | 'designer'
 
-function loadPrompt(jobType: JobType): string {
-  const filename =
-    jobType === 'developer'
-      ? 'analysis-developer.txt'
-      : jobType === 'designer'
-        ? 'analysis-designer.txt'
-        : 'analysis-general.txt'
+// DB에서 활성 프롬프트 조회
+async function loadPrompt(jobType: JobType): Promise<string> {
+  const [row] = await db
+    .select({ content: prompts.content })
+    .from(prompts)
+    .where(and(eq(prompts.jobType, jobType), eq(prompts.isActive, true)))
+    .limit(1)
 
-  const promptPath = resolve(process.cwd(), 'server/prompts', filename)
-  return readFileSync(promptPath, 'utf-8').trim()
+  if (!row) {
+    throw createError({ statusCode: 500, statusMessage: `${jobType} 프롬프트를 찾을 수 없어요` })
+  }
+  return row.content
+}
+
+export interface AnalysisResponse {
+  result: AnalysisResult
+  tokenUsage: number
 }
 
 export async function analyzePortfolio(
   text: string,
   jobType: JobType,
-  additionalNote?: string
-): Promise<AnalysisResult> {
+  additionalNote?: string,
+  customPrompt?: string // 테스트용 임시 프롬프트
+): Promise<AnalysisResponse> {
   const apiKey = process.env.CLOVA_STUDIO_API_KEY?.trim()
   const apiUrl = process.env.CLOVA_STUDIO_API_URL
 
@@ -44,7 +53,7 @@ export async function analyzePortfolio(
     throw createError({ statusCode: 500, statusMessage: 'CLOVA Studio 설정이 없어요' })
   }
 
-  const systemPrompt = loadPrompt(jobType)
+  const systemPrompt = customPrompt ?? (await loadPrompt(jobType))
 
   const noteSection = additionalNote?.trim() ? `\n[추가 요청사항]\n${additionalNote.trim()}\n` : ''
 
@@ -55,7 +64,11 @@ ${text}`
 
   let response: {
     status: { code: string; message: string }
-    result: { message: { role: string; content: string } }
+    result: {
+      message: { role: string; content: string }
+      inputLength?: number
+      outputLength?: number
+    }
   }
 
   try {
@@ -91,11 +104,14 @@ ${text}`
   }
 
   const content = response.result.message.content.trim()
+  // 입력+출력 토큰 합산
+  const tokenUsage = (response.result.inputLength ?? 0) + (response.result.outputLength ?? 0)
 
   try {
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) ?? content.match(/({[\s\S]*})/)
     const jsonStr = jsonMatch ? (jsonMatch[1] ?? jsonMatch[0]) : content
-    return JSON.parse(jsonStr) as AnalysisResult
+    const result = JSON.parse(jsonStr) as AnalysisResult
+    return { result, tokenUsage }
   } catch {
     throw createError({ statusCode: 502, statusMessage: 'AI 응답을 파싱할 수 없어요' })
   }

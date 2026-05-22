@@ -32,6 +32,14 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // 직군 미설정 사용자는 분석 불가
+  if (!user.jobType) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: '포트폴리오 분석을 위해 직군을 먼저 설정해주세요',
+    })
+  }
+
   const additionalNote = notePart?.data?.toString('utf8')?.trim()
 
   // 모든 PDF 텍스트 추출 + 첫 번째 파일 Storage 업로드
@@ -45,7 +53,7 @@ export default defineEventHandler(async (event) => {
       const { error } = await supabase.storage
         .from('portfolios')
         .upload(filename, firstFile.data, { contentType: 'application/pdf' })
-      if (error) return ''
+      if (error) throw createError({ statusCode: 500, statusMessage: 'PDF 저장에 실패했어요' })
       const { data } = supabase.storage.from('portfolios').getPublicUrl(filename)
       return data.publicUrl
     })(),
@@ -70,7 +78,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // 백그라운드에서 CLOVA 분석 실행
-  runAnalysis(analysis.id, text, user.id, user.jobType ?? null, additionalNote).catch(() => {})
+  runAnalysis(analysis.id, text, user.id, user.jobType, additionalNote).catch(() => {})
 
   return { data: { id: analysis.id, status: 'processing' } }
 })
@@ -79,15 +87,15 @@ async function runAnalysis(
   analysisId: string,
   text: string,
   userId: string,
-  jobType: 'developer' | 'designer' | null,
+  jobType: 'developer' | 'designer',
   additionalNote?: string,
 ) {
   try {
-    const result = await analyzePortfolio(text, jobType, additionalNote)
+    const { result, tokenUsage } = await analyzePortfolio(text, jobType, additionalNote)
 
     await db
       .update(analyses)
-      .set({ status: 'completed', result, updatedAt: new Date() })
+      .set({ status: 'completed', result, tokenUsage, updatedAt: new Date() })
       .where(eq(analyses.id, analysisId))
 
     // 분석 완료 알림

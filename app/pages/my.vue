@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, resolveComponent } from 'vue'
 import {
   Camera,
   Lock,
@@ -193,6 +193,16 @@ interface MyComment {
   postTitle: string | null
 }
 
+/** 저장한 글 목록 아이템 */
+interface BookmarkedPost {
+  id: string
+  postId: string
+  category: string
+  title: string
+  savedAt: string
+  isDeleted: boolean
+}
+
 const analyses = ref<AnalysisItem[]>([])
 const analysesPending = ref(false)
 const myPosts = ref<MyPost[]>([])
@@ -201,9 +211,11 @@ const myComments = ref<MyComment[]>([])
 const myCommentsPending = ref(false)
 const likedPosts = ref<MyPost[]>([])
 const likedPending = ref(false)
+const bookmarkedPosts = ref<BookmarkedPost[]>([])
+const bookmarkedPending = ref(false)
 
-const activeTab = ref<'analyses' | 'posts' | 'comments' | 'likes'>('analyses')
-const pages = ref({ analyses: 1, posts: 1, comments: 1, likes: 1 })
+const activeTab = ref<'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks'>('analyses')
+const pages = ref({ analyses: 1, posts: 1, comments: 1, likes: 1, bookmarks: 1 })
 const PAGE_SIZE = 10
 
 function paged<T>(list: T[], tab: keyof typeof pages.value) {
@@ -225,12 +237,14 @@ onMounted(async () => {
   myPostsPending.value = true
   myCommentsPending.value = true
   likedPending.value = true
+  bookmarkedPending.value = true
 
-  const [analysesRes, postsRes, commentsRes, likesRes] = await Promise.allSettled([
+  const [analysesRes, postsRes, commentsRes, likesRes, bookmarksRes] = await Promise.allSettled([
     $fetch<{ data: AnalysisItem[] }>('/api/analyses'),
     $fetch<{ data: MyPost[] }>('/api/users/me/posts'),
     $fetch<{ data: MyComment[] }>('/api/users/me/comments'),
     $fetch<{ data: MyPost[] }>('/api/users/me/likes'),
+    $fetch<{ data: BookmarkedPost[] }>('/api/users/me/bookmarks'),
   ])
 
   if (analysesRes.status === 'fulfilled') analyses.value = analysesRes.value.data
@@ -241,6 +255,8 @@ onMounted(async () => {
   myCommentsPending.value = false
   if (likesRes.status === 'fulfilled') likedPosts.value = likesRes.value.data
   likedPending.value = false
+  if (bookmarksRes.status === 'fulfilled') bookmarkedPosts.value = bookmarksRes.value.data
+  bookmarkedPending.value = false
 })
 
 function formatDate(dateStr: string) {
@@ -256,12 +272,16 @@ const tabs = [
   { key: 'posts' as const, label: '내가 쓴 글', shortLabel: '게시글' },
   { key: 'comments' as const, label: '내 댓글', shortLabel: '댓글' },
   { key: 'likes' as const, label: '좋아요한 글', shortLabel: '좋아요' },
+  { key: 'bookmarks' as const, label: '저장한 글', shortLabel: '저장' },
 ]
 
-function selectTab(key: typeof activeTab.value) {
+function selectTab(key: 'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks') {
   activeTab.value = key
   pages.value[key] = 1
 }
+
+/** 동적 :is 바인딩을 위해 NuxtLink 컴포넌트 참조 */
+const NuxtLink = resolveComponent('NuxtLink')
 </script>
 
 <template>
@@ -543,6 +563,68 @@ function selectTab(key: typeof activeTab.value) {
           v-else
           title="아직 좋아요한 글이 없어요"
           description="마음에 드는 게시글에 좋아요를 눌러보세요."
+        >
+          <template #action>
+            <NuxtLink to="/community?tab=feedback"
+              ><AppButton>커뮤니티 보러 가기</AppButton></NuxtLink
+            >
+          </template>
+        </AppEmptyState>
+      </template>
+
+      <!-- 저장한 글 -->
+      <template v-else-if="activeTab === 'bookmarks'">
+        <div v-if="bookmarkedPending" class="flex justify-center py-12">
+          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+        </div>
+
+        <div v-else-if="bookmarkedPosts.length > 0" class="grid gap-2">
+          <component
+            :is="post.isDeleted ? 'div' : NuxtLink"
+            v-for="post in paged(bookmarkedPosts, 'bookmarks')"
+            :key="post.id"
+            v-bind="post.isDeleted ? {} : { to: `/community/${post.postId}` }"
+            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors"
+            :class="
+              post.isDeleted
+                ? 'cursor-default opacity-50'
+                : 'hover:bg-muted'
+            "
+          >
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <AppBadge :variant="post.isDeleted ? 'gray' : 'blue'" class="shrink-0">
+                  {{ post.isDeleted ? '삭제됨' : post.category }}
+                </AppBadge>
+                <p
+                  class="truncate text-sm font-semibold"
+                  :class="post.isDeleted ? 'text-muted-foreground' : 'text-foreground'"
+                >
+                  {{ post.isDeleted ? '삭제된 게시글' : post.title }}
+                </p>
+              </div>
+              <p class="mt-1.5 text-xs text-muted-foreground">
+                {{ formatDate(post.savedAt) }} 저장
+              </p>
+            </div>
+            <ArrowUpRight
+              v-if="!post.isDeleted"
+              class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+            />
+          </component>
+
+          <Pagination
+            v-if="totalPages(bookmarkedPosts, 'bookmarks') > 1"
+            :current="pages.bookmarks"
+            :total="totalPages(bookmarkedPosts, 'bookmarks')"
+            @change="goPage('bookmarks', $event)"
+          />
+        </div>
+
+        <AppEmptyState
+          v-else
+          title="아직 저장한 글이 없어요"
+          description="게시글의 북마크 아이콘을 눌러 저장해보세요."
         >
           <template #action>
             <NuxtLink to="/community?tab=feedback"

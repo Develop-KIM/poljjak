@@ -1,8 +1,8 @@
-import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { requireAuth } from '../../../utils/auth'
 import { db } from '../../../db'
 import { chatRooms, messages, notifications } from '../../../db/schema'
+import { messageCreateSchema } from '../../../validation/chats'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
@@ -24,9 +24,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: '권한이 없어요' })
 
   const body = await readBody<unknown>(event)
-  const parsed = z
-    .object({ content: z.string().trim().min(1).max(2000, '2000자 이하로 입력해주세요') })
-    .safeParse(body)
+  const parsed = messageCreateSchema.safeParse(body)
 
   if (!parsed.success)
     throw createError({

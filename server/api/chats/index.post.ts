@@ -1,20 +1,14 @@
-import { z } from 'zod'
 import { and, eq, isNull } from 'drizzle-orm'
 import { requireAuth } from '../../utils/auth'
 import { db } from '../../db'
 import { chatRooms, users } from '../../db/schema'
+import { chatRoomCreateSchema } from '../../validation/chats'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
 
   const body = await readBody<unknown>(event)
-  const parsed = z
-    .object({
-      targetUserId: z.string().uuid(),
-      sourcePostId: z.string().uuid().optional(),
-      sourcePostTitle: z.string().max(200).optional(),
-    })
-    .safeParse(body)
+  const parsed = chatRoomCreateSchema.safeParse(body)
 
   if (!parsed.success) throw createError({ statusCode: 400, statusMessage: '잘못된 요청이에요' })
 

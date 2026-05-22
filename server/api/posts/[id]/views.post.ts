@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import { db } from '../../../db'
 import { posts } from '../../../db/schema'
 
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   await db
     .update(posts)
     .set({ viewCount: sql`${posts.viewCount} + 1` })
-    .where(eq(posts.id, id))
+    .where(and(eq(posts.id, id), isNull(posts.deletedAt)))
 
   return { data: null }
 })

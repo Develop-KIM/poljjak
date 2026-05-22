@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MessageSquare, Heart, Eye } from '@lucide/vue'
+import { MessageSquare, Heart, Eye, Bookmark } from '@lucide/vue'
 
 type PostCategory = '피드백' | '프로젝트 모집' | '스터디 모집'
 type RecruitmentStatus = 'open' | 'closed' | null
@@ -17,10 +17,16 @@ defineProps<{
   createdAt: string
   thumbnailUrl?: string | null
   requiresAuth?: boolean
+  /** 북마크 아이콘 표시 여부 */
+  showBookmark?: boolean
+  /** 현재 북마크 상태 */
+  isBookmarked?: boolean
 }>()
 
 const emit = defineEmits<{
   'auth-required': []
+  /** 북마크 토글 요청 */
+  'bookmark-toggle': []
 }>()
 </script>
 
@@ -65,6 +71,19 @@ const emit = defineEmits<{
         <span class="flex items-center gap-1">
           <MessageSquare class="size-3.5" />{{ commentCount }}
         </span>
+        <!-- 북마크 아이콘: showBookmark가 true일 때만 표시 -->
+        <button
+          v-if="showBookmark"
+          type="button"
+          class="flex items-center transition-colors"
+          :class="isBookmarked ? 'text-primary' : 'text-muted-foreground hover:text-foreground'"
+          @click.prevent.stop="emit('bookmark-toggle')"
+        >
+          <Bookmark
+            class="size-3.5"
+            :class="isBookmarked ? 'fill-current' : ''"
+          />
+        </button>
       </div>
     </div>
   </button>
@@ -108,6 +127,19 @@ const emit = defineEmits<{
         <span class="flex items-center gap-1">
           <MessageSquare class="size-3.5" />{{ commentCount }}
         </span>
+        <!-- 북마크 아이콘: showBookmark가 true일 때만 표시 -->
+        <button
+          v-if="showBookmark"
+          type="button"
+          class="flex items-center transition-colors"
+          :class="isBookmarked ? 'text-primary' : 'text-muted-foreground hover:text-foreground'"
+          @click.prevent.stop="emit('bookmark-toggle')"
+        >
+          <Bookmark
+            class="size-3.5"
+            :class="isBookmarked ? 'fill-current' : ''"
+          />
+        </button>
       </div>
     </div>
   </NuxtLink>
