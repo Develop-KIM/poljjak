@@ -1,13 +1,8 @@
 import { eq } from 'drizzle-orm'
-import { z } from 'zod'
 import { requireAdmin } from '../../../../utils/admin'
+import { reportResolveSchema } from '../../../../validation/admin'
 import { db } from '../../../../db'
 import { comments, posts, reports } from '../../../../db/schema'
-
-// 신고 처리 요청 스키마
-const resolveSchema = z.object({
-  deleteContent: z.boolean().optional().default(false),
-})
 
 export default defineEventHandler(async (event) => {
   // 관리자 권한 확인
@@ -35,7 +30,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<unknown>(event)
-  const parsed = resolveSchema.safeParse(body)
+  const parsed = reportResolveSchema.safeParse(body)
   if (!parsed.success) {
     throw createError({ statusCode: 400, statusMessage: '입력값을 확인해주세요' })
   }

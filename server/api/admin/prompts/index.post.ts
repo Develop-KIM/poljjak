@@ -1,17 +1,9 @@
 import { and, eq } from 'drizzle-orm'
-import { z } from 'zod'
 import { requireAdmin } from '../../../utils/admin'
+import { promptCreateSchema } from '../../../validation/admin'
 import { db } from '../../../db'
 import { prompts } from '../../../db/schema'
 
-// 요청 바디 검증 스키마
-const promptCreateSchema = z.object({
-  jobType: z.enum(['developer', 'designer']),
-  content: z.string().min(1, 'content는 비어있을 수 없어요'),
-})
-
-// POST /api/admin/prompts
-// 새 프롬프트 등록 및 기존 활성 프롬프트 비활성화 (트랜잭션)
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
 
