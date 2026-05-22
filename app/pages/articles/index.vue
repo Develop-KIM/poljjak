@@ -141,51 +141,64 @@ onMounted(fetchArticles)
     </div>
 
     <!-- 목록 -->
-    <div v-else-if="articles.length > 0" class="grid gap-3">
-      <div
-        v-for="article in articles"
-        :key="article.id"
-        class="group relative rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
-      >
-        <a
-          :href="article.url"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="block pr-8"
+    <div v-else-if="articles.length > 0">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div
+          v-for="article in articles"
+          :key="article.id"
+          class="group relative flex flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
         >
-          <div class="mb-1.5 flex items-center gap-2">
-            <span class="text-xs font-medium text-muted-foreground">{{ article.feedName }}</span>
-            <span class="text-xs text-muted-foreground">·</span>
-            <span class="text-xs text-muted-foreground">{{ formatDate(article.publishedAt) }}</span>
-          </div>
-          <p class="text-sm font-semibold leading-snug text-foreground group-hover:text-primary">
-            {{ article.title }}
-          </p>
-          <p v-if="article.summary" class="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
-            {{ article.summary }}
-          </p>
-          <ArrowUpRight class="absolute right-10 top-4 size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-        </a>
+          <!-- 카드 본문 (클릭 시 원문 이동) -->
+          <a
+            :href="article.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex flex-1 flex-col gap-2 p-5 pr-10"
+          >
+            <!-- 출처 배지 -->
+            <span class="w-fit rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {{ article.feedName }}
+            </span>
 
-        <!-- 북마크 버튼 -->
-        <button
-          type="button"
-          class="absolute right-3 top-3.5 flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-accent"
-          :class="article.isBookmarked ? 'text-primary' : 'text-muted-foreground'"
-          @click.stop="toggleBookmark(article)"
-        >
-          <BookmarkCheck v-if="article.isBookmarked" class="size-4" />
-          <Bookmark v-else class="size-4" />
-        </button>
+            <!-- 제목 -->
+            <p class="line-clamp-2 text-sm font-bold leading-snug text-foreground group-hover:text-primary">
+              {{ article.title }}
+            </p>
+
+            <!-- 요약 -->
+            <p v-if="article.summary" class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+              {{ article.summary }}
+            </p>
+          </a>
+
+          <!-- 카드 하단: 날짜 + 북마크 -->
+          <div class="flex items-center justify-between border-t border-border px-5 py-3">
+            <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ArrowUpRight class="size-3 opacity-0 transition-opacity group-hover:opacity-100" />
+              <span>{{ formatDate(article.publishedAt) }}</span>
+            </div>
+            <button
+              type="button"
+              class="flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-accent"
+              :class="article.isBookmarked ? 'text-primary' : 'text-muted-foreground'"
+              @click.stop="toggleBookmark(article)"
+            >
+              <BookmarkCheck v-if="article.isBookmarked" class="size-4" />
+              <Bookmark v-else class="size-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- 페이지네이션 -->
-      <Pagination
-        v-if="totalPages > 1"
-        :current="currentPage"
-        :total="totalPages"
-        @change="goPage"
-      />
+      <div class="mt-6">
+        <Pagination
+          v-if="totalPages > 1"
+          :current="currentPage"
+          :total="totalPages"
+          @change="goPage"
+        />
+      </div>
     </div>
 
     <!-- 빈 상태 -->
