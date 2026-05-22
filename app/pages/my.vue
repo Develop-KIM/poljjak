@@ -203,6 +203,17 @@ interface BookmarkedPost {
   isDeleted: boolean
 }
 
+/** 저장한 아티클 아이템 */
+interface BookmarkedArticle {
+  id: string
+  feedName: string
+  category: 'domestic' | 'international'
+  title: string
+  url: string
+  publishedAt: string
+  bookmarkedAt: string
+}
+
 const analyses = ref<AnalysisItem[]>([])
 const analysesPending = ref(false)
 const myPosts = ref<MyPost[]>([])
@@ -213,9 +224,11 @@ const likedPosts = ref<MyPost[]>([])
 const likedPending = ref(false)
 const bookmarkedPosts = ref<BookmarkedPost[]>([])
 const bookmarkedPending = ref(false)
+const bookmarkedArticles = ref<BookmarkedArticle[]>([])
+const bookmarkedArticlesPending = ref(false)
 
-const activeTab = ref<'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks'>('analyses')
-const pages = ref({ analyses: 1, posts: 1, comments: 1, likes: 1, bookmarks: 1 })
+const activeTab = ref<'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks' | 'article-bookmarks'>('analyses')
+const pages = ref({ analyses: 1, posts: 1, comments: 1, likes: 1, bookmarks: 1, 'article-bookmarks': 1 })
 const PAGE_SIZE = 10
 
 function paged<T>(list: T[], tab: keyof typeof pages.value) {
@@ -238,14 +251,17 @@ onMounted(async () => {
   myCommentsPending.value = true
   likedPending.value = true
   bookmarkedPending.value = true
+  bookmarkedArticlesPending.value = true
 
-  const [analysesRes, postsRes, commentsRes, likesRes, bookmarksRes] = await Promise.allSettled([
-    $fetch<{ data: AnalysisItem[] }>('/api/analyses'),
-    $fetch<{ data: MyPost[] }>('/api/users/me/posts'),
-    $fetch<{ data: MyComment[] }>('/api/users/me/comments'),
-    $fetch<{ data: MyPost[] }>('/api/users/me/likes'),
-    $fetch<{ data: BookmarkedPost[] }>('/api/users/me/bookmarks'),
-  ])
+  const [analysesRes, postsRes, commentsRes, likesRes, bookmarksRes, articleBookmarksRes] =
+    await Promise.allSettled([
+      $fetch<{ data: AnalysisItem[] }>('/api/analyses'),
+      $fetch<{ data: MyPost[] }>('/api/users/me/posts'),
+      $fetch<{ data: MyComment[] }>('/api/users/me/comments'),
+      $fetch<{ data: MyPost[] }>('/api/users/me/likes'),
+      $fetch<{ data: BookmarkedPost[] }>('/api/users/me/bookmarks'),
+      $fetch<{ data: BookmarkedArticle[] }>('/api/users/me/article-bookmarks'),
+    ])
 
   if (analysesRes.status === 'fulfilled') analyses.value = analysesRes.value.data
   analysesPending.value = false
@@ -257,6 +273,8 @@ onMounted(async () => {
   likedPending.value = false
   if (bookmarksRes.status === 'fulfilled') bookmarkedPosts.value = bookmarksRes.value.data
   bookmarkedPending.value = false
+  if (articleBookmarksRes.status === 'fulfilled') bookmarkedArticles.value = articleBookmarksRes.value.data
+  bookmarkedArticlesPending.value = false
 })
 
 function formatDate(dateStr: string) {
@@ -273,9 +291,10 @@ const tabs = [
   { key: 'comments' as const, label: '내 댓글', shortLabel: '댓글' },
   { key: 'likes' as const, label: '좋아요한 글', shortLabel: '좋아요' },
   { key: 'bookmarks' as const, label: '저장한 글', shortLabel: '저장' },
+  { key: 'article-bookmarks' as const, label: '저장한 아티클', shortLabel: '아티클' },
 ]
 
-function selectTab(key: 'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks') {
+function selectTab(key: 'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks' | 'article-bookmarks') {
   activeTab.value = key
   pages.value[key] = 1
 }
@@ -630,6 +649,52 @@ const NuxtLink = resolveComponent('NuxtLink')
             <NuxtLink to="/community?tab=feedback"
               ><AppButton>커뮤니티 보러 가기</AppButton></NuxtLink
             >
+          </template>
+        </AppEmptyState>
+      </template>
+
+      <!-- 저장한 아티클 -->
+      <template v-else-if="activeTab === 'article-bookmarks'">
+        <div v-if="bookmarkedArticlesPending" class="flex justify-center py-12">
+          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+        </div>
+
+        <div v-else-if="bookmarkedArticles.length > 0" class="grid gap-2">
+          <a
+            v-for="article in paged(bookmarkedArticles, 'article-bookmarks')"
+            :key="article.id"
+            :href="article.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
+          >
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <AppBadge variant="blue" class="shrink-0">{{ article.feedName }}</AppBadge>
+                <p class="truncate text-sm font-semibold text-foreground">{{ article.title }}</p>
+              </div>
+              <p class="mt-1.5 text-xs text-muted-foreground">
+                {{ formatDate(article.bookmarkedAt) }} 저장
+              </p>
+            </div>
+            <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          </a>
+
+          <Pagination
+            v-if="totalPages(bookmarkedArticles, 'article-bookmarks') > 1"
+            :current="pages['article-bookmarks']"
+            :total="totalPages(bookmarkedArticles, 'article-bookmarks')"
+            @change="goPage('article-bookmarks', $event)"
+          />
+        </div>
+
+        <AppEmptyState
+          v-else
+          title="아직 저장한 아티클이 없어요"
+          description="아티클의 북마크 아이콘을 눌러 저장해보세요."
+        >
+          <template #action>
+            <NuxtLink to="/articles"><AppButton>아티클 보러 가기</AppButton></NuxtLink>
           </template>
         </AppEmptyState>
       </template>

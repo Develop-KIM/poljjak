@@ -143,6 +143,17 @@ function toggleProfileMenu() {
           >
             커뮤니티
           </NuxtLink>
+          <NuxtLink
+            to="/articles"
+            class="rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
+            :class="
+              isActive('/articles')
+                ? 'bg-accent text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            "
+          >
+            아티클
+          </NuxtLink>
         </nav>
 
         <!-- 우측 액션 -->
@@ -335,6 +346,18 @@ function toggleProfileMenu() {
                 @click="mobileMenuOpen = false"
               >
                 커뮤니티
+              </NuxtLink>
+              <NuxtLink
+                to="/articles"
+                class="flex items-center rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
+                :class="
+                  isActive('/articles')
+                    ? 'bg-accent text-primary'
+                    : 'text-foreground hover:bg-muted'
+                "
+                @click="mobileMenuOpen = false"
+              >
+                아티클
               </NuxtLink>
               <NuxtLink
                 v-if="isLoggedIn"
