@@ -27,7 +27,10 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'PDF 파일만 업로드할 수 있어요' })
     }
     if (fp.data.length > MAX_FILE_BYTES) {
-      throw createError({ statusCode: 400, statusMessage: `${fp.filename ?? '파일'} 크기가 10MB를 초과해요` })
+      throw createError({
+        statusCode: 400,
+        statusMessage: `${fp.filename ?? '파일'} 크기가 10MB를 초과해요`,
+      })
     }
   }
 
@@ -72,8 +75,16 @@ async function runAnalysis(
   text: string,
   userId: string,
   jobType: 'developer' | 'designer',
-  additionalNote?: string,
+  additionalNote?: string
 ) {
+  console.log(
+    '[분석 시작] analysisId:',
+    analysisId,
+    '/ userId:',
+    userId,
+    '/ 텍스트 길이:',
+    text.length
+  )
   try {
     const { result, tokenUsage } = await analyzePortfolio(text, jobType, additionalNote)
 

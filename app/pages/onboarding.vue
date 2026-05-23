@@ -5,6 +5,7 @@ import { Camera, Check, X, Loader2 } from '@lucide/vue'
 definePageMeta({ layout: false })
 
 const toast = useToastStore()
+const authStore = useAuthStore()
 
 // ── 단계 ──────────────────────────────────────────────
 const step = ref<1 | 2 | 3>(1)
@@ -149,6 +150,8 @@ async function handleComplete() {
         jobType: selectedJob.value,
       },
     })
+    // 미들웨어가 needsOnboarding을 재검사하기 전에 프로필 갱신
+    await authStore.fetchProfile()
     await navigateTo('/')
   } catch (e: unknown) {
     const err = e as { data?: { statusMessage?: string } }

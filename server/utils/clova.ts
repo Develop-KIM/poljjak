@@ -71,6 +71,8 @@ ${text}`
     }
   }
 
+  console.log('[CLOVA] 분석 시작 — jobType:', jobType, '/ 입력 텍스트 길이:', userMessage.length)
+
   try {
     response = await $fetch(apiUrl, {
       method: 'POST',
@@ -104,6 +106,12 @@ ${text}`
   }
 
   const content = response.result.message.content.trim()
+  console.log(
+    '[CLOVA] 응답 수신 — 응답 길이:',
+    content.length,
+    '/ 앞 200자:',
+    content.slice(0, 200)
+  )
   // 입력+출력 토큰 합산
   const tokenUsage = (response.result.inputLength ?? 0) + (response.result.outputLength ?? 0)
 
