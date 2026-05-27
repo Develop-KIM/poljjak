@@ -606,10 +606,6 @@ onUnmounted(() => observer?.disconnect())
             <Sparkles class="size-3.5 text-primary" />
             <p class="text-xs font-bold text-foreground">{{ recTitle }}</p>
           </div>
-          <p v-if="recInsight.hasHistory" class="mt-0.5 text-[10px] text-muted-foreground">
-            {{ [recInsight.topTag, recInsight.topFeed ? shortName(recInsight.topFeed) : null].filter(Boolean).join(' · ') }} 읽기 기록 기반
-          </p>
-          <p v-else class="mt-0.5 text-[10px] text-muted-foreground">이번 주 인기 아티클</p>
         </div>
 
         <div class="space-y-5 p-4">
