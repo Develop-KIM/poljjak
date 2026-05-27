@@ -339,7 +339,7 @@ onUnmounted(() => observer?.disconnect())
         <div v-else-if="articles.length > 0">
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" style="min-height: 600px; align-content: start;">
             <div v-for="article in articles" :key="article.id"
-              class="group relative flex flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
+              class="group relative flex h-full flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
             >
               <a :href="article.url" target="_blank" rel="noopener noreferrer"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
