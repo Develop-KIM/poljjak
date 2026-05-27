@@ -354,24 +354,38 @@ async function fetchRecommended() {
   const tag = insight.topTag
   const feed = insight.topFeed
 
-  const [blogRes, newsRes] = await Promise.allSettled([
+  const [blogPersonalRes, blogFallbackRes, newsPersonalRes, newsFallbackRes] = await Promise.allSettled([
+    // 국내 블로그 — 개인화 (tag 또는 feed 기반, 최신순)
+    (tag || feed)
+      ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+          query: { category: 'domestic', sort: 'latest', limit: 6, ...(tag ? { tag } : { feedName: feed }) },
+        })
+      : Promise.resolve(null),
+    // 국내 블로그 — fallback (이번 주 트렌딩)
     $fetch<{ data: RecommendArticle[] }>('/api/articles', {
-      query: {
-        category: 'domestic', sort: 'trending', period: 'week', limit: 5,
-        ...(tag ? { tag } : {}),
-        ...(feed && !tag ? { feedName: feed } : {}),
-      },
+      query: { category: 'domestic', sort: 'trending', period: 'week', limit: 6 },
     }),
+    // 해외 뉴스 — 개인화
+    tag
+      ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+          query: { category: 'international', sort: 'latest', limit: 5, tag },
+        })
+      : Promise.resolve(null),
+    // 해외 뉴스 — fallback
     $fetch<{ data: RecommendArticle[] }>('/api/articles', {
-      query: {
-        category: 'international', sort: 'trending', period: 'week', limit: 4,
-        ...(tag ? { tag } : {}),
-      },
+      query: { category: 'international', sort: 'trending', period: 'week', limit: 5 },
     }),
   ])
 
-  if (blogRes.status === 'fulfilled') recBlog.value = blogRes.value.data.slice(0, 4)
-  if (newsRes.status === 'fulfilled') recNews.value = newsRes.value.data.slice(0, 3)
+  // 국내: 개인화 결과 우선, 없으면 fallback
+  const blogPersonal = blogPersonalRes.status === 'fulfilled' ? blogPersonalRes.value?.data ?? [] : []
+  const blogFallback = blogFallbackRes.status === 'fulfilled' ? blogFallbackRes.value.data : []
+  recBlog.value = (blogPersonal.length >= 3 ? blogPersonal : blogFallback).slice(0, 4)
+
+  // 해외: 개인화 결과 우선, 없으면 fallback
+  const newsPersonal = newsPersonalRes.status === 'fulfilled' ? newsPersonalRes.value?.data ?? [] : []
+  const newsFallback = newsFallbackRes.status === 'fulfilled' ? newsFallbackRes.value.data : []
+  recNews.value = (newsPersonal.length >= 2 ? newsPersonal : newsFallback).slice(0, 3)
 }
 
 watch([activeTab, selectedFeed, selectedTag, selectedPeriod, selectedSort, searchQuery], resetAndFetch)
@@ -592,8 +606,8 @@ onUnmounted(() => observer?.disconnect())
             <Sparkles class="size-3.5 text-primary" />
             <p class="text-xs font-bold text-foreground">{{ recTitle }}</p>
           </div>
-          <p v-if="recInsight.topTag" class="mt-0.5 text-[10px] text-muted-foreground">
-            {{ recInsight.topTag }} · {{ recInsight.topFeed ? shortName(recInsight.topFeed) : '트렌딩' }} 기반
+          <p v-if="recInsight.hasHistory" class="mt-0.5 text-[10px] text-muted-foreground">
+            {{ [recInsight.topTag, recInsight.topFeed ? shortName(recInsight.topFeed) : null].filter(Boolean).join(' · ') }} 읽기 기록 기반
           </p>
           <p v-else class="mt-0.5 text-[10px] text-muted-foreground">이번 주 인기 아티클</p>
         </div>
