@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue'
-import { Bookmark, BookmarkCheck, Loader2 } from '@lucide/vue'
+import { Bookmark, BookmarkCheck, Loader2, Search, X, TrendingUp, Clock } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 
@@ -21,67 +21,38 @@ interface Article {
   summary: string | null
   publishedAt: string
   isBookmarked: boolean
+  bookmarkCount: number
 }
 
-// 브랜드 컬러 매핑
 const BRAND_COLORS: Record<string, string> = {
-  '네이버 D2': '#03C75A',
-  '네이버 클라우드': '#03C75A',
-  '카카오 기술 블로그': '#FFCD00',
-  '카카오페이 기술 블로그': '#E8341C',
-  '카카오엔터 기술 블로그': '#FFCD00',
-  '카카오뱅크 기술 블로그': '#FFCD00',
-  '라인 기술 블로그': '#00B900',
-  '쿠팡 기술 블로그': '#FF6000',
-  '우아한형제들 기술 블로그': '#2AC1BC',
-  '당근 기술 블로그': '#FF6F0F',
-  '토스 기술 블로그': '#0064FF',
-  '직방 기술 블로그': '#FF6A00',
-  '야놀자 기술 블로그': '#FF5F00',
-  '컬리 기술 블로그': '#5F0080',
-  '뱅크샐러드 기술 블로그': '#54D37F',
-  '쏘카 기술 블로그': '#00BAB3',
-  '올리브영 기술 블로그': '#3DAA6D',
-  'NHN 기술 블로그': '#00B0F0',
-  '11번가 기술 블로그': '#FF0000',
-  '리디 기술 블로그': '#1E9EFF',
-  '하이퍼커넥트 기술 블로그': '#E31D1C',
-  '오늘의집 기술 블로그': '#3B82F6',
-  '무신사 기술 블로그': '#222222',
-  '왓챠 기술 블로그': '#FF2F6E',
+  '네이버 D2': '#03C75A', '네이버 클라우드': '#03C75A',
+  '카카오 기술 블로그': '#FFCD00', '카카오페이 기술 블로그': '#E8341C',
+  '카카오엔터 기술 블로그': '#FFCD00', '카카오뱅크 기술 블로그': '#FFCD00',
+  '라인 기술 블로그': '#00B900', '쿠팡 기술 블로그': '#FF6000',
+  '우아한형제들 기술 블로그': '#2AC1BC', '당근 기술 블로그': '#FF6F0F',
+  '토스 기술 블로그': '#0064FF', '직방 기술 블로그': '#FF6A00',
+  '야놀자 기술 블로그': '#FF5F00', '컬리 기술 블로그': '#5F0080',
+  '뱅크샐러드 기술 블로그': '#54D37F', '쏘카 기술 블로그': '#00BAB3',
+  '올리브영 기술 블로그': '#3DAA6D', 'NHN 기술 블로그': '#00B0F0',
+  '11번가 기술 블로그': '#FF0000', '리디 기술 블로그': '#1E9EFF',
+  '하이퍼커넥트 기술 블로그': '#E31D1C', '오늘의집 기술 블로그': '#3B82F6',
+  '무신사 기술 블로그': '#222222', '왓챠 기술 블로그': '#FF2F6E',
   '인프런 기술 블로그': '#00C471',
-  'Hacker News': '#FF6600',
-  'dev.to': '#0A0A0A',
-  'Smashing Magazine': '#E85A4F',
-  'CSS-Tricks': '#FF453A',
-  'Engineering at Meta': '#0866FF',
-  'Google Developers': '#4285F4',
-  'Netflix Tech Blog': '#E50914',
-  'Uber Engineering': '#1B1B1B',
-  'Airbnb Engineering': '#FF5A5F',
-  'Shopify Engineering': '#96BF48',
-  'GitHub Blog': '#24292F',
-  'Stripe Blog': '#635BFF',
-  'Cloudflare Blog': '#F48120',
-  'Vercel Blog': '#000000',
-  'Discord Blog': '#5865F2',
-  'Figma Blog': '#F24E1E',
-  'Notion Blog': '#000000',
-  'Slack Engineering': '#4A154B',
+  'Hacker News': '#FF6600', 'dev.to': '#0A0A0A',
+  'Smashing Magazine': '#E85A4F', 'CSS-Tricks': '#FF453A',
+  'Engineering at Meta': '#0866FF', 'Google Developers': '#4285F4',
+  'Netflix Tech Blog': '#E50914', 'Uber Engineering': '#1B1B1B',
+  'Airbnb Engineering': '#FF5A5F', 'Shopify Engineering': '#96BF48',
+  'GitHub Blog': '#24292F', 'Stripe Blog': '#635BFF',
+  'Cloudflare Blog': '#F48120', 'Vercel Blog': '#000000',
+  'Discord Blog': '#5865F2', 'Figma Blog': '#F24E1E',
+  'Notion Blog': '#000000', 'Slack Engineering': '#4A154B',
   'Spotify Engineering': '#1DB954',
 }
 
-function getBrandColor(feedName: string): string {
-  return BRAND_COLORS[feedName] ?? '#6B7280'
-}
-
-// feedName에서 " 기술 블로그" 등 접미사 제거해 짧은 이름 반환
-function shortName(feedName: string): string {
-  return feedName
-    .replace(' 기술 블로그', '')
-    .replace(' Tech Blog', '')
-    .replace(' Engineering', '')
-    .replace(' Developers', '')
+function getBrandColor(feedName: string) { return BRAND_COLORS[feedName] ?? '#6B7280' }
+function shortName(feedName: string) {
+  return feedName.replace(' 기술 블로그', '').replace(' Tech Blog', '').replace(' Engineering', '').replace(' Developers', '')
 }
 
 const authStore = useAuthStore()
@@ -90,18 +61,21 @@ const route = useRoute()
 const router = useRouter()
 
 type ArticleTab = 'domestic' | 'international'
+type Period = 'all' | 'today' | 'week' | 'month'
+type Sort = 'latest' | 'trending'
 
-function getInitialTab(): ArticleTab {
-  return route.query.category === 'international' ? 'international' : 'domestic'
-}
-
-const activeTab = ref<ArticleTab>(getInitialTab())
+const activeTab = ref<ArticleTab>(route.query.category === 'international' ? 'international' : 'domestic')
 const selectedFeed = ref<string | null>(null)
+const selectedPeriod = ref<Period>('all')
+const selectedSort = ref<Sort>('latest')
+const searchQuery = ref('')
+const searchInput = ref('')
 const feedNames = ref<{ domestic: string[]; international: string[] }>({ domestic: [], international: [] })
 const articles = ref<Article[]>([])
 const pending = ref(false)
 const currentPage = ref(1)
 const totalCount = ref(0)
+const showLoginModal = ref(false)
 const PAGE_SIZE = 21
 
 const tabs: Array<{ label: string; value: ArticleTab }> = [
@@ -109,26 +83,37 @@ const tabs: Array<{ label: string; value: ArticleTab }> = [
   { label: 'IT 뉴스', value: 'international' },
 ]
 
+const periods: Array<{ label: string; value: Period }> = [
+  { label: '전체', value: 'all' },
+  { label: '오늘', value: 'today' },
+  { label: '이번 주', value: 'week' },
+  { label: '이번 달', value: 'month' },
+]
+
 const currentFeedNames = computed(() =>
   activeTab.value === 'domestic' ? feedNames.value.domestic : feedNames.value.international,
 )
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
 
 async function fetchFeeds() {
   try {
     const res = await $fetch<{ data: { domestic: string[]; international: string[] } }>('/api/articles/feeds')
     feedNames.value = res.data
-  } catch { /* 필터 목록 로드 실패 시 숨김 */ }
+  } catch { /* 피드 목록 로드 실패 시 필터 숨김 */ }
 }
 
 async function fetchArticles() {
   pending.value = true
   try {
-    const res = await $fetch<{ data: Article[]; total: number; page: number }>('/api/articles', {
+    const res = await $fetch<{ data: Article[]; total: number }>('/api/articles', {
       query: {
         category: activeTab.value,
         page: currentPage.value,
         limit: PAGE_SIZE,
+        sort: selectedSort.value,
         ...(selectedFeed.value ? { feedName: selectedFeed.value } : {}),
+        ...(searchQuery.value ? { q: searchQuery.value } : {}),
+        ...(selectedPeriod.value !== 'all' ? { period: selectedPeriod.value } : {}),
       },
     })
     articles.value = res.data
@@ -147,21 +132,28 @@ function selectTab(tab: ArticleTab) {
   router.replace({ query: { category: tab } })
 }
 
-function selectFeed(name: string | null) {
-  selectedFeed.value = name
+function selectFeed(name: string | null) { selectedFeed.value = name; currentPage.value = 1 }
+function selectPeriod(p: Period) { selectedPeriod.value = p; currentPage.value = 1 }
+function selectSort(s: Sort) { selectedSort.value = s; currentPage.value = 1 }
+
+function submitSearch() {
+  searchQuery.value = searchInput.value.trim()
   currentPage.value = 1
 }
 
-function goPage(page: number) {
-  currentPage.value = page
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+function clearSearch() {
+  searchInput.value = ''
+  searchQuery.value = ''
+  currentPage.value = 1
 }
+
+function goPage(page: number) { currentPage.value = page; window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
 const bookmarkPending = ref<Set<string>>(new Set())
 
 async function toggleBookmark(article: Article) {
   if (!authStore.isLoggedIn) {
-    toast.error('로그인 후 이용할 수 있어요')
+    showLoginModal.value = true
     return
   }
   if (bookmarkPending.value.has(article.id)) return
@@ -170,8 +162,7 @@ async function toggleBookmark(article: Article) {
   article.isBookmarked = !prev
   try {
     const res = await $fetch<{ data: { isBookmarked: boolean } }>(
-      `/api/articles/${article.id}/bookmarks`,
-      { method: 'POST' },
+      `/api/articles/${article.id}/bookmarks`, { method: 'POST' },
     )
     article.isBookmarked = res.data.isBookmarked
   } catch {
@@ -188,16 +179,14 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
-
 watch(activeTab, fetchArticles)
 watch(currentPage, fetchArticles)
 watch(selectedFeed, fetchArticles)
+watch(selectedPeriod, fetchArticles)
+watch(selectedSort, fetchArticles)
+watch(searchQuery, fetchArticles)
 
-onMounted(() => {
-  fetchFeeds()
-  fetchArticles()
-})
+onMounted(() => { fetchFeeds(); fetchArticles() })
 </script>
 
 <template>
@@ -207,91 +196,99 @@ onMounted(() => {
     <!-- 탭 -->
     <div class="mb-6 flex gap-1 border-b border-border">
       <button
-        v-for="tab in tabs"
-        :key="tab.value"
-        type="button"
+        v-for="tab in tabs" :key="tab.value" type="button"
         class="px-4 pb-3 text-sm font-semibold transition-colors"
-        :class="
-          activeTab === tab.value
-            ? 'border-b-2 border-primary text-primary'
-            : 'text-muted-foreground hover:text-foreground'
-        "
+        :class="activeTab === tab.value ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'"
         @click="selectTab(tab.value)"
-      >
-        {{ tab.label }}
-      </button>
+      >{{ tab.label }}</button>
     </div>
 
     <div class="flex gap-8">
-      <!-- ── 왼쪽 사이드바 필터 (데스크탑) ── -->
+      <!-- 사이드바 -->
       <aside v-if="currentFeedNames.length > 0" class="hidden w-48 shrink-0 lg:block">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">출처</p>
         <ul class="space-y-0.5">
-          <!-- 전체 -->
           <li>
-            <button
-              type="button"
+            <button type="button"
               class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
-              :class="
-                selectedFeed === null
-                  ? 'bg-accent font-semibold text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              "
+              :class="selectedFeed === null ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
               @click="selectFeed(null)"
             >
-              <span
-                class="size-2 shrink-0 rounded-full"
-                style="background-color: #6B7280"
-              />
-              전체
+              <span class="size-2 shrink-0 rounded-full bg-muted-foreground/40" />전체
             </button>
           </li>
-          <!-- 개별 출처 -->
           <li v-for="name in currentFeedNames" :key="name">
-            <button
-              type="button"
+            <button type="button"
               class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
-              :class="
-                selectedFeed === name
-                  ? 'bg-accent font-semibold text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              "
+              :class="selectedFeed === name ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
               @click="selectFeed(name)"
             >
-              <span
-                class="size-2 shrink-0 rounded-full"
-                :style="{ backgroundColor: getBrandColor(name) }"
-              />
+              <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(name) }" />
               {{ shortName(name) }}
             </button>
           </li>
         </ul>
       </aside>
 
-      <!-- ── 메인 영역 ── -->
+      <!-- 메인 -->
       <div class="min-w-0 flex-1">
+
+        <!-- 검색 + 정렬/기간 컨트롤 -->
+        <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <!-- 검색창 -->
+          <form class="relative w-full sm:max-w-xs" @submit.prevent="submitSearch">
+            <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              v-model="searchInput"
+              type="text"
+              placeholder="아티클 검색"
+              class="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-8 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+            />
+            <button v-if="searchInput" type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="clearSearch">
+              <X class="size-3.5" />
+            </button>
+          </form>
+
+          <!-- 정렬 + 기간 -->
+          <div class="flex items-center gap-2">
+            <!-- 정렬 토글 -->
+            <div class="flex rounded-lg border border-border bg-background p-0.5">
+              <button type="button"
+                class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                :class="selectedSort === 'latest' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
+                @click="selectSort('latest')"
+              ><Clock class="size-3" />최신순</button>
+              <button type="button"
+                class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
+                @click="selectSort('trending')"
+              ><TrendingUp class="size-3" />트렌딩</button>
+            </div>
+
+            <!-- 기간 선택 -->
+            <div class="flex rounded-lg border border-border bg-background p-0.5">
+              <button v-for="p in periods" :key="p.value" type="button"
+                class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                :class="selectedPeriod === p.value ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
+                @click="selectPeriod(p.value)"
+              >{{ p.label }}</button>
+            </div>
+          </div>
+        </div>
+
         <!-- 모바일 칩 필터 -->
         <div v-if="currentFeedNames.length > 0" class="mb-5 flex flex-wrap gap-2 lg:hidden">
-          <button
-            type="button"
+          <button type="button"
             class="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors"
             :class="selectedFeed === null ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'"
             @click="selectFeed(null)"
-          >
-            전체
-          </button>
-          <button
-            v-for="name in currentFeedNames"
-            :key="name"
-            type="button"
+          >전체</button>
+          <button v-for="name in currentFeedNames" :key="name" type="button"
             class="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors"
             :class="selectedFeed === name ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'"
             @click="selectFeed(name)"
           >
-            <span
-              class="size-1.5 rounded-full"
-              :style="{ backgroundColor: selectedFeed === name ? 'white' : getBrandColor(name) }"
-            />
+            <span class="size-1.5 rounded-full" :style="{ backgroundColor: selectedFeed === name ? 'white' : getBrandColor(name) }" />
             {{ shortName(name) }}
           </button>
         </div>
@@ -304,41 +301,19 @@ onMounted(() => {
         <!-- 카드 그리드 -->
         <div v-else-if="articles.length > 0">
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <div
-              v-for="article in articles"
-              :key="article.id"
+            <div v-for="article in articles" :key="article.id"
               class="group relative flex flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
             >
-              <a
-                :href="article.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flex flex-1 flex-col gap-2 p-5 pr-10"
-              >
-                <!-- 브랜드 컬러 뱃지 -->
-                <span
-                  class="w-fit rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                  :style="{
-                    backgroundColor: getBrandColor(article.feedName) + '18',
-                    color: getBrandColor(article.feedName),
-                  }"
-                >
-                  {{ shortName(article.feedName) }}
-                </span>
-
-                <p class="line-clamp-2 text-sm font-bold leading-snug text-foreground group-hover:text-primary">
-                  {{ article.title }}
-                </p>
-
-                <p v-if="article.summary" class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                  {{ article.summary }}
-                </p>
+              <a :href="article.url" target="_blank" rel="noopener noreferrer" class="flex flex-1 flex-col gap-2 p-5 pr-10">
+                <span class="w-fit rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                  :style="{ backgroundColor: getBrandColor(article.feedName) + '18', color: getBrandColor(article.feedName) }"
+                >{{ shortName(article.feedName) }}</span>
+                <p class="line-clamp-2 text-sm font-bold leading-snug text-foreground group-hover:text-primary">{{ article.title }}</p>
+                <p v-if="article.summary" class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{{ article.summary }}</p>
               </a>
-
               <div class="flex items-center justify-between border-t border-border px-5 py-3">
                 <span class="text-xs text-muted-foreground">{{ formatDate(article.publishedAt) }}</span>
-                <button
-                  type="button"
+                <button type="button"
                   class="flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-accent"
                   :class="article.isBookmarked ? 'text-primary' : 'text-muted-foreground'"
                   @click.stop="toggleBookmark(article)"
@@ -351,21 +326,14 @@ onMounted(() => {
           </div>
 
           <div class="mt-6">
-            <Pagination
-              v-if="totalPages > 1"
-              :current="currentPage"
-              :total="totalPages"
-              @change="goPage"
-            />
+            <Pagination v-if="totalPages > 1" :current="currentPage" :total="totalPages" @change="goPage" />
           </div>
         </div>
 
-        <AppEmptyState
-          v-else
-          title="아직 수집된 아티클이 없어요"
-          description="곧 최신 기술 블로그 글이 올라올 예정이에요."
-        />
+        <AppEmptyState v-else title="아티클이 없어요" description="검색어나 필터를 바꿔보세요." />
       </div>
     </div>
   </div>
+
+  <LoginModal :open="showLoginModal" context="아티클 북마크" @close="showLoginModal = false" />
 </template>
