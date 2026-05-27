@@ -67,6 +67,7 @@ const selectedSort = ref<Sort>('latest')
 const searchInput = ref('')
 const searchQuery = ref('')
 const feedNames = ref<{ domestic: string[]; international: string[] }>({ domestic: [], international: [] })
+const feedsLoading = ref(true)
 const articles = ref<Article[]>([])
 const pending = ref(false)
 const loadingMore = ref(false)
@@ -98,10 +99,12 @@ const selectedFeedValue = computed({
 })
 
 async function fetchFeeds() {
+  feedsLoading.value = true
   try {
     const res = await $fetch<{ data: { domestic: string[]; international: string[] } }>('/api/articles/feeds')
     feedNames.value = res.data
   } catch { /* 피드 목록 로드 실패 시 필터 숨김 */ }
+  finally { feedsLoading.value = false }
 }
 
 async function fetchArticles(append = false) {
@@ -201,10 +204,15 @@ onUnmounted(() => observer?.disconnect())
     </div>
 
     <div class="flex gap-8">
-      <!-- ── 데스크탑 사이드바 ── -->
-      <aside v-if="currentFeedNames.length > 0" class="hidden w-44 shrink-0 lg:block">
+      <!-- ── 데스크탑 사이드바 (항상 공간 확보) ── -->
+      <aside class="hidden w-44 shrink-0 lg:block">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">출처</p>
-        <ul class="space-y-0.5">
+        <!-- 스켈레톤 -->
+        <ul v-if="feedsLoading" class="space-y-1">
+          <li v-for="i in 8" :key="i" class="h-9 animate-pulse rounded-lg bg-muted" />
+        </ul>
+        <!-- 실제 목록 -->
+        <ul v-else class="space-y-0.5">
           <li>
             <button type="button"
               class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
@@ -226,7 +234,7 @@ onUnmounted(() => observer?.disconnect())
 
         <!-- 태그 필터 -->
         <p class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">주제</p>
-        <ul class="space-y-0.5">
+        <ul class="space-y-0.5" v-if="!feedsLoading">
           <li>
             <button type="button"
               class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
