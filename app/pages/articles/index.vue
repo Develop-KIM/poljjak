@@ -581,10 +581,10 @@ onUnmounted(() => observer?.disconnect())
   <Teleport to="body">
     <div
       v-if="hasRec"
-      class="fixed top-20 z-20 hidden w-52 min-[1700px]:block"
+      class="fixed bottom-6 z-20 hidden w-52 min-[1700px]:block"
       style="left: calc(50% + 730px)"
     >
-      <div class="max-h-[calc(100vh-88px)] space-y-5 overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-lg scrollbar-none">
+      <div class="max-h-[calc(100vh-120px)] space-y-5 overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-lg scrollbar-none">
 
         <!-- 태그 기반 추천 -->
         <div v-if="recByTag.length > 0">
