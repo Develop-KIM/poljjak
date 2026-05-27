@@ -65,15 +65,27 @@ export const FEED_SOURCES: FeedSource[] = [
   { name: '인프런 기술 블로그', url: 'https://tech.inflab.com/feed', category: 'domestic' },
 
   // ── 해외 ──────────────────────────────────────────────────
+  // IT 뉴스
   { name: 'Hacker News', url: 'https://news.ycombinator.com/rss', category: 'international' },
   { name: 'dev.to', url: 'https://dev.to/feed', category: 'international' },
   { name: 'Smashing Magazine', url: 'https://www.smashingmagazine.com/feed/', category: 'international' },
   { name: 'CSS-Tricks', url: 'https://css-tricks.com/feed/', category: 'international' },
-  { name: 'Netflix Tech Blog', url: 'https://netflixtechblog.com/feed', category: 'international' },
-  { name: 'Uber Engineering', url: 'https://eng.uber.com/feed/', category: 'international' },
+  // 빅테크 기술 블로그
   { name: 'Engineering at Meta', url: 'https://engineering.fb.com/feed/', category: 'international' },
   { name: 'Google Developers', url: 'https://developers.googleblog.com/feeds/posts/default', category: 'international' },
+  { name: 'Netflix Tech Blog', url: 'https://netflixtechblog.com/feed', category: 'international' },
+  { name: 'Uber Engineering', url: 'https://eng.uber.com/feed/', category: 'international' },
   { name: 'Airbnb Engineering', url: 'https://medium.com/feed/airbnb-engineering', category: 'international' },
+  { name: 'Shopify Engineering', url: 'https://shopify.engineering/blog.atom', category: 'international' },
+  { name: 'GitHub Blog', url: 'https://github.blog/feed/', category: 'international' },
+  { name: 'Stripe Blog', url: 'https://stripe.com/blog/feed.rss', category: 'international' },
+  { name: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/rss/', category: 'international' },
+  { name: 'Vercel Blog', url: 'https://vercel.com/atom', category: 'international' },
+  { name: 'Discord Blog', url: 'https://discord.com/category/engineering/rss.xml', category: 'international' },
+  { name: 'Figma Blog', url: 'https://www.figma.com/blog/feed/', category: 'international' },
+  { name: 'Notion Blog', url: 'https://www.notion.so/blog/rss.xml', category: 'international' },
+  { name: 'Slack Engineering', url: 'https://slack.engineering/feed/', category: 'international' },
+  { name: 'Spotify Engineering', url: 'https://engineering.atspotify.com/feed/', category: 'international' },
 ]
 
 export const DOMESTIC_FEED_NAMES = FEED_SOURCES
