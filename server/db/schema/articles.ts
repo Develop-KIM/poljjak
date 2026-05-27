@@ -1,4 +1,4 @@
-import { index, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
 export const articleCategoryEnum = pgEnum('article_category', ['domestic', 'international'])
@@ -15,6 +15,10 @@ export const articles = pgTable(
     tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
     publishedAt: timestamp('published_at').notNull(),
     collectedAt: timestamp('collected_at').notNull().defaultNow(),
+    aiSummary: text('ai_summary'),
+    aiKeyPoints: text('ai_key_points').array().default(sql`'{}'::text[]`),
+    aiConcepts: jsonb('ai_concepts').$type<Array<{ name: string; desc: string }>>(),
+    aiDifficulty: text('ai_difficulty'),
   },
   (t) => [
     uniqueIndex('articles_url_unique').on(t.url),

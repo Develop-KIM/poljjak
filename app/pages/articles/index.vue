@@ -14,7 +14,7 @@ useSeoMeta({
 
 interface Article {
   id: string; feedName: string; category: 'domestic' | 'international'
-  title: string; url: string; summary: string | null
+  title: string; url: string; summary: string | null; tags: string[]
   publishedAt: string; isBookmarked: boolean; bookmarkCount: number
 }
 
@@ -435,7 +435,19 @@ onUnmounted(() => observer?.disconnect())
             <AppDropdown :model-value="selectedPeriod" :options="periods.map(p => ({ label: p.label, value: p.value }))" @update:model-value="selectPeriod($event as Period)" />
           </div>
 
-          <!-- 활성 필터 태그 -->
+            <!-- 주제 태그 빠른 선택 (데스크탑 — 사이드바 스크롤 없이) -->
+          <div class="hidden lg:flex items-center gap-1.5 flex-wrap">
+            <button
+              v-for="tag in TAGS" :key="tag" type="button"
+              class="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+              :class="selectedTag === tag
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'"
+              @click="selectTag(selectedTag === tag ? null : tag)"
+            >{{ tag }}</button>
+          </div>
+
+        <!-- 활성 필터 태그 -->
           <div v-if="activeFilters.length > 0" class="flex flex-wrap gap-2">
             <span
               v-for="f in activeFilters" :key="f.label"
@@ -476,6 +488,15 @@ onUnmounted(() => observer?.disconnect())
                   :class="readIds.has(article.id) ? 'text-muted-foreground' : 'text-foreground'"
                 >{{ article.title }}</p>
                 <p v-if="article.summary" class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{{ article.summary }}</p>
+                <!-- 태그 배지 -->
+                <div v-if="article.tags?.length" class="mt-1.5 flex flex-wrap gap-1">
+                  <button
+                    v-for="tag in article.tags.slice(0, 3)" :key="tag"
+                    type="button"
+                    class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                    @click.prevent.stop="selectTag(selectedTag === tag ? null : tag)"
+                  >{{ tag }}</button>
+                </div>
               </NuxtLink>
               <div class="flex items-center justify-between border-t border-border px-4 py-3 md:px-5">
                 <span class="text-xs text-muted-foreground">{{ formatDate(article.publishedAt) }}</span>

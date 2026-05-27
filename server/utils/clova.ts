@@ -40,6 +40,80 @@ export interface AnalysisResponse {
   tokenUsage: number
 }
 
+export interface ArticleAIResult {
+  summary: string
+  keyPoints: string[]
+  concepts: Array<{ name: string; desc: string }>
+  difficulty: string
+}
+
+export async function summarizeArticle(
+  title: string,
+  content: string,
+): Promise<ArticleAIResult> {
+  const apiKey = process.env.CLOVA_STUDIO_API_KEY?.trim()
+  const apiUrl = process.env.CLOVA_STUDIO_API_URL
+
+  if (!apiKey || !apiUrl) {
+    throw createError({ statusCode: 500, statusMessage: 'CLOVA Studio 설정이 없어요' })
+  }
+
+  const systemPrompt = `당신은 기술 아티클 분석 전문가입니다. 제공된 기술 아티클을 분석해 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 절대 포함하지 마세요.
+
+{
+  "summary": "아티클 핵심 내용 3~4문장 요약 (한국어)",
+  "keyPoints": ["핵심 포인트 1", "핵심 포인트 2", "핵심 포인트 3"],
+  "concepts": [{"name": "개념명", "desc": "한 줄 설명"}],
+  "difficulty": "입문|초급|중급|고급"
+}
+
+규칙:
+- summary: 한국어, 3~4문장, 핵심 내용만
+- keyPoints: 3~5개, 각 50자 이내 한국어
+- concepts: 2~4개, 아티클에 등장한 핵심 기술/개념
+- difficulty: 반드시 입문/초급/중급/고급 중 하나`
+
+  const userMessage = `제목: ${title}\n\n내용:\n${content.slice(0, 3000)}`
+
+  let response: {
+    status: { code: string; message: string }
+    result: { message: { role: string; content: string }; inputLength?: number; outputLength?: number }
+  }
+
+  try {
+    response = await $fetch(apiUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        maxTokens: 1024,
+        temperature: 0.3,
+        topP: 0.8,
+        stream: false,
+      },
+      timeout: 30000,
+    })
+  } catch {
+    throw createError({ statusCode: 502, statusMessage: 'AI 서버에 연결할 수 없어요' })
+  }
+
+  if (response.status.code !== '20000') {
+    throw createError({ statusCode: 502, statusMessage: 'AI 요약 중 오류가 발생했어요' })
+  }
+
+  const raw = response.result.message.content.trim()
+  try {
+    const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```/) ?? raw.match(/({[\s\S]*})/)
+    const jsonStr = jsonMatch ? (jsonMatch[1] ?? jsonMatch[0]) : raw
+    return JSON.parse(jsonStr) as ArticleAIResult
+  } catch {
+    throw createError({ statusCode: 502, statusMessage: 'AI 응답을 파싱할 수 없어요' })
+  }
+}
+
 export async function analyzePortfolio(
   text: string,
   jobType: JobType,

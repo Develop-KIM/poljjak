@@ -64,6 +64,7 @@ export default defineEventHandler(async (event) => {
             title: articles.title,
             url: articles.url,
             summary: articles.summary,
+            tags: articles.tags,
             publishedAt: articles.publishedAt,
             bookmarkCount: sql<number>`COALESCE(${bookmarkCountSq.cnt}, 0)`,
           })
@@ -81,6 +82,7 @@ export default defineEventHandler(async (event) => {
             title: articles.title,
             url: articles.url,
             summary: articles.summary,
+            tags: articles.tags,
             publishedAt: articles.publishedAt,
             bookmarkCount: sql<number>`0`,
           })

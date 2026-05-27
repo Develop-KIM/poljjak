@@ -22,6 +22,10 @@ export default defineEventHandler(async (event) => {
       tags: articles.tags,
       publishedAt: articles.publishedAt,
       collectedAt: articles.collectedAt,
+      aiSummary: articles.aiSummary,
+      aiKeyPoints: articles.aiKeyPoints,
+      aiConcepts: articles.aiConcepts,
+      aiDifficulty: articles.aiDifficulty,
     })
     .from(articles)
     .where(eq(articles.id, id))
