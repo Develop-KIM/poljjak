@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { Bell, BellOff, Bookmark, BookmarkCheck, Loader2, Search, X, Share2 } from '@lucide/vue'
+import { Bell, BellOff, Bookmark, BookmarkCheck, Loader2, Search, Sparkles, X, Share2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 
@@ -97,7 +97,7 @@ function markAsRead(article: Article) {
     filtered.unshift({
       id: article.id, title: article.title, url: article.url,
       feedName: article.feedName, publishedAt: article.publishedAt,
-      visitedAt: new Date().toISOString(),
+      visitedAt: new Date().toISOString(), tags: article.tags ?? [],
     })
     localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, MAX_RECENT)))
     localStorage.setItem(READ_KEY, JSON.stringify([...readIds.value]))
@@ -201,8 +201,7 @@ function goPage(page: number) { currentPage.value = page; fetchArticles(); windo
 // 공유
 async function shareArticle(article: Article) {
   try {
-    const url = `${window.location.origin}/articles/${article.id}`
-    await navigator.clipboard.writeText(url)
+    await navigator.clipboard.writeText(article.url)
     toast.success('링크가 복사됐어요')
   } catch {
     toast.error('복사에 실패했어요')
@@ -303,14 +302,74 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
+// ── 개인화 추천 ──────────────────────────────────────
+interface RecommendArticle {
+  id: string; feedName: string; title: string; url: string; tags: string[]; publishedAt: string
+}
+const recommended = ref<RecommendArticle[]>([])
+const recommendLabel = ref('오늘의 인기 아티클')
+const recommendPending = ref(false)
+
+function getTopTagFromHistory(): string | null {
+  if (!import.meta.client) return null
+  try {
+    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Array<{ tags?: string[] }>
+    const count: Record<string, number> = {}
+    raw.slice(0, 10).forEach((a) => (a.tags ?? []).forEach((t) => { count[t] = (count[t] ?? 0) + 1 }))
+    const top = Object.entries(count).sort((a, b) => b[1] - a[1])[0]
+    return top ? top[0] : null
+  } catch { return null }
+}
+
+async function fetchRecommended() {
+  recommendPending.value = true
+  const topTag = getTopTagFromHistory()
+  recommendLabel.value = topTag ? `${topTag} 추천` : '오늘의 인기 아티클'
+  try {
+    const res = await $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+      query: {
+        category: 'domestic', sort: 'trending', period: 'week', limit: 8,
+        ...(topTag ? { tag: topTag } : {}),
+      },
+    })
+    recommended.value = (res.data as RecommendArticle[]).slice(0, 6)
+  } catch { /* ignore */ }
+  finally { recommendPending.value = false }
+}
+
 watch([activeTab, selectedFeed, selectedTag, selectedPeriod, selectedSort, searchQuery], resetAndFetch)
-onMounted(() => { loadReadIds(); fetchFeeds(); fetchArticles(); fetchSubscriptions(); nextTick(setupInfiniteScroll) })
+onMounted(() => { loadReadIds(); fetchFeeds(); fetchArticles(); fetchSubscriptions(); fetchRecommended(); nextTick(setupInfiniteScroll) })
 onUnmounted(() => observer?.disconnect())
 </script>
 
 <template>
   <div class="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-10">
     <h1 class="mb-5 text-2xl font-black text-foreground">아티클</h1>
+
+    <!-- 스티키 추천 섹션 -->
+    <div v-if="recommended.length > 0" class="sticky top-16 z-10 -mx-4 mb-5 bg-background/95 px-4 pb-3 pt-1 backdrop-blur md:-mx-8 md:px-8">
+      <div class="flex items-center gap-2 mb-2">
+        <Sparkles class="size-3.5 text-primary" />
+        <p class="text-xs font-semibold text-primary">{{ recommendLabel }}</p>
+      </div>
+      <div class="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
+        <a
+          v-for="rec in recommended" :key="rec.id"
+          :href="rec.url" target="_blank" rel="noopener noreferrer"
+          class="flex w-52 shrink-0 flex-col gap-1.5 rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+          @click="markAsRead(rec as Article)"
+        >
+          <span class="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+            <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+            {{ shortName(rec.feedName) }}
+          </span>
+          <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+          <div v-if="rec.tags?.length" class="flex gap-1">
+            <span v-for="tag in rec.tags.slice(0,2)" :key="tag" class="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">{{ tag }}</span>
+          </div>
+        </a>
+      </div>
+    </div>
 
     <!-- 탭 -->
     <div class="mb-5 flex gap-1 border-b border-border">
@@ -476,12 +535,7 @@ onUnmounted(() => observer?.disconnect())
               class="group relative flex h-full flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
               :class="{ 'opacity-75': readIds.has(article.id) }"
             >
-              <!-- 국내: 상세 페이지 / 해외: 외부 바로 이동 -->
-              <component
-                :is="article.category === 'domestic' ? 'NuxtLink' : 'a'"
-                v-bind="article.category === 'domestic'
-                  ? { to: `/articles/${article.id}` }
-                  : { href: article.url, target: '_blank', rel: 'noopener noreferrer' }"
+              <a :href="article.url" target="_blank" rel="noopener noreferrer"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
                 @click="markAsRead(article)"
               >
@@ -502,7 +556,7 @@ onUnmounted(() => observer?.disconnect())
                     @click.prevent.stop="selectTag(selectedTag === tag ? null : tag)"
                   >{{ tag }}</button>
                 </div>
-              </component>
+              </a>
               <div class="flex items-center justify-between border-t border-border px-4 py-3 md:px-5">
                 <span class="text-xs text-muted-foreground">{{ formatDate(article.publishedAt) }}</span>
                 <div class="flex items-center gap-1">
