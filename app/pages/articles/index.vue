@@ -611,7 +611,7 @@ onUnmounted(() => observer?.disconnect())
         <div class="space-y-5 p-4">
           <!-- 블로그 섹션 -->
           <div v-if="recBlog.length > 0">
-
+            <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
             <ul class="space-y-2">
               <li v-for="rec in recBlog" :key="rec.id">
                 <a :href="rec.url" target="_blank" rel="noopener noreferrer"
@@ -630,7 +630,7 @@ onUnmounted(() => observer?.disconnect())
 
           <!-- 뉴스 섹션 -->
           <div v-if="recNews.length > 0">
-
+            <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
             <ul class="space-y-2">
               <li v-for="rec in recNews" :key="rec.id">
                 <a :href="rec.url" target="_blank" rel="noopener noreferrer"
