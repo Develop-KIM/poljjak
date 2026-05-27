@@ -1,14 +1,23 @@
 import Parser from 'rss-parser'
 
-// 봇 차단 우회를 위해 브라우저 User-Agent 사용
-const parser = new Parser({
-  timeout: 10000,
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-  },
-  customFields: { item: ['summary', 'description'] },
-})
+const parser = new Parser({ customFields: { item: ['summary', 'description'] } })
+
+const FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
+  'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
+}
+
+// rss-parser의 headers 옵션보다 직접 fetch 후 parseString이 더 안정적
+async function fetchFeed(url: string) {
+  const res = await fetch(url, {
+    headers: FETCH_HEADERS,
+    signal: AbortSignal.timeout(12000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const xml = await res.text()
+  return parser.parseString(xml)
+}
 
 export type FeedCategory = 'domestic' | 'international'
 
@@ -106,7 +115,7 @@ export async function collectAllFeeds(): Promise<ParsedArticle[]> {
   await Promise.allSettled(
     FEED_SOURCES.map(async (source) => {
       try {
-        const feed = await parser.parseURL(source.url)
+        const feed = await fetchFeed(source.url)
         for (const item of feed.items) {
           if (!item.link || !item.title) continue
           const rawSummary = item.summary ?? item.contentSnippet ?? item.content ?? null

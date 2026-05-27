@@ -187,7 +187,7 @@ function formatNumber(n: number): string {
       </div>
       <button
         type="button"
-        class="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+        class="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
         @click="refresh"
       >
         <RotateCcw class="size-4" />
@@ -204,7 +204,7 @@ function formatNumber(n: number): string {
         <div
           v-for="i in 6"
           :key="i"
-          class="rounded-xl border border-border bg-white p-5 animate-pulse"
+          class="rounded-xl border border-border bg-card p-5 animate-pulse"
         >
           <div class="h-3 w-16 rounded bg-muted mb-3" />
           <div class="h-7 w-12 rounded bg-muted" />
@@ -213,37 +213,37 @@ function formatNumber(n: number): string {
 
       <!-- 카드 6개 -->
       <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">오늘 신규 가입</p>
           <p class="mt-2 text-2xl font-black text-foreground">
             {{ formatNumber(stats?.todayUsers ?? 0) }}
           </p>
         </div>
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">오늘 로그인</p>
           <p class="mt-2 text-2xl font-black text-foreground">
             {{ formatNumber(stats?.todayLogins ?? 0) }}
           </p>
         </div>
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">오늘 게시글</p>
           <p class="mt-2 text-2xl font-black text-foreground">
             {{ formatNumber(stats?.todayPosts ?? 0) }}
           </p>
         </div>
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">오늘 댓글</p>
           <p class="mt-2 text-2xl font-black text-foreground">
             {{ formatNumber(stats?.todayComments ?? 0) }}
           </p>
         </div>
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">누적 사용자</p>
           <p class="mt-2 text-2xl font-black text-foreground">
             {{ formatNumber(stats?.totalUsers ?? 0) }}
           </p>
         </div>
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">누적 게시글</p>
           <p class="mt-2 text-2xl font-black text-foreground">
             {{ formatNumber(stats?.totalPosts ?? 0) }}
@@ -261,7 +261,7 @@ function formatNumber(n: number): string {
         <div
           v-for="i in 6"
           :key="i"
-          class="rounded-xl border border-border bg-white p-5 animate-pulse"
+          class="rounded-xl border border-border bg-card p-5 animate-pulse"
         >
           <div class="h-3 w-16 rounded bg-muted mb-3" />
           <div class="h-7 w-12 rounded bg-muted" />
@@ -270,37 +270,37 @@ function formatNumber(n: number): string {
 
       <!-- 카드 6개 (3열 그리드) -->
       <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">오늘 분석 요청</p>
           <p class="mt-2 text-2xl font-black text-foreground">
             {{ formatNumber(stats?.todayAnalyses ?? 0) }}
           </p>
         </div>
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">성공</p>
           <p class="mt-2 text-2xl font-black text-green-600">
             {{ formatNumber(stats?.todaySuccess ?? 0) }}
           </p>
         </div>
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">실패</p>
           <p class="mt-2 text-2xl font-black text-red-500">
             {{ formatNumber(stats?.todayFailed ?? 0) }}
           </p>
         </div>
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">성공률</p>
           <p class="mt-2 text-2xl font-black text-foreground">
             {{ stats?.successRate ?? 0 }}<span class="text-base font-semibold">%</span>
           </p>
         </div>
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">평균 응답</p>
           <p class="mt-2 text-2xl font-black text-foreground">
             {{ stats?.avgResponseSec ?? 0 }}<span class="text-base font-semibold">초</span>
           </p>
         </div>
-        <div class="rounded-xl border border-border bg-white p-5 col-span-2 sm:col-span-1">
+        <div class="rounded-xl border border-border bg-card p-5 col-span-2 sm:col-span-1">
           <p class="text-sm text-muted-foreground">오늘 토큰</p>
           <p class="mt-2 text-2xl font-black text-foreground">
             {{ formatNumber(stats?.todayTokens ?? 0) }}
@@ -318,7 +318,7 @@ function formatNumber(n: number): string {
 
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <!-- 시간대별 분석 요청 막대 차트 -->
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="mb-4 text-sm font-semibold text-foreground">오늘 시간대별 분석 요청</p>
           <div v-if="chartPending" class="flex h-56 items-center justify-center">
             <div class="size-7 animate-spin rounded-full border-4 border-border border-t-blue-500" />
@@ -331,7 +331,7 @@ function formatNumber(n: number): string {
         </div>
 
         <!-- 최근 7일 평균 응답시간 꺾은선 차트 -->
-        <div class="rounded-xl border border-border bg-white p-5">
+        <div class="rounded-xl border border-border bg-card p-5">
           <p class="mb-4 text-sm font-semibold text-foreground">최근 7일 평균 응답시간</p>
           <div v-if="chartPending" class="flex h-56 items-center justify-center">
             <div class="size-7 animate-spin rounded-full border-4 border-border border-t-violet-500" />

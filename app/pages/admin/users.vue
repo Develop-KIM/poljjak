@@ -138,7 +138,7 @@ onMounted(fetchUsers)
         @click.self="roleConfirmTarget = null"
       >
         <div class="absolute inset-0 bg-black/40" @click="roleConfirmTarget = null" />
-        <div class="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+        <div class="relative w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl">
           <h3 class="text-base font-black text-foreground">역할을 변경할까요?</h3>
           <p class="mt-2 text-sm text-muted-foreground">
             <span class="font-semibold text-foreground">{{ roleConfirmTarget.user.nickname }}</span>님의 역할을

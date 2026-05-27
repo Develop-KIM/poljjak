@@ -152,7 +152,7 @@ onMounted(fetchContents)
         @click.self="cancelDelete"
       >
         <div class="absolute inset-0 bg-black/40" @click="cancelDelete" />
-        <div class="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+        <div class="relative w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl">
           <h3 class="text-base font-black text-foreground">콘텐츠를 삭제할까요?</h3>
           <p class="mt-2 text-sm text-muted-foreground">
             삭제된 콘텐츠는 사용자에게 보이지 않아요. 복구할 수 없어요.

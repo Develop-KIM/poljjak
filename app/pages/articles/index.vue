@@ -26,7 +26,7 @@ const BRAND_COLORS: Record<string, string> = {
   '당근 기술 블로그': '#FF6F0F', '토스 기술 블로그': '#0064FF',
   '직방 기술 블로그': '#FF6A00', '야놀자 기술 블로그': '#FF5F00',
   '쏘카 기술 블로그': '#00BAB3', 'NHN 기술 블로그': '#00B0F0',
-  '무신사 기술 블로그': '#222222', '왓챠 기술 블로그': '#FF2F6E',
+  '무신사 기술 블로그': '#555555', '왓챠 기술 블로그': '#FF2F6E',
   '인프런 기술 블로그': '#00C471', '리디 기술 블로그': '#1E9EFF',
   '하이퍼커넥트 기술 블로그': '#E31D1C', '올리브영 기술 블로그': '#3DAA6D',
   '29CM 기술 블로그': '#1A1A1A',
@@ -270,21 +270,21 @@ onUnmounted(() => observer?.disconnect())
                 @click="clearSearch"
               ><X class="size-3.5" /></button>
             </form>
-            <div class="flex shrink-0 rounded-xl border border-border bg-background p-1">
+            <div class="flex shrink-0 overflow-hidden rounded-xl border border-border bg-background">
               <button type="button"
-                class="rounded-lg px-4 py-1.5 text-xs font-medium transition-colors"
+                class="px-4 py-2 text-xs font-medium transition-colors"
                 :class="selectedSort === 'latest' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
                 @click="selectSort('latest')"
               >최신순</button>
               <button type="button"
-                class="rounded-lg px-4 py-1.5 text-xs font-medium transition-colors"
+                class="px-4 py-2 text-xs font-medium transition-colors"
                 :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
                 @click="selectSort('trending')"
               >트렌딩</button>
             </div>
-            <div class="flex shrink-0 rounded-xl border border-border bg-background p-1">
+            <div class="flex shrink-0 overflow-hidden rounded-xl border border-border bg-background">
               <button v-for="p in periods" :key="p.value" type="button"
-                class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                class="px-3 py-2 text-xs font-medium transition-colors"
                 :class="selectedPeriod === p.value ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
                 @click="selectPeriod(p.value)"
               >{{ p.label }}</button>
