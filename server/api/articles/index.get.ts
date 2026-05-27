@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, ilike, inArray, sql } from 'drizzle-orm'
+import { and, count, desc, eq, gte, ilike, inArray, sql, arrayContains } from 'drizzle-orm'
 import { getAuthUser } from '../../utils/auth'
 import { db } from '../../db'
 import { articleBookmarks, articles } from '../../db/schema'
@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
   const category = query.category === 'international' ? 'international' : 'domestic'
   const feedName = typeof query.feedName === 'string' && query.feedName ? query.feedName : null
   const q = typeof query.q === 'string' && query.q.trim() ? query.q.trim() : null
+  const tag = typeof query.tag === 'string' && query.tag.trim() ? query.tag.trim() : null
   const period = query.period as string | undefined
   const sort = query.sort === 'trending' ? 'trending' : 'latest'
   const page = Math.max(1, Number(query.page) || 1)
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event) => {
     eq(articles.category, category),
     ...(feedName ? [eq(articles.feedName, feedName)] : []),
     ...(q ? [ilike(articles.title, `%${q}%`)] : []),
+    ...(tag ? [arrayContains(articles.tags, [tag])] : []),
     ...(periodStart ? [gte(articles.publishedAt, periodStart)] : []),
   ]
   const whereClause = conditions.length === 1 ? conditions[0]! : and(...conditions)
