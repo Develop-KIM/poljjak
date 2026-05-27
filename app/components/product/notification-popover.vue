@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Bell, MessageSquare, Sparkles } from '@lucide/vue'
+import { Bell, MessageSquare, Newspaper, Sparkles } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
 import { useNotificationStore } from '~/stores/notification'
 
@@ -83,9 +83,14 @@ async function handleNotifClick(n: { id: string; isRead: boolean; linkUrl: strin
           >
             <div
               class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full"
-              :class="n.type === 'analysis' ? 'bg-violet-50 dark:bg-violet-950/50' : 'bg-accent'"
+              :class="{
+                'bg-violet-50 dark:bg-violet-950/50': n.type === 'analysis',
+                'bg-blue-50 dark:bg-blue-950/50': n.type === 'article',
+                'bg-accent': n.type !== 'analysis' && n.type !== 'article',
+              }"
             >
               <Sparkles v-if="n.type === 'analysis'" class="size-4 text-violet-500" />
+              <Newspaper v-else-if="n.type === 'article'" class="size-4 text-blue-500" />
               <MessageSquare v-else class="size-4 text-primary" />
             </div>
             <div class="flex-1">

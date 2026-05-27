@@ -1,11 +1,11 @@
 import { boolean, index, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
-export const notifTypeEnum = pgEnum('notif_type', ['comment', 'like', 'dm', 'analysis'])
+export const notifTypeEnum = pgEnum('notif_type', ['comment', 'like', 'dm', 'analysis', 'article'])
 
 export const notifications = pgTable('notifications', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
-  actorId: uuid('actor_id').notNull(),
+  actorId: uuid('actor_id'),
   type: notifTypeEnum('type').notNull(),
   referenceId: uuid('reference_id').notNull(),
   linkUrl: text('link_url').notNull().default(''),

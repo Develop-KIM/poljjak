@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { Bookmark, BookmarkCheck, Loader2, Search, X, Share2 } from '@lucide/vue'
+import { Bell, BellOff, Bookmark, BookmarkCheck, Loader2, Search, X, Share2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 
@@ -226,6 +226,56 @@ function setupInfiniteScroll() {
 }
 watch(sentinelRef, () => { if (sentinelRef.value) setupInfiniteScroll() })
 
+// ── 구독 관리 ──────────────────────────────────────
+const subscribedFeeds = ref<Set<string>>(new Set())
+const subscribedTags = ref<Set<string>>(new Set())
+const subPending = ref(false)
+
+async function fetchSubscriptions() {
+  if (!authStore.isLoggedIn) return
+  try {
+    const res = await $fetch<{ data: { feedNames: string[]; tags: string[] } }>('/api/articles/subscriptions')
+    subscribedFeeds.value = new Set(res.data.feedNames)
+    subscribedTags.value = new Set(res.data.tags)
+  } catch { /* ignore */ }
+}
+
+async function toggleSubscribeFeed(name: string) {
+  if (!authStore.isLoggedIn) { showLoginModal.value = true; return }
+  if (subPending.value) return
+  subPending.value = true
+  const prev = subscribedFeeds.value.has(name)
+  if (prev) { const s = new Set(subscribedFeeds.value); s.delete(name); subscribedFeeds.value = s }
+  else subscribedFeeds.value = new Set([...subscribedFeeds.value, name])
+  try {
+    const res = await $fetch<{ data: { subscribed: boolean } }>('/api/articles/subscriptions', {
+      method: 'POST', body: { feedName: name },
+    })
+    if (res.data.subscribed) { subscribedFeeds.value = new Set([...subscribedFeeds.value, name]) }
+    else { const s = new Set(subscribedFeeds.value); s.delete(name); subscribedFeeds.value = s }
+    toast.success(res.data.subscribed ? '구독했어요' : '구독 해제했어요')
+  } catch { if (prev) subscribedFeeds.value = new Set([...subscribedFeeds.value, name]); else { const s = new Set(subscribedFeeds.value); s.delete(name); subscribedFeeds.value = s }; toast.error('구독 처리에 실패했어요') }
+  finally { subPending.value = false }
+}
+
+async function toggleSubscribeTag(tag: string) {
+  if (!authStore.isLoggedIn) { showLoginModal.value = true; return }
+  if (subPending.value) return
+  subPending.value = true
+  const prev = subscribedTags.value.has(tag)
+  if (prev) { const s = new Set(subscribedTags.value); s.delete(tag); subscribedTags.value = s }
+  else subscribedTags.value = new Set([...subscribedTags.value, tag])
+  try {
+    const res = await $fetch<{ data: { subscribed: boolean } }>('/api/articles/subscriptions', {
+      method: 'POST', body: { tag },
+    })
+    if (res.data.subscribed) { subscribedTags.value = new Set([...subscribedTags.value, tag]) }
+    else { const s = new Set(subscribedTags.value); s.delete(tag); subscribedTags.value = s }
+    toast.success(res.data.subscribed ? '구독했어요' : '구독 해제했어요')
+  } catch { if (prev) subscribedTags.value = new Set([...subscribedTags.value, tag]); else { const s = new Set(subscribedTags.value); s.delete(tag); subscribedTags.value = s }; toast.error('구독 처리에 실패했어요') }
+  finally { subPending.value = false }
+}
+
 const bookmarkPending = ref<Set<string>>(new Set())
 async function toggleBookmark(article: Article) {
   if (!authStore.isLoggedIn) { showLoginModal.value = true; return }
@@ -244,7 +294,7 @@ function formatDate(iso: string) {
 }
 
 watch([activeTab, selectedFeed, selectedTag, selectedPeriod, selectedSort, searchQuery], resetAndFetch)
-onMounted(() => { loadReadIds(); fetchFeeds(); fetchArticles(); nextTick(setupInfiniteScroll) })
+onMounted(() => { loadReadIds(); fetchFeeds(); fetchArticles(); fetchSubscriptions(); nextTick(setupInfiniteScroll) })
 onUnmounted(() => observer?.disconnect())
 </script>
 
@@ -277,14 +327,24 @@ onUnmounted(() => observer?.disconnect())
               @click="selectFeed(null)"
             ><span class="size-2 shrink-0 rounded-full bg-muted-foreground/40" />전체</button>
           </li>
-          <li v-for="name in currentFeedNames" :key="name">
+          <li v-for="name in currentFeedNames" :key="name" class="group/item flex items-center">
             <button type="button"
-              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
+              class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
               :class="selectedFeed === name ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
               @click="selectFeed(name)"
             >
               <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(name) }" />
-              {{ shortName(name) }}
+              <span class="truncate">{{ shortName(name) }}</span>
+            </button>
+            <button
+              type="button"
+              class="mr-1 shrink-0 rounded p-1 opacity-0 transition-opacity group-hover/item:opacity-100"
+              :class="subscribedFeeds.has(name) ? 'text-primary opacity-100' : 'text-muted-foreground hover:text-foreground'"
+              :title="subscribedFeeds.has(name) ? '구독 해제' : '새 글 알림 구독'"
+              @click.stop="toggleSubscribeFeed(name)"
+            >
+              <BellOff v-if="subscribedFeeds.has(name)" class="size-3" />
+              <Bell v-else class="size-3" />
             </button>
           </li>
         </ul>
@@ -299,12 +359,22 @@ onUnmounted(() => observer?.disconnect())
                 @click="selectTag(null)"
               >전체</button>
             </li>
-            <li v-for="tag in TAGS" :key="tag">
+            <li v-for="tag in TAGS" :key="tag" class="group/item flex items-center">
               <button type="button"
-                class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
+                class="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
                 :class="selectedTag === tag ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
                 @click="selectTag(tag)"
               >{{ tag }}</button>
+              <button
+                type="button"
+                class="mr-1 shrink-0 rounded p-1 opacity-0 transition-opacity group-hover/item:opacity-100"
+                :class="subscribedTags.has(tag) ? 'text-primary opacity-100' : 'text-muted-foreground hover:text-foreground'"
+                :title="subscribedTags.has(tag) ? '구독 해제' : '새 글 알림 구독'"
+                @click.stop="toggleSubscribeTag(tag)"
+              >
+                <BellOff v-if="subscribedTags.has(tag)" class="size-3" />
+                <Bell v-else class="size-3" />
+              </button>
             </li>
           </ul>
         </template>
@@ -387,7 +457,7 @@ onUnmounted(() => observer?.disconnect())
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
                 @click="markAsRead(article)"
               >
-                <span class="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">
+                <span class="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground">
                   <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(article.feedName) }" />
                   <span>{{ shortName(article.feedName) }}</span>
                 </span>

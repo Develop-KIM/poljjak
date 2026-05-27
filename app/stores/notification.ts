@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 
 interface Notification {
   id: string
-  type: 'comment' | 'like' | 'dm' | 'analysis'
+  type: 'comment' | 'like' | 'dm' | 'analysis' | 'article'
   message: string
   linkUrl: string
   isRead: boolean

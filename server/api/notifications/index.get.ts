@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
     like: (a) => `${a}님이 내 게시글을 좋아해요`,
     dm: (a) => `${a}님이 메시지를 보냈어요`,
     analysis: () => '포트폴리오 분석이 완료됐어요',
+    article: () => '구독한 채널에 새 아티클이 등록됐어요',
   }
 
   return {
