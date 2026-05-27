@@ -106,7 +106,7 @@ const PAGE_SIZE = 21
 
 const tabs: Array<{ label: string; value: ArticleTab }> = [
   { label: '기술 블로그', value: 'domestic' },
-  { label: '아티클', value: 'international' },
+  { label: 'IT 뉴스', value: 'international' },
 ]
 
 const currentFeedNames = computed(() =>
