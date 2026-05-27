@@ -201,7 +201,8 @@ function goPage(page: number) { currentPage.value = page; fetchArticles(); windo
 // 공유
 async function shareArticle(article: Article) {
   try {
-    await navigator.clipboard.writeText(article.url)
+    const url = `${window.location.origin}/articles/${article.id}`
+    await navigator.clipboard.writeText(url)
     toast.success('링크가 복사됐어요')
   } catch {
     toast.error('복사에 실패했어요')
@@ -453,7 +454,7 @@ onUnmounted(() => observer?.disconnect())
               class="group relative flex h-full flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
               :class="{ 'opacity-60': readIds.has(article.id) }"
             >
-              <a :href="article.url" target="_blank" rel="noopener noreferrer"
+              <NuxtLink :to="`/articles/${article.id}`"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
                 @click="markAsRead(article)"
               >
@@ -465,7 +466,7 @@ onUnmounted(() => observer?.disconnect())
                   :class="readIds.has(article.id) ? 'text-muted-foreground' : 'text-foreground'"
                 >{{ article.title }}</p>
                 <p v-if="article.summary" class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{{ article.summary }}</p>
-              </a>
+              </NuxtLink>
               <div class="flex items-center justify-between border-t border-border px-4 py-3 md:px-5">
                 <span class="text-xs text-muted-foreground">{{ formatDate(article.publishedAt) }}</span>
                 <div class="flex items-center gap-1">
