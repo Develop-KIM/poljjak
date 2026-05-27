@@ -306,36 +306,72 @@ function formatDate(iso: string) {
 interface RecommendArticle {
   id: string; feedName: string; title: string; url: string; tags: string[]; publishedAt: string
 }
-const recommended = ref<RecommendArticle[]>([])
-const recommendLabel = ref('오늘의 인기 아티클')
+
+interface PersonalInsight {
+  topTag: string | null      // 가장 많이 읽은 태그
+  topFeed: string | null     // 가장 많이 읽은 출처
+}
+
+const recByTag = ref<RecommendArticle[]>([])
+const recByFeed = ref<RecommendArticle[]>([])
+const recFallback = ref<RecommendArticle[]>([])
+const recInsight = ref<PersonalInsight>({ topTag: null, topFeed: null })
 const recommendPending = ref(false)
 
-function getTopTagFromHistory(): string | null {
-  if (!import.meta.client) return null
+function analyzeHistory(): PersonalInsight {
+  if (!import.meta.client) return { topTag: null, topFeed: null }
   try {
-    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Array<{ tags?: string[] }>
-    const count: Record<string, number> = {}
-    raw.slice(0, 10).forEach((a) => (a.tags ?? []).forEach((t) => { count[t] = (count[t] ?? 0) + 1 }))
-    const top = Object.entries(count).sort((a, b) => b[1] - a[1])[0]
-    return top ? top[0] : null
-  } catch { return null }
+    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Array<{
+      tags?: string[]; feedName?: string
+    }>
+    const recent = raw.slice(0, 20)
+
+    // 태그 빈도 계산 (최근일수록 가중치)
+    const tagCount: Record<string, number> = {}
+    recent.forEach((a, i) => {
+      const weight = Math.max(1, 10 - i) // 최근 읽은 것일수록 가중치 높음
+      ;(a.tags ?? []).forEach((t) => { tagCount[t] = (tagCount[t] ?? 0) + weight })
+    })
+
+    // 출처 빈도 계산
+    const feedCount: Record<string, number> = {}
+    recent.forEach((a) => {
+      if (a.feedName) feedCount[a.feedName] = (feedCount[a.feedName] ?? 0) + 1
+    })
+
+    const topTag = Object.entries(tagCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+    const topFeed = Object.entries(feedCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+
+    return { topTag, topFeed }
+  } catch { return { topTag: null, topFeed: null } }
 }
 
 async function fetchRecommended() {
   recommendPending.value = true
-  const topTag = getTopTagFromHistory()
-  recommendLabel.value = topTag ? `${topTag} 추천` : '오늘의 인기 아티클'
+  const insight = analyzeHistory()
+  recInsight.value = insight
+
   try {
-    const res = await $fetch<{ data: RecommendArticle[] }>('/api/articles', {
-      query: {
-        category: 'domestic', sort: 'trending', period: 'week', limit: 8,
-        ...(topTag ? { tag: topTag } : {}),
-      },
-    })
-    recommended.value = (res.data as RecommendArticle[]).slice(0, 6)
+    const base = { category: 'domestic', sort: 'trending', period: 'week', limit: 5 }
+    const [tagRes, feedRes, fallbackRes] = await Promise.allSettled([
+      insight.topTag
+        ? $fetch<{ data: RecommendArticle[] }>('/api/articles', { query: { ...base, tag: insight.topTag } })
+        : Promise.resolve(null),
+      insight.topFeed
+        ? $fetch<{ data: RecommendArticle[] }>('/api/articles', { query: { ...base, feedName: insight.topFeed } })
+        : Promise.resolve(null),
+      $fetch<{ data: RecommendArticle[] }>('/api/articles', { query: { ...base, period: 'today' } }),
+    ])
+
+    if (tagRes.status === 'fulfilled' && tagRes.value) recByTag.value = tagRes.value.data.slice(0, 4)
+    if (feedRes.status === 'fulfilled' && feedRes.value) recByFeed.value = feedRes.value.data.slice(0, 4)
+    if (fallbackRes.status === 'fulfilled') recFallback.value = fallbackRes.value.data.slice(0, 5)
   } catch { /* ignore */ }
   finally { recommendPending.value = false }
 }
+
+// 추천 섹션이 하나라도 있는지
+const hasRec = computed(() => recByTag.value.length > 0 || recByFeed.value.length > 0 || recFallback.value.length > 0)
 
 watch([activeTab, selectedFeed, selectedTag, selectedPeriod, selectedSort, searchQuery], resetAndFetch)
 onMounted(() => { loadReadIds(); fetchFeeds(); fetchArticles(); fetchSubscriptions(); fetchRecommended(); nextTick(setupInfiniteScroll) })
@@ -345,31 +381,6 @@ onUnmounted(() => observer?.disconnect())
 <template>
   <div class="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-10">
     <h1 class="mb-5 text-2xl font-black text-foreground">아티클</h1>
-
-    <!-- 스티키 추천 섹션 -->
-    <div v-if="recommended.length > 0" class="sticky top-16 z-10 -mx-4 mb-5 bg-background/95 px-4 pb-3 pt-1 backdrop-blur md:-mx-8 md:px-8">
-      <div class="flex items-center gap-2 mb-2">
-        <Sparkles class="size-3.5 text-primary" />
-        <p class="text-xs font-semibold text-primary">{{ recommendLabel }}</p>
-      </div>
-      <div class="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
-        <a
-          v-for="rec in recommended" :key="rec.id"
-          :href="rec.url" target="_blank" rel="noopener noreferrer"
-          class="flex w-52 shrink-0 flex-col gap-1.5 rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
-          @click="markAsRead(rec as Article)"
-        >
-          <span class="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
-            <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
-            {{ shortName(rec.feedName) }}
-          </span>
-          <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-          <div v-if="rec.tags?.length" class="flex gap-1">
-            <span v-for="tag in rec.tags.slice(0,2)" :key="tag" class="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">{{ tag }}</span>
-          </div>
-        </a>
-      </div>
-    </div>
 
     <!-- 탭 -->
     <div class="mb-5 flex gap-1 border-b border-border">
@@ -381,7 +392,7 @@ onUnmounted(() => observer?.disconnect())
       >{{ tab.label }}</button>
     </div>
 
-    <div class="flex gap-8">
+    <div class="flex gap-6">
       <!-- 사이드바 -->
       <aside class="hidden w-44 shrink-0 lg:block">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">출처</p>
@@ -592,6 +603,76 @@ onUnmounted(() => observer?.disconnect())
 
         <AppEmptyState v-else :title="emptyTitle" :description="emptyDesc" />
       </div>
+
+      <!-- 오른쪽 추천 사이드바 (xl 이상, sticky) -->
+      <aside v-if="hasRec" class="hidden w-60 shrink-0 xl:block">
+        <div class="sticky top-20 space-y-6">
+
+          <!-- 태그 기반 추천 -->
+          <div v-if="recByTag.length > 0">
+            <div class="mb-2.5 flex items-center gap-1.5">
+              <Sparkles class="size-3.5 text-primary" />
+              <p class="text-xs font-bold text-foreground">{{ recInsight.topTag }} 추천</p>
+            </div>
+            <ul class="space-y-2">
+              <li v-for="rec in recByTag" :key="rec.id">
+                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                  class="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+                  @click="markAsRead(rec as Article)"
+                >
+                  <span class="mb-1.5 inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                    {{ shortName(rec.feedName) }}
+                  </span>
+                  <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 출처 기반 추천 -->
+          <div v-if="recByFeed.length > 0">
+            <div class="mb-2.5 flex items-center gap-1.5">
+              <span class="size-2 rounded-full" :style="{ backgroundColor: getBrandColor(recInsight.topFeed ?? '') }" />
+              <p class="text-xs font-bold text-foreground">{{ shortName(recInsight.topFeed ?? '') }} 새 글</p>
+            </div>
+            <ul class="space-y-2">
+              <li v-for="rec in recByFeed" :key="rec.id">
+                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                  class="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+                  @click="markAsRead(rec as Article)"
+                >
+                  <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                  <p class="mt-1 text-[10px] text-muted-foreground">{{ formatDate(rec.publishedAt) }}</p>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 태그/출처 기록 없을 때 오늘의 인기 -->
+          <div v-if="!recInsight.topTag && !recInsight.topFeed && recFallback.length > 0">
+            <div class="mb-2.5 flex items-center gap-1.5">
+              <Sparkles class="size-3.5 text-primary" />
+              <p class="text-xs font-bold text-foreground">오늘의 인기 아티클</p>
+            </div>
+            <ul class="space-y-2">
+              <li v-for="rec in recFallback" :key="rec.id">
+                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                  class="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+                  @click="markAsRead(rec as Article)"
+                >
+                  <span class="mb-1.5 inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                    {{ shortName(rec.feedName) }}
+                  </span>
+                  <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </aside>
     </div>
   </div>
 
