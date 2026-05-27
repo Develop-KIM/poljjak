@@ -257,8 +257,42 @@ onUnmounted(() => observer?.disconnect())
 
         <!-- 컨트롤 바 -->
         <div class="mb-5 flex flex-col gap-3">
-          <!-- 검색 -->
-          <form class="relative" @submit.prevent="submitSearch">
+          <!-- 데스크탑: 검색 + 정렬/기간 한 줄 -->
+          <div class="hidden items-center gap-2 lg:flex">
+            <form class="relative flex-1" @submit.prevent="submitSearch">
+              <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                v-model="searchInput" type="text" placeholder="아티클 검색"
+                class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              />
+              <button v-if="searchInput" type="button"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                @click="clearSearch"
+              ><X class="size-3.5" /></button>
+            </form>
+            <div class="flex shrink-0 rounded-xl border border-border bg-background p-1">
+              <button type="button"
+                class="rounded-lg px-4 py-1.5 text-xs font-medium transition-colors"
+                :class="selectedSort === 'latest' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
+                @click="selectSort('latest')"
+              >최신순</button>
+              <button type="button"
+                class="rounded-lg px-4 py-1.5 text-xs font-medium transition-colors"
+                :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
+                @click="selectSort('trending')"
+              >트렌딩</button>
+            </div>
+            <div class="flex shrink-0 rounded-xl border border-border bg-background p-1">
+              <button v-for="p in periods" :key="p.value" type="button"
+                class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                :class="selectedPeriod === p.value ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
+                @click="selectPeriod(p.value)"
+              >{{ p.label }}</button>
+            </div>
+          </div>
+
+          <!-- 모바일: 검색창 -->
+          <form class="relative lg:hidden" @submit.prevent="submitSearch">
             <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               v-model="searchInput" type="text" placeholder="아티클 검색"
@@ -319,28 +353,6 @@ onUnmounted(() => observer?.disconnect())
             </div>
           </div>
 
-          <!-- 데스크탑: 토글 버튼 -->
-          <div class="hidden items-center gap-2 lg:flex">
-            <div class="flex rounded-xl border border-border bg-background p-1">
-              <button type="button"
-                class="rounded-lg px-4 py-1.5 text-xs font-medium transition-colors"
-                :class="selectedSort === 'latest' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
-                @click="selectSort('latest')"
-              >최신순</button>
-              <button type="button"
-                class="rounded-lg px-4 py-1.5 text-xs font-medium transition-colors"
-                :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
-                @click="selectSort('trending')"
-              >트렌딩</button>
-            </div>
-            <div class="flex rounded-xl border border-border bg-background p-1">
-              <button v-for="p in periods" :key="p.value" type="button"
-                class="rounded-lg px-4 py-1.5 text-xs font-medium transition-colors"
-                :class="selectedPeriod === p.value ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
-                @click="selectPeriod(p.value)"
-              >{{ p.label }}</button>
-            </div>
-          </div>
         </div>
 
         <!-- 로딩 -->
@@ -350,7 +362,7 @@ onUnmounted(() => observer?.disconnect())
 
         <!-- 카드 그리드 -->
         <div v-else-if="articles.length > 0">
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" style="min-height: 600px; align-content: start;">
             <div v-for="article in articles" :key="article.id"
               class="group relative flex flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
             >
