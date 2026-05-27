@@ -1,4 +1,4 @@
-import { lt, sql } from 'drizzle-orm'
+import { inArray, lt } from 'drizzle-orm'
 import { requireCronAuth } from '../../utils/cron'
 import { collectAllFeeds } from '../../utils/rss'
 import { db } from '../../db'
@@ -7,7 +7,7 @@ import { articleBookmarks, articles } from '../../db/schema'
 export default defineEventHandler(async (event) => {
   requireCronAuth(event)
 
-  // 90일 이상 된 아티클 삭제 (북마크도 함께 정리)
+  // 90일 이상 된 아티클 정리
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
   const oldArticles = await db
     .select({ id: articles.id })
@@ -16,12 +16,18 @@ export default defineEventHandler(async (event) => {
 
   if (oldArticles.length > 0) {
     const oldIds = oldArticles.map((a) => a.id)
-    await db.delete(articleBookmarks).where(sql`${articleBookmarks.articleId} = ANY(${oldIds}::uuid[])`)
-    await db.delete(articles).where(lt(articles.publishedAt, cutoff))
+    await db.delete(articleBookmarks).where(inArray(articleBookmarks.articleId, oldIds))
+    await db.delete(articles).where(inArray(articles.id, oldIds))
   }
 
   // RSS 피드 수집
-  const parsed = await collectAllFeeds()
+  let parsed: Awaited<ReturnType<typeof collectAllFeeds>> = []
+  try {
+    parsed = await collectAllFeeds()
+  } catch (err) {
+    console.error('[cron/articles] 피드 수집 실패:', err)
+    return { data: { inserted: 0, skipped: 0, error: 'feed collection failed' } }
+  }
 
   if (parsed.length === 0) {
     return { data: { inserted: 0, skipped: 0 } }
