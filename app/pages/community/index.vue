@@ -199,7 +199,7 @@ function goPage(p: number) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1120px] px-5 py-8 md:px-8 md:py-10">
+  <div class="mx-auto max-w-[1440px] px-5 py-8 md:px-8 md:py-10">
     <!-- 헤더 -->
     <div class="flex items-center justify-between">
       <div>

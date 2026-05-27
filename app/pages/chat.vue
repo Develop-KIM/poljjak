@@ -246,7 +246,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto flex max-w-[1120px] overflow-hidden" style="height: calc(100vh - 65px)">
+  <div class="mx-auto flex max-w-[1440px] overflow-hidden" style="height: calc(100vh - 65px)">
     <!-- 채팅방 목록 -->
     <div
       class="flex flex-col border-r border-border bg-background"

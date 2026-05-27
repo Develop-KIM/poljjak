@@ -43,7 +43,7 @@ const suggestions = [
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8 md:py-14">
+  <div class="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-14">
     <!-- 결과 헤더 -->
     <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
       <div>

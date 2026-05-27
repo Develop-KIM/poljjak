@@ -201,7 +201,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1120px] px-5 py-8 md:px-8 md:py-10">
+  <div class="mx-auto max-w-[1440px] px-5 py-8 md:px-8 md:py-10">
     <h1 class="mb-6 text-2xl font-black text-foreground">아티클</h1>
 
     <!-- 탭 -->

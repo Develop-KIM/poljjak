@@ -113,7 +113,7 @@ function toggleProfileMenu() {
           : 'border-b border-border bg-background/90 backdrop-blur-sm'
       "
     >
-      <div class="mx-auto flex h-16 max-w-[1120px] items-center justify-between px-5 md:px-8">
+      <div class="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-5 md:px-8">
         <!-- 로고 -->
         <NuxtLink to="/">
           <AppLogo class="h-10" />
@@ -462,7 +462,7 @@ function toggleProfileMenu() {
 
     <!-- ─── 푸터 ─────────────────────────────────────────── -->
     <footer class="border-t border-border bg-background">
-      <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8">
+      <div class="mx-auto max-w-[1440px] px-5 py-10 md:px-8">
         <div class="flex flex-col gap-8 md:flex-row md:justify-between">
           <div>
             <AppLogo class="h-9" />

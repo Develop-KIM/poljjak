@@ -91,7 +91,7 @@ async function handleSubmit() {
 <template>
   <div
     class="mx-auto px-5 py-8 md:px-8 md:py-10"
-    :class="isFromAnalysis ? 'max-w-[1120px]' : 'max-w-2xl'"
+    :class="isFromAnalysis ? 'max-w-[1440px]' : 'max-w-2xl'"
   >
     <NuxtLink
       :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'"

@@ -161,7 +161,7 @@ function downloadAsPdf() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8 md:py-14">
+  <div class="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-14">
     <!-- 분석 진행 중 (analyze.vue와 동일한 UI) -->
     <div v-if="shouldShowProgress" class="flex flex-col items-center justify-center py-24">
       <p class="text-sm text-muted-foreground">{{ analysis?.title ?? '포트폴리오 분석 결과' }}</p>

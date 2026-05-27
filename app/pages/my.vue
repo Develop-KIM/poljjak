@@ -304,7 +304,7 @@ const NuxtLink = resolveComponent('NuxtLink')
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1120px] px-5 py-8 md:px-8 md:py-10">
+  <div class="mx-auto max-w-[1440px] px-5 py-8 md:px-8 md:py-10">
     <!-- ── 프로필 카드 ── -->
     <div class="rounded-2xl border border-border bg-card p-6 md:p-8">
       <div class="flex items-start justify-between gap-3">

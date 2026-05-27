@@ -96,7 +96,7 @@ async function handleStartAnalysis() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1120px] px-5 py-10 md:px-8 md:py-14">
+  <div class="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-14">
     <!-- ── 직군 미설정 안내 ── -->
     <div v-if="noJobType" class="flex flex-col items-center justify-center py-24 text-center">
       <div class="flex size-16 items-center justify-center rounded-full bg-accent">

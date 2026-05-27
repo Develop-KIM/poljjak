@@ -124,7 +124,7 @@ onUnmounted(() => {
 
     <!-- ─── 수치 스트립 ───────────────────────────────────── -->
     <section class="border-b border-border">
-      <div class="mx-auto max-w-[1120px]">
+      <div class="mx-auto max-w-[1440px]">
         <div class="grid grid-cols-2 divide-x divide-y divide-border md:grid-cols-4 md:divide-y-0">
           <div class="px-8 py-6 text-center">
             <p class="text-2xl font-black text-foreground">10종</p>
@@ -148,7 +148,7 @@ onUnmounted(() => {
 
     <!-- ─── 분석 과정 애니메이션 데모 ──────────────────────── -->
     <section class="border-b border-border px-5 py-20 md:px-8">
-      <div class="mx-auto max-w-[1120px]">
+      <div class="mx-auto max-w-[1440px]">
         <div class="text-center">
           <AppBadge variant="gray">이렇게 작동해요</AppBadge>
           <h2 class="mt-4 text-3xl font-black leading-tight text-foreground md:text-4xl">
@@ -443,7 +443,7 @@ onUnmounted(() => {
 
     <!-- ─── 왜 폴짝인가요? ─────────────────────────────────── -->
     <section class="border-b border-border bg-muted/40 px-5 py-20 md:px-8">
-      <div class="mx-auto max-w-[1120px]">
+      <div class="mx-auto max-w-[1440px]">
         <div class="text-center">
           <AppBadge variant="gray">왜 폴짝인가요?</AppBadge>
           <h2 class="mt-4 text-3xl font-black leading-tight text-foreground md:text-4xl">
