@@ -1,8 +1,9 @@
 import { requireAdmin } from '../../../utils/admin'
-import { collectAllFeeds } from '../../../utils/rss'
+import { collectFeedsWithStatus } from '../../../utils/rss'
 import { db } from '../../../db'
-import { articleBookmarks, articles } from '../../../db/schema'
+import { articleBookmarks, articleClicks, articles } from '../../../db/schema'
 import { inArray, lt } from 'drizzle-orm'
+import { upsertArticleFeedStatuses } from '../../../utils/article-feed-statuses'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -13,13 +14,16 @@ export default defineEventHandler(async (event) => {
   if (oldArticles.length > 0) {
     const oldIds = oldArticles.map((a) => a.id)
     await db.delete(articleBookmarks).where(inArray(articleBookmarks.articleId, oldIds))
+    await db.delete(articleClicks).where(inArray(articleClicks.articleId, oldIds))
     await db.delete(articles).where(inArray(articles.id, oldIds))
   }
 
-  let parsed: Awaited<ReturnType<typeof collectAllFeeds>> = []
+  let parsed: Awaited<ReturnType<typeof collectFeedsWithStatus>>['articles'] = []
   try {
-    parsed = await collectAllFeeds()
-  } catch (err) {
+    const result = await collectFeedsWithStatus()
+    parsed = result.articles
+    await upsertArticleFeedStatuses(result.statuses)
+  } catch {
     throw createError({ statusCode: 500, statusMessage: '피드 수집 중 오류가 발생했어요' })
   }
 

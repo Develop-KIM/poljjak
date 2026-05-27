@@ -1,8 +1,10 @@
-import { and, eq, inArray, lt } from 'drizzle-orm'
+import { inArray, lt } from 'drizzle-orm'
 import { requireCronAuth } from '../../utils/cron'
-import { collectAllFeeds } from '../../utils/rss'
+import { collectFeedsWithStatus } from '../../utils/rss'
 import { db } from '../../db'
-import { articleBookmarks, articleSubscriptions, articles, notifications } from '../../db/schema'
+import { articleBookmarks, articleClicks, articleSubscriptions, articles, notifications } from '../../db/schema'
+import { getArticleSourceLabel, isArticleSourceMatch } from '../../utils/article-sources'
+import { upsertArticleFeedStatuses } from '../../utils/article-feed-statuses'
 
 export default defineEventHandler(async (event) => {
   requireCronAuth(event)
@@ -17,13 +19,16 @@ export default defineEventHandler(async (event) => {
   if (oldArticles.length > 0) {
     const oldIds = oldArticles.map((a) => a.id)
     await db.delete(articleBookmarks).where(inArray(articleBookmarks.articleId, oldIds))
+    await db.delete(articleClicks).where(inArray(articleClicks.articleId, oldIds))
     await db.delete(articles).where(inArray(articles.id, oldIds))
   }
 
   // RSS 피드 수집
-  let parsed: Awaited<ReturnType<typeof collectAllFeeds>> = []
+  let parsed: Awaited<ReturnType<typeof collectFeedsWithStatus>>['articles'] = []
   try {
-    parsed = await collectAllFeeds()
+    const result = await collectFeedsWithStatus()
+    parsed = result.articles
+    await upsertArticleFeedStatuses(result.statuses)
   } catch (err) {
     console.error('[cron/articles] 피드 수집 실패:', err)
     return { data: { inserted: 0, skipped: 0, error: 'feed collection failed' } }
@@ -55,11 +60,12 @@ export default defineEventHandler(async (event) => {
 
       for (const article of inserted) {
         // 해당 feedName 구독자
-        const feedSubs = allSubs.filter((s) => s.feedName === article.feedName)
+        const feedLabel = getArticleSourceLabel(article.feedName)
+        const feedSubs = allSubs.filter((s) => isArticleSourceMatch(s.feedName, article.feedName))
         for (const sub of feedSubs) {
           notifRows.push({
             userId: sub.userId, type: 'article',
-            referenceId: article.id, linkUrl: `/articles?feedName=${encodeURIComponent(article.feedName)}`,
+            referenceId: article.id, linkUrl: `/articles?feedName=${encodeURIComponent(feedLabel)}`,
           })
         }
         // 태그 구독자

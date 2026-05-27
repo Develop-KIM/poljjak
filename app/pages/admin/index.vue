@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Bar, Line } from 'vue-chartjs'
+import type { TooltipItem } from 'chart.js'
 import {
   Chart as ChartJS,
   Title,
@@ -42,7 +43,7 @@ async function triggerCollect() {
   try {
     const res = await $fetch<{ data: { inserted: number; skipped: number; cleaned: number } }>('/api/admin/articles/collect', { method: 'POST' })
     toast.success(`수집 완료 — 신규 ${res.data.inserted}개, 중복 ${res.data.skipped}개, 정리 ${res.data.cleaned}개`)
-    await fetchStats()
+    await Promise.all([fetchStats(), fetchFeedStatuses()])
   } catch {
     toast.error('아티클 수집에 실패했어요')
   } finally {
@@ -103,8 +104,22 @@ interface ChartData {
   dailyAvgResponseSec: DailyAvgResponse[]
 }
 
+interface ArticleFeedStatus {
+  feedName: string
+  sourceLabel: string
+  category: 'domestic' | 'international'
+  url: string
+  lastCheckedAt: string
+  lastSuccessAt: string | null
+  lastError: string | null
+  lastItemCount: number
+  ok: boolean
+}
+
 const chartData = ref<ChartData | null>(null)
 const chartPending = ref(true)
+const feedStatuses = ref<ArticleFeedStatus[]>([])
+const feedStatusPending = ref(true)
 
 async function fetchCharts() {
   chartPending.value = true
@@ -115,6 +130,18 @@ async function fetchCharts() {
     toast.error('차트 데이터를 불러오지 못했어요')
   } finally {
     chartPending.value = false
+  }
+}
+
+async function fetchFeedStatuses() {
+  feedStatusPending.value = true
+  try {
+    const res = await $fetch<{ data: ArticleFeedStatus[] }>('/api/admin/articles/feed-statuses')
+    feedStatuses.value = res.data
+  } catch {
+    toast.error('피드 상태를 불러오지 못했어요')
+  } finally {
+    feedStatusPending.value = false
   }
 }
 
@@ -141,7 +168,7 @@ const barChartOptions = {
   maintainAspectRatio: false,
   plugins: {
     legend: { display: false },
-    tooltip: { callbacks: { label: (ctx: { parsed: { y: number } }) => `${ctx.parsed.y}건` } },
+    tooltip: { callbacks: { label: (ctx: TooltipItem<'bar'>) => `${ctx.parsed.y ?? 0}건` } },
   },
   scales: {
     x: { grid: { display: false } },
@@ -173,7 +200,7 @@ const lineChartOptions = {
   maintainAspectRatio: false,
   plugins: {
     legend: { display: false },
-    tooltip: { callbacks: { label: (ctx: { parsed: { y: number } }) => `${ctx.parsed.y}초` } },
+    tooltip: { callbacks: { label: (ctx: TooltipItem<'line'>) => `${ctx.parsed.y ?? 0}초` } },
   },
   scales: {
     x: { grid: { display: false } },
@@ -184,7 +211,7 @@ const lineChartOptions = {
 // ─── 전체 새로고침 ────────────────────────────────────────────────────────
 
 async function refresh() {
-  await Promise.all([fetchStats(), fetchCharts()])
+  await Promise.all([fetchStats(), fetchCharts(), fetchFeedStatuses()])
 }
 
 onMounted(refresh)
@@ -192,6 +219,16 @@ onMounted(refresh)
 // 토큰 수 포맷 (1,000 단위 구분)
 function formatNumber(n: number): string {
   return n.toLocaleString('ko-KR')
+}
+
+function formatDateTime(iso: string | null): string {
+  if (!iso) return '-'
+  return new Date(iso).toLocaleString('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 </script>
 
@@ -365,6 +402,56 @@ function formatNumber(n: number): string {
           <RefreshCw v-else class="size-4" />
           {{ collecting ? '수집 중...' : '지금 수집' }}
         </button>
+      </div>
+
+      <div class="mt-4 rounded-xl border border-border bg-card">
+        <div class="flex items-center justify-between border-b border-border px-4 py-3">
+          <p class="text-sm font-bold text-foreground">RSS 피드 상태</p>
+          <span class="text-xs text-muted-foreground">
+            실패 {{ feedStatuses.filter((feed) => !feed.ok).length }}개
+          </span>
+        </div>
+        <div v-if="feedStatusPending" class="p-4">
+          <div class="h-24 animate-pulse rounded-lg bg-muted" />
+        </div>
+        <div v-else-if="feedStatuses.length === 0" class="px-4 py-8 text-center text-sm text-muted-foreground">
+          아직 수집 상태가 없어요
+        </div>
+        <div v-else class="max-h-80 overflow-y-auto">
+          <div
+            v-for="feed in feedStatuses"
+            :key="feed.feedName"
+            class="grid gap-2 border-b border-border px-4 py-3 last:border-b-0 lg:grid-cols-[1fr_8rem_8rem_1fr]"
+          >
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span
+                  class="size-2 rounded-full"
+                  :class="feed.ok ? 'bg-green-500' : 'bg-red-500'"
+                />
+                <p class="truncate text-sm font-semibold text-foreground">{{ feed.feedName }}</p>
+              </div>
+              <p class="mt-1 truncate text-xs text-muted-foreground">{{ feed.sourceLabel }} · {{ feed.category === 'domestic' ? '국내' : '해외' }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-muted-foreground">최근 확인</p>
+              <p class="mt-1 text-xs font-medium text-foreground">{{ formatDateTime(feed.lastCheckedAt) }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-muted-foreground">성공</p>
+              <p class="mt-1 text-xs font-medium text-foreground">{{ formatDateTime(feed.lastSuccessAt) }}</p>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs text-muted-foreground">결과</p>
+              <p
+                class="mt-1 truncate text-xs font-medium"
+                :class="feed.ok ? 'text-green-600' : 'text-red-500'"
+              >
+                {{ feed.ok ? `${feed.lastItemCount}개 확인` : feed.lastError }}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

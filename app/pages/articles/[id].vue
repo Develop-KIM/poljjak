@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bookmark, BookmarkCheck, Share2, ArrowLeft, ExternalLink, Tag, Loader2, Sparkles, ChevronDown, ChevronUp } from '@lucide/vue'
+import { Bookmark, BookmarkCheck, Share2, ArrowLeft, ExternalLink, Tag, Loader2, Sparkles } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 
@@ -7,8 +7,10 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToastStore()
+const CLIENT_ID_KEY = 'poljjak_article_client_id'
 
 const BRAND_COLORS: Record<string, string> = {
+  '네이버': '#03C75A', '카카오': '#FFCD00',
   '네이버 D2': '#03C75A', '네이버 클라우드': '#03C75A',
   '카카오 기술 블로그': '#FFCD00', '카카오페이 기술 블로그': '#E8341C',
   '카카오엔터 기술 블로그': '#FFCD00', '라인 기술 블로그': '#00B900',
@@ -80,14 +82,35 @@ function goBack() {
   else router.push('/articles')
 }
 function goToTag(tag: string) { router.push(`/articles?tag=${encodeURIComponent(tag)}`) }
+function getArticleHost(url: string) {
+  try {
+    return new globalThis.URL(url).hostname.replace('www.', '')
+  } catch {
+    return url
+  }
+}
+function getArticleClientId() {
+  if (!import.meta.client) return null
+  let clientId = localStorage.getItem(CLIENT_ID_KEY)
+  if (!clientId) {
+    clientId = crypto.randomUUID()
+    localStorage.setItem(CLIENT_ID_KEY, clientId)
+  }
+  return clientId
+}
+function recordArticleClick() {
+  if (!article.value || !import.meta.client) return
+  void $fetch(`/api/articles/${article.value.id}/clicks`, {
+    method: 'POST',
+    body: { clientId: getArticleClientId() },
+  }).catch(() => {})
+}
 
 // ── AI 요약 ──────────────────────────────────────
 const aiPending = ref(false)
 const aiResult = ref<{
   aiSummary: string; aiKeyPoints: string[]; aiConcepts: Array<{ name: string; desc: string }>; aiDifficulty: string
 } | null>(null)
-const showFullSummary = ref(false)
-
 const displaySummary = computed(() => aiResult.value?.aiSummary ?? article.value?.aiSummary ?? article.value?.summary)
 const hasAiData = computed(() => !!(aiResult.value ?? (article.value?.aiSummary)))
 const keyPoints = computed(() => aiResult.value?.aiKeyPoints ?? article.value?.aiKeyPoints ?? [])
@@ -185,9 +208,10 @@ async function share() {
 
         <!-- 원문 도메인 링크 -->
         <a :href="article.url" target="_blank" rel="noopener noreferrer"
-          class="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary">
+          class="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+          @click="recordArticleClick">
           <ExternalLink class="size-3.5" />
-          {{ new URL(article.url).hostname.replace('www.', '') }}
+          {{ getArticleHost(article.url) }}
         </a>
 
         <hr class="my-6 border-border" />

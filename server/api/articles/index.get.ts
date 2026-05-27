@@ -1,12 +1,14 @@
 import { and, count, desc, eq, gte, ilike, inArray, sql, arrayContains } from 'drizzle-orm'
 import { getAuthUser } from '../../utils/auth'
 import { db } from '../../db'
-import { articleBookmarks, articles } from '../../db/schema'
+import { articleBookmarks, articleClicks, articles } from '../../db/schema'
+import { getArticleSourceNames } from '../../utils/article-sources'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const category = query.category === 'international' ? 'international' : 'domestic'
   const feedName = typeof query.feedName === 'string' && query.feedName ? query.feedName : null
+  const feedNames = feedName ? getArticleSourceNames(feedName) : []
   const q = typeof query.q === 'string' && query.q.trim() ? query.q.trim() : null
   const tag = typeof query.tag === 'string' && query.tag.trim() ? query.tag.trim() : null
   const period = query.period as string | undefined
@@ -35,14 +37,15 @@ export default defineEventHandler(async (event) => {
 
   const conditions = [
     eq(articles.category, category),
-    ...(feedName ? [eq(articles.feedName, feedName)] : []),
+    ...(feedNames.length === 1 ? [eq(articles.feedName, feedNames[0]!)] : []),
+    ...(feedNames.length > 1 ? [inArray(articles.feedName, feedNames)] : []),
     ...(q ? [ilike(articles.title, `%${q}%`)] : []),
     ...(tag ? [arrayContains(articles.tags, [tag])] : []),
     ...(periodStart ? [gte(articles.publishedAt, periodStart)] : []),
   ]
   const whereClause = conditions.length === 1 ? conditions[0]! : and(...conditions)
 
-  // 트렌딩: 최근 7일 북마크 수 기준
+  // 트렌딩: 최근 7일 클릭 수 + 북마크 가중치 기준
   const trendingCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   const bookmarkCountSq = db
     .select({
@@ -53,8 +56,18 @@ export default defineEventHandler(async (event) => {
     .where(gte(articleBookmarks.createdAt, trendingCutoff))
     .groupBy(articleBookmarks.articleId)
     .as('bmc')
+  const clickCountSq = db
+    .select({
+      articleId: articleClicks.articleId,
+      cnt: count(articleClicks.id).as('cnt'),
+    })
+    .from(articleClicks)
+    .where(gte(articleClicks.createdAt, trendingCutoff))
+    .groupBy(articleClicks.articleId)
+    .as('clc')
+  const trendingScore = sql<number>`COALESCE(${clickCountSq.cnt}, 0) + COALESCE(${bookmarkCountSq.cnt}, 0) * 3`
 
-  const [rows, [{ total }]] = await Promise.all([
+  const [rows, totalRows] = await Promise.all([
     sort === 'trending'
       ? db
           .select({
@@ -67,11 +80,14 @@ export default defineEventHandler(async (event) => {
             tags: articles.tags,
             publishedAt: articles.publishedAt,
             bookmarkCount: sql<number>`COALESCE(${bookmarkCountSq.cnt}, 0)`,
+            clickCount: sql<number>`COALESCE(${clickCountSq.cnt}, 0)`,
+            trendingScore,
           })
           .from(articles)
           .leftJoin(bookmarkCountSq, eq(articles.id, bookmarkCountSq.articleId))
+          .leftJoin(clickCountSq, eq(articles.id, clickCountSq.articleId))
           .where(whereClause)
-          .orderBy(desc(sql`COALESCE(${bookmarkCountSq.cnt}, 0)`), desc(articles.publishedAt))
+          .orderBy(desc(trendingScore), desc(articles.publishedAt))
           .limit(limit)
           .offset(offset)
       : db
@@ -85,6 +101,8 @@ export default defineEventHandler(async (event) => {
             tags: articles.tags,
             publishedAt: articles.publishedAt,
             bookmarkCount: sql<number>`0`,
+            clickCount: sql<number>`0`,
+            trendingScore: sql<number>`0`,
           })
           .from(articles)
           .where(whereClause)
@@ -93,6 +111,7 @@ export default defineEventHandler(async (event) => {
           .offset(offset),
     db.select({ total: count() }).from(articles).where(whereClause),
   ])
+  const total = totalRows[0]?.total ?? 0
 
   let bookmarkedIds = new Set<string>()
   if (user && rows.length > 0) {

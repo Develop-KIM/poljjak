@@ -107,13 +107,31 @@ export interface ParsedArticle {
   publishedAt: Date
 }
 
-export async function collectAllFeeds(): Promise<ParsedArticle[]> {
+export interface FeedCollectStatus {
+  feedName: string
+  category: FeedCategory
+  url: string
+  checkedAt: Date
+  success: boolean
+  itemCount: number
+  error: string | null
+}
+
+export interface FeedCollectResult {
+  articles: ParsedArticle[]
+  statuses: FeedCollectStatus[]
+}
+
+export async function collectFeedsWithStatus(): Promise<FeedCollectResult> {
   const results: ParsedArticle[] = []
+  const statuses: FeedCollectStatus[] = []
 
   await Promise.allSettled(
     FEED_SOURCES.map(async (source) => {
+      const checkedAt = new Date()
       try {
         const feed = await fetchFeed(source.url)
+        let itemCount = 0
         for (const item of feed.items) {
           if (!item.link || !item.title) continue
           const rawSummary = item.summary ?? item.contentSnippet ?? item.content ?? null
@@ -130,12 +148,37 @@ export async function collectAllFeeds(): Promise<ParsedArticle[]> {
             tags: autoTag(title, summary),
             publishedAt,
           })
+          itemCount++
         }
+        statuses.push({
+          feedName: source.name,
+          category: source.category,
+          url: source.url,
+          checkedAt,
+          success: true,
+          itemCount,
+          error: null,
+        })
       } catch (err) {
-        console.error(`[rss] 피드 수집 실패 (${source.name}):`, (err as Error).message)
+        const message = (err as Error).message
+        statuses.push({
+          feedName: source.name,
+          category: source.category,
+          url: source.url,
+          checkedAt,
+          success: false,
+          itemCount: 0,
+          error: message,
+        })
+        console.error(`[rss] 피드 수집 실패 (${source.name}):`, message)
       }
     }),
   )
 
-  return results
+  return { articles: results, statuses }
+}
+
+export async function collectAllFeeds(): Promise<ParsedArticle[]> {
+  const result = await collectFeedsWithStatus()
+  return result.articles
 }

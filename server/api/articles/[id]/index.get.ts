@@ -1,4 +1,4 @@
-import { and, count, eq, gte, inArray } from 'drizzle-orm'
+import { and, count, desc, eq, gte, ne } from 'drizzle-orm'
 import { getAuthUser } from '../../../utils/auth'
 import { db } from '../../../db'
 import { articleBookmarks, articles } from '../../../db/schema'
@@ -33,10 +33,11 @@ export default defineEventHandler(async (event) => {
 
   if (!row) throw createError({ statusCode: 404, statusMessage: '아티클을 찾을 수 없어요' })
 
-  const [{ bookmarkCount }] = await db
+  const [bookmarkCountRow] = await db
     .select({ bookmarkCount: count() })
     .from(articleBookmarks)
     .where(and(eq(articleBookmarks.articleId, id), gte(articleBookmarks.createdAt, trendingCutoff)))
+  const bookmarkCount = bookmarkCountRow?.bookmarkCount ?? 0
 
   let isBookmarked = false
   if (user) {
@@ -52,9 +53,9 @@ export default defineEventHandler(async (event) => {
   const related = await db
     .select({ id: articles.id, title: articles.title, publishedAt: articles.publishedAt, feedName: articles.feedName })
     .from(articles)
-    .where(and(eq(articles.feedName, row.feedName), ...([eq(articles.category, row.category)])))
-    .orderBy(articles.publishedAt)
-    .limit(5)
+    .where(and(eq(articles.feedName, row.feedName), eq(articles.category, row.category), ne(articles.id, id)))
+    .orderBy(desc(articles.publishedAt))
+    .limit(4)
 
   return {
     data: {
@@ -63,7 +64,7 @@ export default defineEventHandler(async (event) => {
       collectedAt: row.collectedAt.toISOString(),
       bookmarkCount,
       isBookmarked,
-      related: related.filter((r) => r.id !== id).slice(0, 4).map((r) => ({
+      related: related.map((r) => ({
         ...r,
         publishedAt: r.publishedAt.toISOString(),
       })),

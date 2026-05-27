@@ -19,6 +19,7 @@ interface Article {
 }
 
 const BRAND_COLORS: Record<string, string> = {
+  '네이버': '#03C75A', '카카오': '#FFCD00',
   '네이버 D2': '#03C75A', '네이버 클라우드': '#03C75A',
   '카카오 기술 블로그': '#FFCD00', '카카오페이 기술 블로그': '#E8341C',
   '카카오엔터 기술 블로그': '#FFCD00', '라인 기술 블로그': '#00B900',
@@ -42,6 +43,8 @@ const BRAND_COLORS: Record<string, string> = {
 }
 function getBrandColor(feedName: string) { return BRAND_COLORS[feedName] ?? '#6B7280' }
 function shortName(feedName: string) {
+  if (feedName.startsWith('네이버')) return '네이버'
+  if (feedName.startsWith('카카오')) return '카카오'
   return feedName.replace(' 기술 블로그', '').replace(' Tech Blog', '')
     .replace(' Engineering', '').replace(' Developers', '').replace(' Blog', '')
 }
@@ -58,15 +61,22 @@ type Sort = 'latest' | 'trending'
 const TAGS = ['Frontend', 'Backend', 'DevOps', 'AI/ML', 'Database', 'Architecture', 'Mobile', 'Security', 'Performance', 'Data']
 const READ_KEY = 'poljjak_read_articles'
 const RECENT_KEY = 'poljjak_recent_articles'
+const CLIENT_ID_KEY = 'poljjak_article_client_id'
 const MAX_RECENT = 20
+const periods: Array<{ label: string; value: Period }> = [
+  { label: '전체', value: 'all' }, { label: '오늘', value: 'today' },
+  { label: '이번 주', value: 'week' }, { label: '이번 달', value: 'month' },
+]
+const initialPeriod = periods.find((p) => p.value === route.query.period)?.value ?? 'all'
+const initialSort: Sort = route.query.sort === 'trending' ? 'trending' : 'latest'
 
 const activeTab = ref<ArticleTab>(route.query.category === 'international' ? 'international' : 'domestic')
-const selectedFeed = ref<string | null>(null)
-const selectedTag = ref<string | null>(null)
-const selectedPeriod = ref<Period>('all')
-const selectedSort = ref<Sort>('latest')
-const searchInput = ref('')
-const searchQuery = ref('')
+const selectedFeed = ref<string | null>(typeof route.query.feedName === 'string' ? route.query.feedName : null)
+const selectedTag = ref<string | null>(typeof route.query.tag === 'string' ? route.query.tag : null)
+const selectedPeriod = ref<Period>(initialPeriod)
+const selectedSort = ref<Sort>(initialSort)
+const searchInput = ref(typeof route.query.q === 'string' ? route.query.q : '')
+const searchQuery = ref(typeof route.query.q === 'string' ? route.query.q : '')
 const feedNames = ref<{ domestic: string[]; international: string[] }>({ domestic: [], international: [] })
 const feedsLoading = ref(true)
 const articles = ref<Article[]>([])
@@ -85,13 +95,30 @@ function loadReadIds() {
   if (!import.meta.client) return
   try { readIds.value = new Set(JSON.parse(localStorage.getItem(READ_KEY) ?? '[]')) } catch { /* ignore */ }
 }
+function getArticleClientId() {
+  if (!import.meta.client) return null
+  let clientId = localStorage.getItem(CLIENT_ID_KEY)
+  if (!clientId) {
+    clientId = crypto.randomUUID()
+    localStorage.setItem(CLIENT_ID_KEY, clientId)
+  }
+  return clientId
+}
+function recordArticleClick(articleId: string) {
+  if (!import.meta.client) return
+  void $fetch(`/api/articles/${articleId}/clicks`, {
+    method: 'POST',
+    body: { clientId: getArticleClientId() },
+  }).catch(() => {})
+}
 function markAsRead(article: Article) {
   if (!import.meta.client) return
   readIds.value = new Set([...readIds.value, article.id])
+  recordArticleClick(article.id)
   // 최근 본 아티클 저장
   try {
     const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Array<{
-      id: string; title: string; url: string; feedName: string; publishedAt: string; visitedAt: string
+      id: string; title: string; url: string; feedName: string; publishedAt: string; visitedAt: string; tags?: string[]
     }>
     const filtered = raw.filter((r) => r.id !== article.id)
     filtered.unshift({
@@ -108,10 +135,6 @@ const tabs: Array<{ label: string; value: ArticleTab }> = [
   { label: '국내 블로그', value: 'domestic' },
   { label: '해외 뉴스', value: 'international' },
 ]
-const periods: Array<{ label: string; value: Period }> = [
-  { label: '전체', value: 'all' }, { label: '오늘', value: 'today' },
-  { label: '이번 주', value: 'week' }, { label: '이번 달', value: 'month' },
-]
 const currentFeedNames = computed(() =>
   activeTab.value === 'domestic' ? feedNames.value.domestic : feedNames.value.international,
 )
@@ -119,31 +142,19 @@ const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_
 
 const selectedFeedValue = computed({
   get: () => selectedFeed.value ?? '',
-  set: (v: string) => { selectedFeed.value = v || null; currentPage.value = 1 },
+  set: (v: string) => { selectedFeed.value = v || null },
 })
 
-// 활성 필터 태그
-const activeFilters = computed(() => {
-  const filters: Array<{ label: string; clear: () => void }> = []
-  if (selectedFeed.value) filters.push({ label: shortName(selectedFeed.value), clear: () => selectFeed(null) })
-  if (selectedTag.value) filters.push({ label: selectedTag.value, clear: () => selectTag(null) })
-  if (selectedPeriod.value !== 'all') {
-    const p = periods.find((p) => p.value === selectedPeriod.value)
-    if (p) filters.push({ label: p.label, clear: () => selectPeriod('all') })
-  }
-  if (selectedSort.value !== 'latest') filters.push({ label: '트렌딩', clear: () => selectSort('latest') })
-  if (searchQuery.value) filters.push({ label: `"${searchQuery.value}"`, clear: () => clearSearch() })
-  return filters
-})
+const hasActiveFilter = computed(() => !!selectedFeed.value || !!selectedTag.value || selectedPeriod.value !== 'all' || selectedSort.value !== 'latest' || !!searchQuery.value)
 
 // 빈 상태 메시지
 const emptyTitle = computed(() => {
   if (searchQuery.value) return `"${searchQuery.value}"에 대한 결과가 없어요`
-  if (activeFilters.value.length > 0) return '선택한 조건에 맞는 아티클이 없어요'
+  if (hasActiveFilter.value) return '선택한 조건에 맞는 아티클이 없어요'
   return '아직 수집된 아티클이 없어요'
 })
 const emptyDesc = computed(() => {
-  if (searchQuery.value || activeFilters.value.length > 0) return '다른 검색어나 필터를 시도해보세요'
+  if (searchQuery.value || hasActiveFilter.value) return '다른 검색어나 필터를 시도해보세요'
   return '곧 최신 기술 블로그 글이 올라올 예정이에요'
 })
 
@@ -181,20 +192,42 @@ async function fetchArticles(append = false) {
   }
 }
 
+function syncArticleQuery() {
+  router.replace({
+    query: {
+      category: activeTab.value,
+      ...(selectedFeed.value ? { feedName: selectedFeed.value } : {}),
+      ...(selectedTag.value ? { tag: selectedTag.value } : {}),
+      ...(selectedSort.value !== 'latest' ? { sort: selectedSort.value } : {}),
+      ...(selectedPeriod.value !== 'all' ? { period: selectedPeriod.value } : {}),
+      ...(searchQuery.value ? { q: searchQuery.value } : {}),
+    },
+  })
+}
+
 function resetAndFetch() {
   currentPage.value = 1
   articles.value = []
   if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
+  syncArticleQuery()
   fetchArticles()
 }
 
-function selectTab(tab: ArticleTab) { activeTab.value = tab; selectedFeed.value = null; resetAndFetch(); router.replace({ query: { category: tab } }) }
-function selectFeed(name: string | null) { selectedFeed.value = name; resetAndFetch() }
-function selectTag(tag: string | null) { selectedTag.value = tag; resetAndFetch() }
-function selectSort(s: Sort) { selectedSort.value = s; resetAndFetch() }
-function selectPeriod(p: Period) { selectedPeriod.value = p; resetAndFetch() }
-function submitSearch() { searchQuery.value = searchInput.value.trim(); resetAndFetch() }
-function clearSearch() { searchInput.value = ''; searchQuery.value = ''; resetAndFetch() }
+function selectTab(tab: ArticleTab) { activeTab.value = tab; selectedFeed.value = null }
+function selectFeed(name: string | null) { selectedFeed.value = name }
+function selectTag(tag: string | null) { selectedTag.value = tag }
+function selectSort(s: Sort) { selectedSort.value = s }
+function selectPeriod(p: Period) { selectedPeriod.value = p }
+function submitSearch() {
+  const next = searchInput.value.trim()
+  if (searchQuery.value === next) resetAndFetch()
+  else searchQuery.value = next
+}
+function clearSearch() {
+  searchInput.value = ''
+  if (searchQuery.value) searchQuery.value = ''
+  else resetAndFetch()
+}
 
 function goPage(page: number) { currentPage.value = page; fetchArticles(); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
@@ -228,7 +261,6 @@ watch(sentinelRef, () => { if (sentinelRef.value) setupInfiniteScroll() })
 
 // ── 구독 관리 ──────────────────────────────────────
 const subscribedFeeds = ref<Set<string>>(new Set())
-const subscribedTags = ref<Set<string>>(new Set())
 const subPending = ref(false)
 
 async function fetchSubscriptions() {
@@ -236,7 +268,6 @@ async function fetchSubscriptions() {
   try {
     const res = await $fetch<{ data: { feedNames: string[]; tags: string[] } }>('/api/articles/subscriptions')
     subscribedFeeds.value = new Set(res.data.feedNames)
-    subscribedTags.value = new Set(res.data.tags)
   } catch { /* ignore */ }
 }
 
@@ -255,24 +286,6 @@ async function toggleSubscribeFeed(name: string) {
     else { const s = new Set(subscribedFeeds.value); s.delete(name); subscribedFeeds.value = s }
     toast.success(res.data.subscribed ? '구독했어요' : '구독 해제했어요')
   } catch { if (prev) subscribedFeeds.value = new Set([...subscribedFeeds.value, name]); else { const s = new Set(subscribedFeeds.value); s.delete(name); subscribedFeeds.value = s }; toast.error('구독 처리에 실패했어요') }
-  finally { subPending.value = false }
-}
-
-async function toggleSubscribeTag(tag: string) {
-  if (!authStore.isLoggedIn) { showLoginModal.value = true; return }
-  if (subPending.value) return
-  subPending.value = true
-  const prev = subscribedTags.value.has(tag)
-  if (prev) { const s = new Set(subscribedTags.value); s.delete(tag); subscribedTags.value = s }
-  else subscribedTags.value = new Set([...subscribedTags.value, tag])
-  try {
-    const res = await $fetch<{ data: { subscribed: boolean } }>('/api/articles/subscriptions', {
-      method: 'POST', body: { tag },
-    })
-    if (res.data.subscribed) { subscribedTags.value = new Set([...subscribedTags.value, tag]) }
-    else { const s = new Set(subscribedTags.value); s.delete(tag); subscribedTags.value = s }
-    toast.success(res.data.subscribed ? '구독했어요' : '구독 해제했어요')
-  } catch { if (prev) subscribedTags.value = new Set([...subscribedTags.value, tag]); else { const s = new Set(subscribedTags.value); s.delete(tag); subscribedTags.value = s }; toast.error('구독 처리에 실패했어요') }
   finally { subPending.value = false }
 }
 
@@ -316,12 +329,24 @@ interface PersonalInsight {
 const recBlog = ref<RecommendArticle[]>([])    // 국내 블로그 추천
 const recNews = ref<RecommendArticle[]>([])    // 해외 뉴스 추천
 const recInsight = ref<PersonalInsight>({ topTag: null, topFeed: null, hasHistory: false })
+const recSheetOpen = ref(false)
 
 const recTitle = computed(() => {
   const nick = authStore.profile?.nickname
   return nick ? `${nick}님을 위한 추천` : '오늘의 추천'
 })
+const recSubtitle = computed(() => recInsight.value.hasHistory ? '최근 본 글 기반' : '오늘의 추천 기준')
 const hasRec = computed(() => recBlog.value.length > 0 || recNews.value.length > 0)
+watch(hasRec, (value) => {
+  if (!value) recSheetOpen.value = false
+})
+
+function toggleRecommendationBubble() {
+  recSheetOpen.value = !recSheetOpen.value
+  if (recSheetOpen.value && !hasRec.value) {
+    fetchRecommended()
+  }
+}
 
 function analyzeHistory(): PersonalInsight {
   if (!import.meta.client) return { topTag: null, topFeed: null, hasHistory: false }
@@ -467,7 +492,16 @@ onUnmounted(() => observer?.disconnect())
               <button type="button" class="px-4 py-2 text-xs font-medium transition-colors" :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('trending')">트렌딩</button>
             </div>
             <div class="flex shrink-0 overflow-hidden rounded-xl border border-border bg-background">
-              <button v-for="p in periods" :key="p.value" type="button" class="px-3 py-2 text-xs font-medium transition-colors" :class="selectedPeriod === p.value ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectPeriod(p.value)">{{ p.label }}</button>
+              <button
+                v-for="p in periods"
+                :key="p.value"
+                type="button"
+                class="min-w-14 px-3 py-2 text-xs font-medium transition-colors"
+                :class="selectedPeriod === p.value ? 'bg-accent text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+                @click="selectPeriod(p.value)"
+              >
+                {{ p.label }}
+              </button>
             </div>
           </div>
 
@@ -502,21 +536,6 @@ onUnmounted(() => observer?.disconnect())
             >{{ tag }}</button>
           </div>
 
-        <!-- 활성 필터 태그 -->
-          <div v-if="activeFilters.length > 0" class="flex flex-wrap gap-2">
-            <span
-              v-for="f in activeFilters" :key="f.label"
-              class="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
-            >
-              {{ f.label }}
-              <button type="button" class="ml-0.5 rounded-full hover:bg-primary/20" @click="f.clear()">
-                <X class="size-3" />
-              </button>
-            </span>
-            <button type="button" class="text-xs text-muted-foreground underline-offset-2 hover:underline" @click="selectedFeed = null; selectedTag = null; selectedPeriod = 'all'; selectedSort = 'latest'; clearSearch()">
-              전체 초기화
-            </button>
-          </div>
         </div>
 
         <!-- 로딩 -->
@@ -592,11 +611,11 @@ onUnmounted(() => observer?.disconnect())
     </div>
   </div>
 
-  <!-- 1440px 컨테이너 밖, 오른쪽 여백에 고정 추천 패널 (뷰포트 1700px+ 전용) -->
+  <!-- 1440px 컨테이너 밖, 오른쪽 여백에 고정 추천 패널 (뷰포트 1980px+ 전용) -->
   <Teleport to="body">
     <div
       v-if="hasRec"
-      class="fixed bottom-6 z-20 hidden w-64 min-[1700px]:block"
+      class="fixed bottom-6 z-20 hidden w-64 min-[1980px]:block"
       style="left: calc(50% + 730px)"
     >
       <div class="max-h-[calc(100vh-120px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-xl scrollbar-none">
@@ -604,7 +623,10 @@ onUnmounted(() => observer?.disconnect())
         <div class="bg-primary/5 px-4 py-3.5">
           <div class="flex items-center gap-2">
             <Sparkles class="size-4 text-primary" />
-            <p class="text-sm font-bold text-foreground">{{ recTitle }}</p>
+            <div>
+              <p class="text-sm font-bold text-foreground">{{ recTitle }}</p>
+              <p class="mt-0.5 text-[11px] font-medium text-muted-foreground">{{ recSubtitle }}</p>
+            </div>
           </div>
         </div>
 
@@ -618,8 +640,8 @@ onUnmounted(() => observer?.disconnect())
                   class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                   @click="markAsRead(rec as Article)"
                 >
-                  <span class="mb-1.5 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                  <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground">
+                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
                     {{ shortName(rec.feedName) }}
                   </span>
                   <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
@@ -637,8 +659,8 @@ onUnmounted(() => observer?.disconnect())
                   class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                   @click="markAsRead(rec as Article)"
                 >
-                  <span class="mb-1.5 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                  <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground">
+                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
                     {{ shortName(rec.feedName) }}
                   </span>
                   <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
@@ -648,6 +670,95 @@ onUnmounted(() => observer?.disconnect())
           </div>
         </div>
       </div>
+    </div>
+  </Teleport>
+
+  <!-- 오른쪽 패널이 잘리는 폭에서는 버튼에 붙은 말풍선으로 추천 표시 -->
+  <Teleport to="body">
+    <div class="fixed bottom-5 right-5 z-30 flex flex-col items-end gap-4 min-[1980px]:hidden">
+      <div v-if="recSheetOpen" class="relative w-[min(calc(100vw-2rem),42rem)]">
+        <span class="absolute -bottom-2 right-12 z-20 size-4 rotate-45 border-b border-r border-border bg-card" />
+
+        <div class="relative z-10 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+          <div class="border-b border-border bg-card/95 px-4 py-3 backdrop-blur">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex min-w-0 items-start gap-2">
+                <Sparkles class="size-4 shrink-0 text-primary" />
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-bold text-foreground">{{ recTitle }}</p>
+                  <p class="mt-0.5 text-[11px] font-medium text-muted-foreground">{{ recSubtitle }}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="추천 닫기"
+                @click="recSheetOpen = false"
+              >
+                <X class="size-4" />
+              </button>
+            </div>
+          </div>
+
+          <div class="grid max-h-[60vh] gap-4 overflow-y-auto p-4 scrollbar-none md:grid-cols-2">
+            <div v-if="!hasRec" class="py-8 text-center text-sm text-muted-foreground md:col-span-2">
+              추천할 아티클을 불러오는 중이에요
+            </div>
+
+            <div v-if="recBlog.length > 0">
+              <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
+              <ul class="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+                <li v-for="rec in recBlog" :key="rec.id">
+                  <a
+                    :href="rec.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
+                    @click="markAsRead(rec as Article)"
+                  >
+                    <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground">
+                      <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                      {{ shortName(rec.feedName) }}
+                    </span>
+                    <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div v-if="recNews.length > 0">
+              <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
+              <ul class="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+                <li v-for="rec in recNews" :key="rec.id">
+                  <a
+                    :href="rec.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
+                    @click="markAsRead(rec as Article)"
+                  >
+                    <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground">
+                      <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                      {{ shortName(rec.feedName) }}
+                    </span>
+                    <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-3 text-sm font-bold text-foreground shadow-xl transition-all hover:border-primary/30 hover:bg-muted"
+        :aria-expanded="recSheetOpen"
+        @click="toggleRecommendationBubble"
+      >
+        <Sparkles class="size-4 text-primary" />
+        추천
+      </button>
     </div>
   </Teleport>
 

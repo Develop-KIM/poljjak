@@ -1,4 +1,4 @@
-import { index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { integer, index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
 export const articleCategoryEnum = pgEnum('article_category', ['domestic', 'international'])
@@ -37,5 +37,40 @@ export const articleBookmarks = pgTable(
   (t) => [
     uniqueIndex('article_bookmarks_article_user_unique').on(t.articleId, t.userId),
     index('article_bookmarks_user_id_idx').on(t.userId),
+  ],
+)
+
+export const articleClicks = pgTable(
+  'article_clicks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    articleId: uuid('article_id').notNull(),
+    userId: uuid('user_id'),
+    clientId: text('client_id'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('article_clicks_article_created_at_idx').on(t.articleId, t.createdAt),
+    index('article_clicks_created_at_idx').on(t.createdAt),
+    index('article_clicks_client_id_idx').on(t.clientId),
+  ],
+)
+
+export const articleFeedStatuses = pgTable(
+  'article_feed_statuses',
+  {
+    feedName: text('feed_name').primaryKey(),
+    category: articleCategoryEnum('category').notNull(),
+    url: text('url').notNull(),
+    lastCheckedAt: timestamp('last_checked_at').notNull().defaultNow(),
+    lastSuccessAt: timestamp('last_success_at'),
+    lastError: text('last_error'),
+    lastItemCount: integer('last_item_count').notNull().default(0),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('article_feed_statuses_category_idx').on(t.category),
+    index('article_feed_statuses_last_checked_at_idx').on(t.lastCheckedAt),
   ],
 )
