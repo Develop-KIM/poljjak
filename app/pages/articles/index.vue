@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { Bookmark, BookmarkCheck, Loader2, Search, X } from '@lucide/vue'
+import { Bookmark, BookmarkCheck, Loader2, Search, X, ChevronDown } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 
@@ -270,41 +270,53 @@ onUnmounted(() => observer?.disconnect())
             ><X class="size-3.5" /></button>
           </form>
 
-          <!-- 모바일: select 드롭다운 -->
-          <div class="grid grid-cols-2 gap-2 lg:hidden">
+          <!-- 모바일: 커스텀 select 드롭다운 -->
+          <div class="grid grid-cols-2 gap-2 pr-1 lg:hidden">
             <!-- 출처 -->
-            <select v-model="selectedFeedValue"
-              class="h-9 rounded-lg border border-border bg-background px-2 text-xs text-foreground focus:border-primary focus:outline-none"
-            >
-              <option value="">전체 출처</option>
-              <option v-for="name in currentFeedNames" :key="name" :value="name">{{ shortName(name) }}</option>
-            </select>
+            <div class="relative">
+              <select v-model="selectedFeedValue"
+                class="h-10 w-full appearance-none rounded-xl border border-border bg-card pl-3 pr-8 text-xs font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">전체 출처</option>
+                <option v-for="name in currentFeedNames" :key="name" :value="name">{{ shortName(name) }}</option>
+              </select>
+              <ChevronDown class="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            </div>
             <!-- 주제 -->
-            <select
-              :value="selectedTag ?? ''"
-              class="h-9 rounded-lg border border-border bg-background px-2 text-xs text-foreground focus:border-primary focus:outline-none"
-              @change="selectTag(($event.target as HTMLSelectElement).value || null)"
-            >
-              <option value="">전체 주제</option>
-              <option v-for="tag in TAGS" :key="tag" :value="tag">{{ tag }}</option>
-            </select>
+            <div class="relative">
+              <select
+                :value="selectedTag ?? ''"
+                class="h-10 w-full appearance-none rounded-xl border border-border bg-card pl-3 pr-8 text-xs font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                @change="selectTag(($event.target as HTMLSelectElement).value || null)"
+              >
+                <option value="">전체 주제</option>
+                <option v-for="tag in TAGS" :key="tag" :value="tag">{{ tag }}</option>
+              </select>
+              <ChevronDown class="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            </div>
             <!-- 정렬 -->
-            <select
-              :value="selectedSort"
-              class="h-9 rounded-lg border border-border bg-background px-2 text-xs text-foreground focus:border-primary focus:outline-none"
-              @change="selectSort(($event.target as HTMLSelectElement).value as Sort)"
-            >
-              <option value="latest">최신순</option>
-              <option value="trending">트렌딩</option>
-            </select>
+            <div class="relative">
+              <select
+                :value="selectedSort"
+                class="h-10 w-full appearance-none rounded-xl border border-border bg-card pl-3 pr-8 text-xs font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                @change="selectSort(($event.target as HTMLSelectElement).value as Sort)"
+              >
+                <option value="latest">최신순</option>
+                <option value="trending">트렌딩</option>
+              </select>
+              <ChevronDown class="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            </div>
             <!-- 기간 -->
-            <select
-              :value="selectedPeriod"
-              class="h-9 rounded-lg border border-border bg-background px-2 text-xs text-foreground focus:border-primary focus:outline-none"
-              @change="selectPeriod(($event.target as HTMLSelectElement).value as Period)"
-            >
-              <option v-for="p in periods" :key="p.value" :value="p.value">{{ p.label }}</option>
-            </select>
+            <div class="relative">
+              <select
+                :value="selectedPeriod"
+                class="h-10 w-full appearance-none rounded-xl border border-border bg-card pl-3 pr-8 text-xs font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                @change="selectPeriod(($event.target as HTMLSelectElement).value as Period)"
+              >
+                <option v-for="p in periods" :key="p.value" :value="p.value">{{ p.label }}</option>
+              </select>
+              <ChevronDown class="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            </div>
           </div>
 
           <!-- 데스크탑: 토글 버튼 -->
