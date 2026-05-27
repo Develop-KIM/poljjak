@@ -49,8 +49,6 @@ export const FEED_SOURCES: FeedSource[] = [
   { name: '리디 기술 블로그', url: 'https://www.ridicorp.com/feed', category: 'domestic' },
   { name: '하이퍼커넥트 기술 블로그', url: 'https://hyperconnect.github.io/feed.xml', category: 'domestic' },
   { name: '올리브영 기술 블로그', url: 'https://oliveyoung.tech/rss.xml', category: 'domestic' },
-  { name: '29CM 기술 블로그', url: 'https://medium.com/feed/29cm', category: 'domestic' },
-  { name: '카카오엔터 기술 블로그', url: 'https://kakaoentertainment-tech.tistory.com/rss', category: 'domestic' },
 
   // ── 해외 ──────────────────────────────────────────────────
   { name: 'Hacker News', url: 'https://news.ycombinator.com/rss', category: 'international' },

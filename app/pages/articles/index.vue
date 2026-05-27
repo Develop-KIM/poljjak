@@ -344,9 +344,10 @@ onUnmounted(() => observer?.disconnect())
               <a :href="article.url" target="_blank" rel="noopener noreferrer"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
               >
-                <span class="w-fit rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                  :style="{ backgroundColor: getBrandColor(article.feedName) + '18', color: getBrandColor(article.feedName) }"
-                >{{ shortName(article.feedName) }}</span>
+                <span class="flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(article.feedName) }" />
+                  {{ shortName(article.feedName) }}
+                </span>
                 <p class="line-clamp-2 text-sm font-bold leading-snug text-foreground group-hover:text-primary">{{ article.title }}</p>
                 <p v-if="article.summary" class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{{ article.summary }}</p>
               </a>
