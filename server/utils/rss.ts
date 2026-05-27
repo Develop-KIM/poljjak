@@ -1,7 +1,7 @@
 import Parser from 'rss-parser'
 
 const parser = new Parser({
-  timeout: 10000,
+  timeout: 8000,
   customFields: {
     item: ['summary', 'description'],
   },
@@ -16,27 +16,55 @@ interface FeedSource {
 }
 
 export const FEED_SOURCES: FeedSource[] = [
-  // ── 국내 ──────────────────────────────────────
-  // 네카라쿠배당토직야
+  // ── 국내 ──────────────────────────────────────────────────
+  // 네이버
   { name: '네이버 D2', url: 'https://d2.naver.com/d2.atom', category: 'domestic' },
+  { name: '네이버 클라우드', url: 'https://navercloudplatform.medium.com/feed', category: 'domestic' },
+  // 카카오
   { name: '카카오 기술 블로그', url: 'https://tech.kakao.com/feed/', category: 'domestic' },
-  { name: '라인 기술 블로그', url: 'https://engineering.linecorp.com/ko/feed/', category: 'domestic' },
-  { name: '쿠팡 기술 블로그', url: 'https://medium.com/feed/coupang-engineering', category: 'domestic' },
-  { name: '우아한형제들 기술 블로그', url: 'https://techblog.woowahan.com/feed/', category: 'domestic' },
-  { name: '당근 기술 블로그', url: 'https://medium.com/feed/daangn', category: 'domestic' },
-  { name: '토스 기술 블로그', url: 'https://toss.tech/rss.xml', category: 'domestic' },
-  { name: '직방 기술 블로그', url: 'https://medium.com/feed/zigbang', category: 'domestic' },
-  { name: '야놀자 기술 블로그', url: 'https://medium.com/feed/yanolja', category: 'domestic' },
-  // 그 외 주요 IT 서비스
   { name: '카카오페이 기술 블로그', url: 'https://tech.kakaopay.com/rss', category: 'domestic' },
-  { name: '컬리 기술 블로그', url: 'https://helloworld.kurly.com/feed', category: 'domestic' },
-  { name: '뱅크샐러드 기술 블로그', url: 'https://blog.banksalad.com/feed', category: 'domestic' },
-  { name: '쏘카 기술 블로그', url: 'https://tech.socarcorp.kr/feed', category: 'domestic' },
-  { name: '올리브영 기술 블로그', url: 'https://oliveyoung.tech/feed', category: 'domestic' },
-  { name: 'NHN 기술 블로그', url: 'https://meetup.nhncloud.com/rss', category: 'domestic' },
-  { name: '11번가 기술 블로그', url: 'https://11st-tech.github.io/feed.xml', category: 'domestic' },
   { name: '카카오엔터 기술 블로그', url: 'https://kakaoentertainment-tech.tistory.com/rss', category: 'domestic' },
-  // ── 해외 ──────────────────────────────────────
+  { name: '카카오뱅크 기술 블로그', url: 'https://kakaobank.github.io/feed.xml', category: 'domestic' },
+  // 라인
+  { name: '라인 기술 블로그', url: 'https://engineering.linecorp.com/ko/feed/', category: 'domestic' },
+  // 쿠팡
+  { name: '쿠팡 기술 블로그', url: 'https://medium.com/feed/coupang-engineering', category: 'domestic' },
+  // 배달의민족
+  { name: '우아한형제들 기술 블로그', url: 'https://techblog.woowahan.com/feed/', category: 'domestic' },
+  // 당근
+  { name: '당근 기술 블로그', url: 'https://medium.com/feed/daangn', category: 'domestic' },
+  // 토스
+  { name: '토스 기술 블로그', url: 'https://toss.tech/rss.xml', category: 'domestic' },
+  // 직방
+  { name: '직방 기술 블로그', url: 'https://medium.com/feed/zigbang', category: 'domestic' },
+  // 야놀자
+  { name: '야놀자 기술 블로그', url: 'https://medium.com/feed/yanolja', category: 'domestic' },
+  // 컬리
+  { name: '컬리 기술 블로그', url: 'https://helloworld.kurly.com/feed', category: 'domestic' },
+  // 뱅크샐러드
+  { name: '뱅크샐러드 기술 블로그', url: 'https://blog.banksalad.com/feed', category: 'domestic' },
+  // 쏘카
+  { name: '쏘카 기술 블로그', url: 'https://tech.socarcorp.kr/feed', category: 'domestic' },
+  // 올리브영
+  { name: '올리브영 기술 블로그', url: 'https://oliveyoung.tech/feed', category: 'domestic' },
+  // NHN
+  { name: 'NHN 기술 블로그', url: 'https://meetup.nhncloud.com/rss', category: 'domestic' },
+  // 11번가
+  { name: '11번가 기술 블로그', url: 'https://11st-tech.github.io/feed.xml', category: 'domestic' },
+  // 리디
+  { name: '리디 기술 블로그', url: 'https://ridicorp.com/story/feed/', category: 'domestic' },
+  // 하이퍼커넥트
+  { name: '하이퍼커넥트 기술 블로그', url: 'https://hyperconnect.github.io/feed.xml', category: 'domestic' },
+  // 오늘의집
+  { name: '오늘의집 기술 블로그', url: 'https://www.bucketplace.com/post/rss/', category: 'domestic' },
+  // 무신사
+  { name: '무신사 기술 블로그', url: 'https://medium.com/feed/musinsa-tech', category: 'domestic' },
+  // 왓챠
+  { name: '왓챠 기술 블로그', url: 'https://medium.com/feed/watcha-engineering', category: 'domestic' },
+  // 인프랩(인프런)
+  { name: '인프런 기술 블로그', url: 'https://tech.inflab.com/feed', category: 'domestic' },
+
+  // ── 해외 ──────────────────────────────────────────────────
   { name: 'Hacker News', url: 'https://news.ycombinator.com/rss', category: 'international' },
   { name: 'dev.to', url: 'https://dev.to/feed', category: 'international' },
   { name: 'Smashing Magazine', url: 'https://www.smashingmagazine.com/feed/', category: 'international' },
@@ -47,6 +75,10 @@ export const FEED_SOURCES: FeedSource[] = [
   { name: 'Google Developers', url: 'https://developers.googleblog.com/feeds/posts/default', category: 'international' },
   { name: 'Airbnb Engineering', url: 'https://medium.com/feed/airbnb-engineering', category: 'international' },
 ]
+
+export const DOMESTIC_FEED_NAMES = FEED_SOURCES
+  .filter((f) => f.category === 'domestic')
+  .map((f) => f.name)
 
 export interface ParsedArticle {
   feedName: string
@@ -64,10 +96,8 @@ export async function collectAllFeeds(): Promise<ParsedArticle[]> {
     FEED_SOURCES.map(async (source) => {
       try {
         const feed = await parser.parseURL(source.url)
-        // RSS 피드가 제공하는 전체 항목 수집 (대부분 10~50개 제공)
-        const items = feed.items
 
-        for (const item of items) {
+        for (const item of feed.items) {
           if (!item.link || !item.title) continue
 
           const rawSummary = item.summary ?? item.contentSnippet ?? item.content ?? null

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { Bookmark, BookmarkCheck, Loader2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
@@ -35,22 +35,42 @@ function getInitialTab(): ArticleTab {
 }
 
 const activeTab = ref<ArticleTab>(getInitialTab())
+const selectedFeed = ref<string | null>(null)
+const feedNames = ref<{ domestic: string[]; international: string[] }>({ domestic: [], international: [] })
 const articles = ref<Article[]>([])
 const pending = ref(false)
 const currentPage = ref(1)
 const totalCount = ref(0)
-const PAGE_SIZE = 20
+const PAGE_SIZE = 21
 
 const tabs: Array<{ label: string; value: ArticleTab }> = [
   { label: '국내', value: 'domestic' },
   { label: '해외', value: 'international' },
 ]
 
+const currentFeedNames = computed(() =>
+  activeTab.value === 'domestic' ? feedNames.value.domestic : feedNames.value.international,
+)
+
+async function fetchFeeds() {
+  try {
+    const res = await $fetch<{ data: { domestic: string[]; international: string[] } }>('/api/articles/feeds')
+    feedNames.value = res.data
+  } catch {
+    // 피드 목록 로드 실패 시 필터 숨김
+  }
+}
+
 async function fetchArticles() {
   pending.value = true
   try {
     const res = await $fetch<{ data: Article[]; total: number; page: number }>('/api/articles', {
-      query: { category: activeTab.value, page: currentPage.value, limit: PAGE_SIZE },
+      query: {
+        category: activeTab.value,
+        page: currentPage.value,
+        limit: PAGE_SIZE,
+        ...(selectedFeed.value ? { feedName: selectedFeed.value } : {}),
+      },
     })
     articles.value = res.data
     totalCount.value = res.total
@@ -63,8 +83,14 @@ async function fetchArticles() {
 
 function selectTab(tab: ArticleTab) {
   activeTab.value = tab
+  selectedFeed.value = null
   currentPage.value = 1
   router.replace({ query: { category: tab } })
+}
+
+function toggleFeed(name: string) {
+  selectedFeed.value = selectedFeed.value === name ? null : name
+  currentPage.value = 1
 }
 
 function goPage(page: number) {
@@ -109,16 +135,20 @@ const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_
 
 watch(activeTab, fetchArticles)
 watch(currentPage, fetchArticles)
+watch(selectedFeed, fetchArticles)
 
-onMounted(fetchArticles)
+onMounted(() => {
+  fetchFeeds()
+  fetchArticles()
+})
 </script>
 
 <template>
   <div class="mx-auto max-w-[1120px] px-5 py-8 md:px-8 md:py-10">
     <h1 class="mb-6 text-2xl font-black text-foreground">아티클</h1>
 
-    <!-- 탭 -->
-    <div class="mb-6 flex gap-1 border-b border-border">
+    <!-- 국내/해외 탭 -->
+    <div class="mb-4 flex gap-1 border-b border-border">
       <button
         v-for="tab in tabs"
         :key="tab.value"
@@ -135,6 +165,36 @@ onMounted(fetchArticles)
       </button>
     </div>
 
+    <!-- 기업 필터 칩 (국내일 때만) -->
+    <div v-if="currentFeedNames.length > 0" class="mb-6 flex flex-wrap gap-2">
+      <button
+        type="button"
+        class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+        :class="
+          selectedFeed === null
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
+        "
+        @click="toggleFeed(selectedFeed ?? '')"
+      >
+        전체
+      </button>
+      <button
+        v-for="name in currentFeedNames"
+        :key="name"
+        type="button"
+        class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+        :class="
+          selectedFeed === name
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
+        "
+        @click="toggleFeed(name)"
+      >
+        {{ name.replace(' 기술 블로그', '').replace(' Tech Blog', '') }}
+      </button>
+    </div>
+
     <!-- 로딩 -->
     <div v-if="pending" class="flex justify-center py-20">
       <Loader2 class="size-6 animate-spin text-muted-foreground" />
@@ -148,7 +208,7 @@ onMounted(fetchArticles)
           :key="article.id"
           class="group relative flex flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
         >
-          <!-- 카드 본문 (클릭 시 원문 이동) -->
+          <!-- 카드 본문 -->
           <a
             :href="article.url"
             target="_blank"

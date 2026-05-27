@@ -195,11 +195,11 @@ interface MyComment {
 
 /** 저장한 글 목록 아이템 */
 interface BookmarkedPost {
-  id: string
-  postId: string
-  category: string
-  title: string
-  savedAt: string
+  bookmarkId: string
+  postId: string | null
+  category: string | null
+  title: string | null
+  bookmarkedAt: string
   isDeleted: boolean
 }
 
@@ -601,7 +601,7 @@ const NuxtLink = resolveComponent('NuxtLink')
           <component
             :is="post.isDeleted ? 'div' : NuxtLink"
             v-for="post in paged(bookmarkedPosts, 'bookmarks')"
-            :key="post.id"
+            :key="post.bookmarkId"
             v-bind="post.isDeleted ? {} : { to: `/community/${post.postId}` }"
             class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors"
             :class="
@@ -623,7 +623,7 @@ const NuxtLink = resolveComponent('NuxtLink')
                 </p>
               </div>
               <p class="mt-1.5 text-xs text-muted-foreground">
-                {{ formatDate(post.savedAt) }} 저장
+                {{ post.bookmarkedAt }} 저장
               </p>
             </div>
             <ArrowUpRight
