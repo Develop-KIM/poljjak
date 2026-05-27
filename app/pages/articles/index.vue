@@ -414,7 +414,7 @@ onUnmounted(() => observer?.disconnect())
         <ul v-if="feedsLoading" class="space-y-1">
           <li v-for="i in 8" :key="i" class="h-9 animate-pulse rounded-lg bg-muted" />
         </ul>
-        <ul v-else class="space-y-0.5">
+        <ul v-else class="max-h-[calc(100vh-220px)] space-y-0.5 overflow-y-auto scrollbar-none">
           <li>
             <button type="button"
               class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
@@ -596,33 +596,33 @@ onUnmounted(() => observer?.disconnect())
   <Teleport to="body">
     <div
       v-if="hasRec"
-      class="fixed bottom-6 z-20 hidden w-52 min-[1700px]:block"
+      class="fixed bottom-6 z-20 hidden w-64 min-[1700px]:block"
       style="left: calc(50% + 730px)"
     >
-      <div class="max-h-[calc(100vh-120px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-lg scrollbar-none">
+      <div class="max-h-[calc(100vh-120px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-xl scrollbar-none">
         <!-- 헤더 -->
-        <div class="border-b border-border px-4 py-3">
-          <div class="flex items-center gap-1.5">
-            <Sparkles class="size-3.5 text-primary" />
-            <p class="text-xs font-bold text-foreground">{{ recTitle }}</p>
+        <div class="bg-primary/5 px-4 py-3.5">
+          <div class="flex items-center gap-2">
+            <Sparkles class="size-4 text-primary" />
+            <p class="text-sm font-bold text-foreground">{{ recTitle }}</p>
           </div>
         </div>
 
         <div class="space-y-5 p-4">
           <!-- 블로그 섹션 -->
           <div v-if="recBlog.length > 0">
-            <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
+            <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
             <ul class="space-y-2">
               <li v-for="rec in recBlog" :key="rec.id">
                 <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                  class="block rounded-xl border border-border p-2.5 text-xs transition-all hover:border-primary/30 hover:bg-muted"
+                  class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                   @click="markAsRead(rec as Article)"
                 >
-                  <span class="mb-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span class="mb-1.5 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
                     {{ shortName(rec.feedName) }}
                   </span>
-                  <p class="line-clamp-2 font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                  <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
                 </a>
               </li>
             </ul>
@@ -630,18 +630,18 @@ onUnmounted(() => observer?.disconnect())
 
           <!-- 뉴스 섹션 -->
           <div v-if="recNews.length > 0">
-            <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
+            <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
             <ul class="space-y-2">
               <li v-for="rec in recNews" :key="rec.id">
                 <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                  class="block rounded-xl border border-border p-2.5 text-xs transition-all hover:border-primary/30 hover:bg-muted"
+                  class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                   @click="markAsRead(rec as Article)"
                 >
-                  <span class="mb-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span class="mb-1.5 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
                     {{ shortName(rec.feedName) }}
                   </span>
-                  <p class="line-clamp-2 font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                  <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
                 </a>
               </li>
             </ul>
