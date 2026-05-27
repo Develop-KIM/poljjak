@@ -1,10 +1,5 @@
 {
   "regions": ["syd1"],
-  "functions": {
-    "server/api/cron/articles.post.ts": {
-      "maxDuration": 60
-    }
-  },
   "crons": [
     {
       "path": "/api/cron/cleanup-notifications",

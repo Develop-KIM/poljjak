@@ -59,4 +59,14 @@ export default defineNuxtConfig({
       exclude: ['/', '/terms', '/privacy', '/analysis/demo', '/analysis/**'],
     },
   },
+
+  nitro: {
+    vercel: {
+      config: {
+        functions: {
+          'api/cron/articles': { maxDuration: 60 },
+        },
+      },
+    },
+  },
 })
