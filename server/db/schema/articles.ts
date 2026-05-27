@@ -1,4 +1,5 @@
 import { index, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 
 export const articleCategoryEnum = pgEnum('article_category', ['domestic', 'international'])
 
@@ -11,6 +12,7 @@ export const articles = pgTable(
     title: text('title').notNull(),
     url: text('url').notNull(),
     summary: text('summary'),
+    tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
     publishedAt: timestamp('published_at').notNull(),
     collectedAt: timestamp('collected_at').notNull().defaultNow(),
   },

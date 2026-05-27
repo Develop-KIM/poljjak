@@ -40,13 +40,15 @@ export default defineEventHandler(async (event) => {
   ]
   const whereClause = conditions.length === 1 ? conditions[0]! : and(...conditions)
 
-  // 트렌딩: 북마크 수 기준 정렬
+  // 트렌딩: 최근 7일 북마크 수 기준
+  const trendingCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   const bookmarkCountSq = db
     .select({
       articleId: articleBookmarks.articleId,
       cnt: count(articleBookmarks.id).as('cnt'),
     })
     .from(articleBookmarks)
+    .where(gte(articleBookmarks.createdAt, trendingCutoff))
     .groupBy(articleBookmarks.articleId)
     .as('bmc')
 

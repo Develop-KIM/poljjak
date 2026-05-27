@@ -1,10 +1,13 @@
 import Parser from 'rss-parser'
 
+// 봇 차단 우회를 위해 브라우저 User-Agent 사용
 const parser = new Parser({
-  timeout: 8000,
-  customFields: {
-    item: ['summary', 'description'],
+  timeout: 10000,
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/rss+xml, application/xml, text/xml, */*',
   },
+  customFields: { item: ['summary', 'description'] },
 })
 
 export type FeedCategory = 'domestic' | 'international'
@@ -17,60 +20,34 @@ interface FeedSource {
 
 export const FEED_SOURCES: FeedSource[] = [
   // ── 국내 ──────────────────────────────────────────────────
-  // 네이버
   { name: '네이버 D2', url: 'https://d2.naver.com/d2.atom', category: 'domestic' },
   { name: '네이버 클라우드', url: 'https://navercloudplatform.medium.com/feed', category: 'domestic' },
-  // 카카오
   { name: '카카오 기술 블로그', url: 'https://tech.kakao.com/feed/', category: 'domestic' },
   { name: '카카오페이 기술 블로그', url: 'https://tech.kakaopay.com/rss', category: 'domestic' },
   { name: '카카오엔터 기술 블로그', url: 'https://kakaoentertainment-tech.tistory.com/rss', category: 'domestic' },
-  { name: '카카오뱅크 기술 블로그', url: 'https://kakaobank.github.io/feed.xml', category: 'domestic' },
-  // 라인
   { name: '라인 기술 블로그', url: 'https://engineering.linecorp.com/ko/feed/', category: 'domestic' },
-  // 쿠팡
   { name: '쿠팡 기술 블로그', url: 'https://medium.com/feed/coupang-engineering', category: 'domestic' },
-  // 배달의민족
   { name: '우아한형제들 기술 블로그', url: 'https://techblog.woowahan.com/feed/', category: 'domestic' },
-  // 당근
   { name: '당근 기술 블로그', url: 'https://medium.com/feed/daangn', category: 'domestic' },
-  // 토스
   { name: '토스 기술 블로그', url: 'https://toss.tech/rss.xml', category: 'domestic' },
-  // 직방
   { name: '직방 기술 블로그', url: 'https://medium.com/feed/zigbang', category: 'domestic' },
-  // 야놀자
   { name: '야놀자 기술 블로그', url: 'https://medium.com/feed/yanolja', category: 'domestic' },
-  // 컬리
-  { name: '컬리 기술 블로그', url: 'https://helloworld.kurly.com/feed', category: 'domestic' },
-  // 뱅크샐러드
-  { name: '뱅크샐러드 기술 블로그', url: 'https://blog.banksalad.com/feed', category: 'domestic' },
-  // 쏘카
   { name: '쏘카 기술 블로그', url: 'https://tech.socarcorp.kr/feed', category: 'domestic' },
-  // 올리브영
-  { name: '올리브영 기술 블로그', url: 'https://oliveyoung.tech/feed', category: 'domestic' },
-  // NHN
   { name: 'NHN 기술 블로그', url: 'https://meetup.nhncloud.com/rss', category: 'domestic' },
-  // 11번가
-  { name: '11번가 기술 블로그', url: 'https://11st-tech.github.io/feed.xml', category: 'domestic' },
-  // 리디
-  { name: '리디 기술 블로그', url: 'https://ridicorp.com/story/feed/', category: 'domestic' },
-  // 하이퍼커넥트
-  { name: '하이퍼커넥트 기술 블로그', url: 'https://hyperconnect.github.io/feed.xml', category: 'domestic' },
-  // 오늘의집
-  { name: '오늘의집 기술 블로그', url: 'https://www.bucketplace.com/post/rss/', category: 'domestic' },
-  // 무신사
   { name: '무신사 기술 블로그', url: 'https://medium.com/feed/musinsa-tech', category: 'domestic' },
-  // 왓챠
-  { name: '왓챠 기술 블로그', url: 'https://medium.com/feed/watcha-engineering', category: 'domestic' },
-  // 인프랩(인프런)
+  { name: '왓챠 기술 블로그', url: 'https://medium.com/feed/watcha', category: 'domestic' },
   { name: '인프런 기술 블로그', url: 'https://tech.inflab.com/feed', category: 'domestic' },
+  { name: '리디 기술 블로그', url: 'https://www.ridicorp.com/feed', category: 'domestic' },
+  { name: '하이퍼커넥트 기술 블로그', url: 'https://hyperconnect.github.io/feed.xml', category: 'domestic' },
+  { name: '올리브영 기술 블로그', url: 'https://oliveyoung.tech/rss.xml', category: 'domestic' },
+  { name: '29CM 기술 블로그', url: 'https://medium.com/feed/29cm', category: 'domestic' },
+  { name: '카카오엔터 기술 블로그', url: 'https://kakaoentertainment-tech.tistory.com/rss', category: 'domestic' },
 
   // ── 해외 ──────────────────────────────────────────────────
-  // IT 뉴스
   { name: 'Hacker News', url: 'https://news.ycombinator.com/rss', category: 'international' },
   { name: 'dev.to', url: 'https://dev.to/feed', category: 'international' },
   { name: 'Smashing Magazine', url: 'https://www.smashingmagazine.com/feed/', category: 'international' },
   { name: 'CSS-Tricks', url: 'https://css-tricks.com/feed/', category: 'international' },
-  // 빅테크 기술 블로그
   { name: 'Engineering at Meta', url: 'https://engineering.fb.com/feed/', category: 'international' },
   { name: 'Google Developers', url: 'https://developers.googleblog.com/feeds/posts/default', category: 'international' },
   { name: 'Netflix Tech Blog', url: 'https://netflixtechblog.com/feed', category: 'international' },
@@ -88,9 +65,30 @@ export const FEED_SOURCES: FeedSource[] = [
   { name: 'Spotify Engineering', url: 'https://engineering.atspotify.com/feed/', category: 'international' },
 ]
 
-export const DOMESTIC_FEED_NAMES = FEED_SOURCES
-  .filter((f) => f.category === 'domestic')
-  .map((f) => f.name)
+// 키워드 기반 자동 태그
+const TAG_RULES: Array<{ tag: string; keywords: string[] }> = [
+  { tag: 'Frontend', keywords: ['react', 'vue', 'angular', 'svelte', 'next.js', 'nuxt', 'css', 'html', 'javascript', 'typescript', '프론트엔드', 'ui', 'ux', '웹', 'web'] },
+  { tag: 'Backend', keywords: ['node', 'python', 'java', 'spring', 'django', 'fastapi', 'go', 'rust', 'api', 'rest', 'graphql', '백엔드', '서버', 'server'] },
+  { tag: 'DevOps', keywords: ['docker', 'kubernetes', 'k8s', 'ci/cd', 'jenkins', 'terraform', '인프라', '배포', 'deploy', 'cloud', '클라우드', 'aws', 'gcp', 'azure'] },
+  { tag: 'AI/ML', keywords: ['ai', 'ml', 'machine learning', 'deep learning', 'gpt', 'llm', 'openai', 'transformer', '인공지능', '머신러닝', '딥러닝', '자연어', 'nlp'] },
+  { tag: 'Database', keywords: ['sql', 'mysql', 'postgresql', 'redis', 'mongodb', 'elasticsearch', '데이터베이스', 'db', 'index', '인덱스', 'query', '쿼리'] },
+  { tag: 'Architecture', keywords: ['msa', 'microservice', '아키텍처', 'architecture', '설계', 'design pattern', 'ddd', 'event driven', '이벤트'] },
+  { tag: 'Mobile', keywords: ['ios', 'android', 'swift', 'kotlin', 'flutter', 'react native', '모바일', 'mobile', 'app'] },
+  { tag: 'Security', keywords: ['보안', 'security', 'auth', 'oauth', 'jwt', 'xss', 'csrf', 'ssl', 'https', '인증', '취약점'] },
+  { tag: 'Performance', keywords: ['성능', 'performance', '최적화', 'optimization', 'latency', 'throughput', 'cache', '캐시', 'cdn'] },
+  { tag: 'Data', keywords: ['data', '데이터', 'pipeline', 'hadoop', 'spark', 'kafka', 'bigquery', 'analytics', '분석', 'batch'] },
+]
+
+export function autoTag(title: string, summary: string | null): string[] {
+  const text = `${title} ${summary ?? ''}`.toLowerCase()
+  const tags: string[] = []
+  for (const rule of TAG_RULES) {
+    if (rule.keywords.some((kw) => text.includes(kw.toLowerCase()))) {
+      tags.push(rule.tag)
+    }
+  }
+  return tags
+}
 
 export interface ParsedArticle {
   feedName: string
@@ -98,6 +96,7 @@ export interface ParsedArticle {
   title: string
   url: string
   summary: string | null
+  tags: string[]
   publishedAt: Date
 }
 
@@ -108,27 +107,25 @@ export async function collectAllFeeds(): Promise<ParsedArticle[]> {
     FEED_SOURCES.map(async (source) => {
       try {
         const feed = await parser.parseURL(source.url)
-
         for (const item of feed.items) {
           if (!item.link || !item.title) continue
-
           const rawSummary = item.summary ?? item.contentSnippet ?? item.content ?? null
           const summary = rawSummary ? rawSummary.replace(/<[^>]*>/g, '').slice(0, 300) : null
           const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date()
-
           if (isNaN(publishedAt.getTime())) continue
-
+          const title = item.title.trim()
           results.push({
             feedName: source.name,
             category: source.category,
-            title: item.title.trim(),
+            title,
             url: item.link.trim(),
             summary,
+            tags: autoTag(title, summary),
             publishedAt,
           })
         }
       } catch (err) {
-        console.error(`[rss] 피드 수집 실패 (${source.name}):`, err)
+        console.error(`[rss] 피드 수집 실패 (${source.name}):`, (err as Error).message)
       }
     }),
   )
