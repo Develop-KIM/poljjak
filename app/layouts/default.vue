@@ -479,6 +479,9 @@ function toggleProfileMenu() {
               <NuxtLink to="/community?tab=feedback" class="transition-colors hover:text-foreground"
                 >커뮤니티</NuxtLink
               >
+              <NuxtLink to="/articles" class="transition-colors hover:text-foreground"
+                >아티클</NuxtLink
+              >
             </div>
             <div class="flex flex-col gap-2">
               <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">

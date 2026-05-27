@@ -47,6 +47,10 @@ useSeoMeta({
           <span class="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
           회원 간 1:1 채팅
         </li>
+        <li class="flex gap-2">
+          <span class="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+          국내외 기술 블로그 및 IT 뉴스 아티클 큐레이션 (외부 RSS 피드 기반)
+        </li>
       </ul>
       <p class="mt-4 text-sm leading-7 text-muted-foreground">
         서비스는 운영상·기술상 필요에 따라 제공하는 서비스의 전부 또는 일부를 변경·중단할 수 있으며,
@@ -141,6 +145,13 @@ useSeoMeta({
         <li class="flex gap-2">
           <span class="mt-1 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
           이용자 간 커뮤니티 활동에서 발생하는 분쟁에 대해 서비스는 책임을 지지 않습니다.
+        </li>
+        <li class="flex gap-2">
+          <span class="mt-1 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
+          아티클 섹션에서 제공되는 콘텐츠는 외부 RSS 피드를 통해 수집된 제3자 저작물입니다.
+          해당 콘텐츠의 정확성·적법성에 대한 책임은 원출처에 있으며, 서비스는 이에 대해 책임을
+          지지 않습니다. 저작권 관련 문제 발생 시 kimdonghwan913@gmail.com으로 신고해 주시면
+          즉시 조치합니다.
         </li>
         <li class="flex gap-2">
           <span class="mt-1 size-1.5 shrink-0 rounded-full bg-muted-foreground" />

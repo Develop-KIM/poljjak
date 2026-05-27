@@ -4,11 +4,9 @@ import { ChevronDown, Check } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
 
 const props = defineProps<{
-  id?: string
-  modelValue?: string
+  modelValue: string
   options: Array<{ label: string; value: string }>
   placeholder?: string
-  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -31,21 +29,21 @@ function select(value: string) {
 </script>
 
 <template>
-  <div :id="id" ref="dropdownRef" class="relative">
+  <div ref="dropdownRef" class="relative">
+    <!-- 트리거 버튼 -->
     <button
       type="button"
-      :disabled="disabled"
-      class="flex h-11 w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm transition-colors hover:bg-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted"
-      :class="{ 'text-muted-foreground': !modelValue }"
+      class="flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       @click="open = !open"
     >
       <span class="truncate">{{ selectedLabel }}</span>
       <ChevronDown
-        class="size-4 shrink-0 text-muted-foreground transition-transform duration-150"
+        class="size-3.5 shrink-0 text-muted-foreground transition-transform duration-150"
         :class="{ 'rotate-180': open }"
       />
     </button>
 
+    <!-- 드롭다운 패널 -->
     <Transition
       enter-active-class="transition duration-100 ease-out"
       enter-from-class="opacity-0 scale-95 -translate-y-1"
@@ -59,25 +57,19 @@ function select(value: string) {
         class="absolute left-0 top-[calc(100%+6px)] z-50 min-w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg"
       >
         <ul class="max-h-60 overflow-y-auto py-1">
-          <li v-if="placeholder">
-            <button
-              type="button"
-              class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
-              :class="{ 'bg-accent text-primary': !modelValue }"
-              @click="select('')"
-            >
-              <span>{{ placeholder }}</span>
-            </button>
-          </li>
           <li v-for="opt in options" :key="opt.value">
             <button
               type="button"
-              class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium transition-colors"
-              :class="opt.value === modelValue ? 'bg-accent text-primary' : 'text-foreground hover:bg-muted'"
+              class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-xs font-medium transition-colors"
+              :class="
+                opt.value === modelValue
+                  ? 'bg-accent text-primary'
+                  : 'text-foreground hover:bg-muted'
+              "
               @click="select(opt.value)"
             >
               <span>{{ opt.label }}</span>
-              <Check v-if="opt.value === modelValue" class="size-3.5 shrink-0 text-primary" />
+              <Check v-if="opt.value === modelValue" class="size-3 shrink-0 text-primary" />
             </button>
           </li>
         </ul>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { Bookmark, BookmarkCheck, Loader2, Search, X, ChevronDown } from '@lucide/vue'
+import { Bookmark, BookmarkCheck, Loader2, Search, X } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 
@@ -304,53 +304,28 @@ onUnmounted(() => observer?.disconnect())
             ><X class="size-3.5" /></button>
           </form>
 
-          <!-- 모바일: 커스텀 select 드롭다운 -->
+          <!-- 모바일: 커스텀 드롭다운 -->
           <div class="grid grid-cols-2 gap-2 pr-1 lg:hidden">
-            <!-- 출처 -->
-            <div class="relative">
-              <select v-model="selectedFeedValue"
-                class="h-10 w-full appearance-none rounded-xl border border-border bg-card pl-3 pr-8 text-xs font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="">전체 출처</option>
-                <option v-for="name in currentFeedNames" :key="name" :value="name">{{ shortName(name) }}</option>
-              </select>
-              <ChevronDown class="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            </div>
-            <!-- 주제 -->
-            <div class="relative">
-              <select
-                :value="selectedTag ?? ''"
-                class="h-10 w-full appearance-none rounded-xl border border-border bg-card pl-3 pr-8 text-xs font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                @change="selectTag(($event.target as HTMLSelectElement).value || null)"
-              >
-                <option value="">전체 주제</option>
-                <option v-for="tag in TAGS" :key="tag" :value="tag">{{ tag }}</option>
-              </select>
-              <ChevronDown class="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            </div>
-            <!-- 정렬 -->
-            <div class="relative">
-              <select
-                :value="selectedSort"
-                class="h-10 w-full appearance-none rounded-xl border border-border bg-card pl-3 pr-8 text-xs font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                @change="selectSort(($event.target as HTMLSelectElement).value as Sort)"
-              >
-                <option value="latest">최신순</option>
-                <option value="trending">트렌딩</option>
-              </select>
-              <ChevronDown class="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            </div>
-            <!-- 기간 -->
-            <div class="relative">
-              <select
-                :value="selectedPeriod"
-                class="h-10 w-full appearance-none rounded-xl border border-border bg-card pl-3 pr-8 text-xs font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                @change="selectPeriod(($event.target as HTMLSelectElement).value as Period)"
-              >
-                <option v-for="p in periods" :key="p.value" :value="p.value">{{ p.label }}</option>
-              </select>
-              <ChevronDown class="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            </div>
+            <AppDropdown
+              :model-value="selectedFeedValue"
+              :options="[{ label: '전체 출처', value: '' }, ...currentFeedNames.map(n => ({ label: shortName(n), value: n }))]"
+              @update:model-value="selectedFeedValue = $event"
+            />
+            <AppDropdown
+              :model-value="selectedTag ?? ''"
+              :options="[{ label: '전체 주제', value: '' }, ...TAGS.map(t => ({ label: t, value: t }))]"
+              @update:model-value="selectTag($event || null)"
+            />
+            <AppDropdown
+              :model-value="selectedSort"
+              :options="[{ label: '최신순', value: 'latest' }, { label: '트렌딩', value: 'trending' }]"
+              @update:model-value="selectSort($event as Sort)"
+            />
+            <AppDropdown
+              :model-value="selectedPeriod"
+              :options="periods.map(p => ({ label: p.label, value: p.value }))"
+              @update:model-value="selectPeriod($event as Period)"
+            />
           </div>
 
         </div>

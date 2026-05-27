@@ -35,8 +35,9 @@ useSeoMeta({
         <p class="mt-4 font-semibold text-foreground">서비스 이용 과정에서 자동 수집</p>
         <ul class="mt-2 list-inside list-disc space-y-1">
           <li>서비스 이용 기록, 접속 로그</li>
-          <li>업로드한 포트폴리오 PDF 파일 (분석 후 서버에 보관)</li>
+          <li>업로드한 포트폴리오 PDF에서 추출된 텍스트 (파일 자체는 서버에 저장하지 않음)</li>
           <li>작성한 게시글, 댓글 내용</li>
+          <li>다크모드 등 UI 환경 설정 (브라우저 로컬스토리지에 저장, 서버 전송 없음)</li>
         </ul>
       </div>
     </section>
