@@ -143,12 +143,15 @@ onMounted(fetchReports)
             class="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
           >
             <td class="px-4 py-3">
-              <span
-                class="rounded-full px-2 py-0.5 text-xs font-semibold"
-                :class="item.targetType === 'post' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'"
+              <NuxtLink
+                :to="item.targetType === 'post' ? `/community/${item.targetId}` : `/community/${item.targetId}`"
+                target="_blank"
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold transition-opacity hover:opacity-70"
+                :class="item.targetType === 'post' ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300' : 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300'"
               >
                 {{ item.targetType === 'post' ? '게시글' : '댓글' }}
-              </span>
+                <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+              </NuxtLink>
             </td>
             <td class="px-4 py-3 text-muted-foreground">
               <p class="line-clamp-2 text-xs">{{ item.targetPreview }}</p>

@@ -1,7 +1,7 @@
 import { and, count, gte, isNull, sql, sum } from 'drizzle-orm'
 import { requireAdmin } from '../../utils/admin'
 import { db } from '../../db'
-import { analyses, comments, posts, users } from '../../db/schema'
+import { analyses, articleSubscriptions, articles, comments, posts, users } from '../../db/schema'
 
 export default defineEventHandler(async (event) => {
   // 관리자 권한 확인
@@ -85,6 +85,14 @@ export default defineEventHandler(async (event) => {
     .select({ total: sum(analyses.tokenUsage) })
     .from(analyses)
 
+  // 아티클 현황
+  const [totalArticlesRow] = await db.select({ count: count() }).from(articles)
+  const [todayArticlesRow] = await db
+    .select({ count: count() })
+    .from(articles)
+    .where(gte(articles.collectedAt, todayStart))
+  const [totalSubscriptionsRow] = await db.select({ count: count() }).from(articleSubscriptions)
+
   const todayAnalyses = todayAnalysesRow?.count ?? 0
   const todaySuccess = todaySuccessRow?.count ?? 0
   const todayFailed = todayFailedRow?.count ?? 0
@@ -105,6 +113,9 @@ export default defineEventHandler(async (event) => {
       avgResponseSec: Number(avgResponseRow?.avgSec ?? 0),
       todayTokens: Number(todayTokensRow?.total ?? 0),
       totalTokens: Number(totalTokensRow?.total ?? 0),
+      totalArticles: totalArticlesRow?.count ?? 0,
+      todayArticles: todayArticlesRow?.count ?? 0,
+      totalSubscriptions: totalSubscriptionsRow?.count ?? 0,
     },
   }
 })

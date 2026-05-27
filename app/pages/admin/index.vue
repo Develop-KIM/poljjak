@@ -51,6 +51,9 @@ interface DashboardStats {
   avgResponseSec: number
   todayTokens: number
   totalTokens: number
+  totalArticles: number
+  todayArticles: number
+  totalSubscriptions: number
 }
 
 const stats = ref<DashboardStats | null>(null)
@@ -308,6 +311,32 @@ function formatNumber(n: number): string {
           <p class="mt-1 text-xs text-muted-foreground">
             누적 {{ formatNumber(stats?.totalTokens ?? 0) }}
           </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 아티클 현황 -->
+    <section>
+      <h2 class="mb-4 text-base font-bold text-foreground">아티클 현황</h2>
+      <div v-if="statsPending" class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div v-for="i in 3" :key="i" class="animate-pulse rounded-xl border border-border bg-card p-5">
+          <div class="mb-3 h-3 w-16 rounded bg-muted" />
+          <div class="h-7 w-12 rounded bg-muted" />
+        </div>
+      </div>
+      <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div class="rounded-xl border border-border bg-card p-5">
+          <p class="text-sm text-muted-foreground">누적 아티클</p>
+          <p class="mt-2 text-2xl font-black text-foreground">{{ formatNumber(stats?.totalArticles ?? 0) }}</p>
+        </div>
+        <div class="rounded-xl border border-border bg-card p-5">
+          <p class="text-sm text-muted-foreground">오늘 수집</p>
+          <p class="mt-2 text-2xl font-black text-foreground">{{ formatNumber(stats?.todayArticles ?? 0) }}</p>
+        </div>
+        <div class="rounded-xl border border-border bg-card p-5 col-span-2 sm:col-span-1">
+          <p class="text-sm text-muted-foreground">구독자 수</p>
+          <p class="mt-2 text-2xl font-black text-foreground">{{ formatNumber(stats?.totalSubscriptions ?? 0) }}</p>
+          <p class="mt-1 text-xs text-muted-foreground">출처·태그 구독 합계</p>
         </div>
       </div>
     </section>

@@ -424,23 +424,25 @@ const NuxtLink = resolveComponent('NuxtLink')
     </div>
 
     <!-- ── 탭 ── -->
-    <div class="mt-5 flex overflow-hidden rounded-xl border border-border">
-      <button
-        v-for="tab in tabs"
-        :key="tab.key"
-        type="button"
-        class="flex-1 py-3 text-xs font-semibold transition-colors outline-none border-r border-border last:border-r-0 sm:text-sm"
-        :class="
-          activeTab === tab.key
-            ? 'bg-primary/[0.07] text-primary'
-            : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
-        "
-        @click="selectTab(tab.key)"
-      >
-        <!-- 모바일: 짧은 라벨, 데스크탑: 전체 라벨 -->
-        <span class="sm:hidden">{{ tab.shortLabel }}</span>
-        <span class="hidden sm:inline">{{ tab.label }}</span>
-      </button>
+    <div class="mt-5 overflow-x-auto rounded-xl border border-border scrollbar-none">
+      <div class="flex min-w-max">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          type="button"
+          class="shrink-0 whitespace-nowrap border-r border-border px-4 py-3 text-xs font-semibold transition-colors outline-none last:border-r-0 sm:px-5 sm:text-sm"
+          :class="
+            activeTab === tab.key
+              ? 'bg-primary/[0.07] text-primary'
+              : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+          "
+          @click="selectTab(tab.key)"
+        >
+          <!-- 모바일: 짧은 라벨, 데스크탑: 전체 라벨 -->
+          <span class="sm:hidden">{{ tab.shortLabel }}</span>
+          <span class="hidden sm:inline">{{ tab.label }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- ── 탭 콘텐츠 ── -->
