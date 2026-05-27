@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, resolveComponent } from 'vue'
 import {
   Camera,
+  Clock,
   Lock,
   Unlock,
   Heart,
@@ -11,7 +12,19 @@ import {
   Check,
   X,
   Loader2,
+  Trash2,
 } from '@lucide/vue'
+
+const RECENT_KEY = 'poljjak_recent_articles'
+
+interface RecentArticle {
+  id: string
+  title: string
+  url: string
+  feedName: string
+  publishedAt: string
+  visitedAt: string
+}
 
 definePageMeta({ middleware: 'auth' })
 
@@ -226,9 +239,10 @@ const bookmarkedPosts = ref<BookmarkedPost[]>([])
 const bookmarkedPending = ref(false)
 const bookmarkedArticles = ref<BookmarkedArticle[]>([])
 const bookmarkedArticlesPending = ref(false)
+const recentArticles = ref<RecentArticle[]>([])
 
-const activeTab = ref<'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks' | 'article-bookmarks'>('analyses')
-const pages = ref({ analyses: 1, posts: 1, comments: 1, likes: 1, bookmarks: 1, 'article-bookmarks': 1 })
+const activeTab = ref<'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks' | 'article-bookmarks' | 'recent-articles'>('analyses')
+const pages = ref({ analyses: 1, posts: 1, comments: 1, likes: 1, bookmarks: 1, 'article-bookmarks': 1, 'recent-articles': 1 })
 const PAGE_SIZE = 10
 
 function paged<T>(list: T[], tab: keyof typeof pages.value) {
@@ -275,6 +289,14 @@ onMounted(async () => {
   bookmarkedPending.value = false
   if (articleBookmarksRes.status === 'fulfilled') bookmarkedArticles.value = articleBookmarksRes.value.data
   bookmarkedArticlesPending.value = false
+
+  // 최근 본 아티클 localStorage에서 로드
+  try {
+    const raw = localStorage.getItem(RECENT_KEY)
+    recentArticles.value = raw ? JSON.parse(raw) : []
+  } catch {
+    recentArticles.value = []
+  }
 })
 
 function formatDate(dateStr: string) {
@@ -285,6 +307,28 @@ function formatDate(dateStr: string) {
   })
 }
 
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 60) return m <= 1 ? '방금 전' : `${m}분 전`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}시간 전`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d}일 전`
+  if (d < 30) return `${Math.floor(d / 7)}주 전`
+  return new Date(iso).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+}
+
+function clearRecentArticles() {
+  localStorage.removeItem(RECENT_KEY)
+  recentArticles.value = []
+}
+
+function removeRecentArticle(id: string) {
+  recentArticles.value = recentArticles.value.filter((a) => a.id !== id)
+  localStorage.setItem(RECENT_KEY, JSON.stringify(recentArticles.value))
+}
+
 const tabs = [
   { key: 'analyses' as const, label: '분석 기록', shortLabel: '분석' },
   { key: 'posts' as const, label: '내가 쓴 글', shortLabel: '게시글' },
@@ -292,9 +336,10 @@ const tabs = [
   { key: 'likes' as const, label: '좋아요한 글', shortLabel: '좋아요' },
   { key: 'bookmarks' as const, label: '저장한 글', shortLabel: '저장' },
   { key: 'article-bookmarks' as const, label: '저장한 아티클', shortLabel: '아티클' },
+  { key: 'recent-articles' as const, label: '최근 본 아티클', shortLabel: '최근 본' },
 ]
 
-function selectTab(key: 'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks' | 'article-bookmarks') {
+function selectTab(key: 'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks' | 'article-bookmarks' | 'recent-articles') {
   activeTab.value = key
   pages.value[key] = 1
 }
@@ -660,12 +705,10 @@ const NuxtLink = resolveComponent('NuxtLink')
         </div>
 
         <div v-else-if="bookmarkedArticles.length > 0" class="grid gap-2">
-          <a
+          <NuxtLink
             v-for="article in paged(bookmarkedArticles, 'article-bookmarks')"
             :key="article.id"
-            :href="article.url"
-            target="_blank"
-            rel="noopener noreferrer"
+            :to="`/articles/${article.id}`"
             class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
           >
             <div class="min-w-0 flex-1">
@@ -678,7 +721,7 @@ const NuxtLink = resolveComponent('NuxtLink')
               </p>
             </div>
             <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          </a>
+          </NuxtLink>
 
           <Pagination
             v-if="totalPages(bookmarkedArticles, 'article-bookmarks') > 1"
@@ -692,6 +735,70 @@ const NuxtLink = resolveComponent('NuxtLink')
           v-else
           title="아직 저장한 아티클이 없어요"
           description="아티클의 북마크 아이콘을 눌러 저장해보세요."
+        >
+          <template #action>
+            <NuxtLink to="/articles"><AppButton>아티클 보러 가기</AppButton></NuxtLink>
+          </template>
+        </AppEmptyState>
+      </template>
+
+      <!-- 최근 본 아티클 -->
+      <template v-else-if="activeTab === 'recent-articles'">
+        <div v-if="recentArticles.length > 0">
+          <div class="mb-3 flex items-center justify-between">
+            <p class="text-sm text-muted-foreground">최근 본 아티클 {{ recentArticles.length }}개</p>
+            <button
+              type="button"
+              class="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-destructive"
+              @click="clearRecentArticles"
+            >
+              <Trash2 class="size-3" />
+              전체 삭제
+            </button>
+          </div>
+
+          <div class="grid gap-2">
+            <div
+              v-for="article in paged(recentArticles, 'recent-articles')"
+              :key="article.id"
+              class="group flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
+            >
+              <NuxtLink :to="`/articles/${article.id}`" class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <AppBadge variant="blue" class="shrink-0">{{ article.feedName }}</AppBadge>
+                  <p class="truncate text-sm font-semibold text-foreground">{{ article.title }}</p>
+                </div>
+                <div class="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Clock class="size-3 shrink-0" />
+                  {{ timeAgo(article.visitedAt) }} 읽음
+                </div>
+              </NuxtLink>
+              <div class="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  class="flex size-7 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                  title="목록에서 삭제"
+                  @click="removeRecentArticle(article.id)"
+                >
+                  <X class="size-3.5" />
+                </button>
+                <ArrowUpRight class="size-4 text-muted-foreground" />
+              </div>
+            </div>
+          </div>
+
+          <Pagination
+            v-if="totalPages(recentArticles, 'recent-articles') > 1"
+            :current="pages['recent-articles']"
+            :total="totalPages(recentArticles, 'recent-articles')"
+            @change="goPage('recent-articles', $event)"
+          />
+        </div>
+
+        <AppEmptyState
+          v-else
+          title="최근 본 아티클이 없어요"
+          description="아티클을 읽으면 여기에 기록돼요."
         >
           <template #action>
             <NuxtLink to="/articles"><AppButton>아티클 보러 가기</AppButton></NuxtLink>
