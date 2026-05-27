@@ -308,70 +308,71 @@ interface RecommendArticle {
 }
 
 interface PersonalInsight {
-  topTag: string | null      // 가장 많이 읽은 태그
-  topFeed: string | null     // 가장 많이 읽은 출처
+  topTag: string | null
+  topFeed: string | null
+  hasHistory: boolean
 }
 
-const recByTag = ref<RecommendArticle[]>([])
-const recByFeed = ref<RecommendArticle[]>([])
-const recFallback = ref<RecommendArticle[]>([])
-const recInsight = ref<PersonalInsight>({ topTag: null, topFeed: null })
-const recommendPending = ref(false)
+const recBlog = ref<RecommendArticle[]>([])    // 국내 블로그 추천
+const recNews = ref<RecommendArticle[]>([])    // 해외 뉴스 추천
+const recInsight = ref<PersonalInsight>({ topTag: null, topFeed: null, hasHistory: false })
+
+const recTitle = computed(() => {
+  const nick = authStore.profile?.nickname
+  return nick ? `${nick}님을 위한 추천` : '오늘의 추천'
+})
+const hasRec = computed(() => recBlog.value.length > 0 || recNews.value.length > 0)
 
 function analyzeHistory(): PersonalInsight {
-  if (!import.meta.client) return { topTag: null, topFeed: null }
+  if (!import.meta.client) return { topTag: null, topFeed: null, hasHistory: false }
   try {
-    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Array<{
-      tags?: string[]; feedName?: string
-    }>
-    const recent = raw.slice(0, 20)
+    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Array<{ tags?: string[]; feedName?: string }>
+    if (raw.length === 0) return { topTag: null, topFeed: null, hasHistory: false }
 
-    // 태그 빈도 계산 (최근일수록 가중치)
     const tagCount: Record<string, number> = {}
-    recent.forEach((a, i) => {
-      const weight = Math.max(1, 10 - i) // 최근 읽은 것일수록 가중치 높음
+    raw.slice(0, 20).forEach((a, i) => {
+      const weight = Math.max(1, 10 - i)
       ;(a.tags ?? []).forEach((t) => { tagCount[t] = (tagCount[t] ?? 0) + weight })
     })
-
-    // 출처 빈도 계산
     const feedCount: Record<string, number> = {}
-    recent.forEach((a) => {
+    raw.slice(0, 20).forEach((a) => {
       if (a.feedName) feedCount[a.feedName] = (feedCount[a.feedName] ?? 0) + 1
     })
 
-    const topTag = Object.entries(tagCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
-    const topFeed = Object.entries(feedCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
-
-    return { topTag, topFeed }
-  } catch { return { topTag: null, topFeed: null } }
+    return {
+      topTag: Object.entries(tagCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
+      topFeed: Object.entries(feedCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
+      hasHistory: true,
+    }
+  } catch { return { topTag: null, topFeed: null, hasHistory: false } }
 }
 
 async function fetchRecommended() {
-  recommendPending.value = true
   const insight = analyzeHistory()
   recInsight.value = insight
 
-  try {
-    const base = { category: 'domestic', sort: 'trending', period: 'week', limit: 5 }
-    const [tagRes, feedRes, fallbackRes] = await Promise.allSettled([
-      insight.topTag
-        ? $fetch<{ data: RecommendArticle[] }>('/api/articles', { query: { ...base, tag: insight.topTag } })
-        : Promise.resolve(null),
-      insight.topFeed
-        ? $fetch<{ data: RecommendArticle[] }>('/api/articles', { query: { ...base, feedName: insight.topFeed } })
-        : Promise.resolve(null),
-      $fetch<{ data: RecommendArticle[] }>('/api/articles', { query: { ...base, period: 'today' } }),
-    ])
+  const tag = insight.topTag
+  const feed = insight.topFeed
 
-    if (tagRes.status === 'fulfilled' && tagRes.value) recByTag.value = tagRes.value.data.slice(0, 4)
-    if (feedRes.status === 'fulfilled' && feedRes.value) recByFeed.value = feedRes.value.data.slice(0, 4)
-    if (fallbackRes.status === 'fulfilled') recFallback.value = fallbackRes.value.data.slice(0, 5)
-  } catch { /* ignore */ }
-  finally { recommendPending.value = false }
+  const [blogRes, newsRes] = await Promise.allSettled([
+    $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+      query: {
+        category: 'domestic', sort: 'trending', period: 'week', limit: 5,
+        ...(tag ? { tag } : {}),
+        ...(feed && !tag ? { feedName: feed } : {}),
+      },
+    }),
+    $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+      query: {
+        category: 'international', sort: 'trending', period: 'week', limit: 4,
+        ...(tag ? { tag } : {}),
+      },
+    }),
+  ])
+
+  if (blogRes.status === 'fulfilled') recBlog.value = blogRes.value.data.slice(0, 4)
+  if (newsRes.status === 'fulfilled') recNews.value = newsRes.value.data.slice(0, 3)
 }
-
-// 추천 섹션이 하나라도 있는지
-const hasRec = computed(() => recByTag.value.length > 0 || recByFeed.value.length > 0 || recFallback.value.length > 0)
 
 watch([activeTab, selectedFeed, selectedTag, selectedPeriod, selectedSort, searchQuery], resetAndFetch)
 onMounted(() => { loadReadIds(); fetchFeeds(); fetchArticles(); fetchSubscriptions(); fetchRecommended(); nextTick(setupInfiniteScroll) })
@@ -584,71 +585,58 @@ onUnmounted(() => observer?.disconnect())
       class="fixed bottom-6 z-20 hidden w-52 min-[1700px]:block"
       style="left: calc(50% + 730px)"
     >
-      <div class="max-h-[calc(100vh-120px)] space-y-5 overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-lg scrollbar-none">
-
-        <!-- 태그 기반 추천 -->
-        <div v-if="recByTag.length > 0">
-          <div class="mb-2.5 flex items-center gap-1.5">
-            <Sparkles class="size-3 text-primary" />
-            <p class="text-[11px] font-bold text-foreground">{{ recInsight.topTag }} 추천</p>
+      <div class="max-h-[calc(100vh-120px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-lg scrollbar-none">
+        <!-- 헤더 -->
+        <div class="border-b border-border px-4 py-3">
+          <div class="flex items-center gap-1.5">
+            <Sparkles class="size-3.5 text-primary" />
+            <p class="text-xs font-bold text-foreground">{{ recTitle }}</p>
           </div>
-          <ul class="space-y-2">
-            <li v-for="rec in recByTag" :key="rec.id">
-              <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                class="block rounded-xl border border-border p-2.5 text-xs transition-all hover:border-primary/30 hover:bg-muted"
-                @click="markAsRead(rec as Article)"
-              >
-                <span class="mb-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
-                  {{ shortName(rec.feedName) }}
-                </span>
-                <p class="line-clamp-2 font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-              </a>
-            </li>
-          </ul>
+          <p v-if="recInsight.topTag" class="mt-0.5 text-[10px] text-muted-foreground">
+            {{ recInsight.topTag }} · {{ recInsight.topFeed ? shortName(recInsight.topFeed) : '트렌딩' }} 기반
+          </p>
+          <p v-else class="mt-0.5 text-[10px] text-muted-foreground">이번 주 인기 아티클</p>
         </div>
 
-        <!-- 출처 기반 추천 -->
-        <div v-if="recByFeed.length > 0">
-          <div class="mb-2.5 flex items-center gap-1.5">
-            <span class="size-2 rounded-full" :style="{ backgroundColor: getBrandColor(recInsight.topFeed ?? '') }" />
-            <p class="text-[11px] font-bold text-foreground">{{ shortName(recInsight.topFeed ?? '') }} 새 글</p>
+        <div class="space-y-5 p-4">
+          <!-- 블로그 섹션 -->
+          <div v-if="recBlog.length > 0">
+            <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
+            <ul class="space-y-2">
+              <li v-for="rec in recBlog" :key="rec.id">
+                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                  class="block rounded-xl border border-border p-2.5 text-xs transition-all hover:border-primary/30 hover:bg-muted"
+                  @click="markAsRead(rec as Article)"
+                >
+                  <span class="mb-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                    {{ shortName(rec.feedName) }}
+                  </span>
+                  <p class="line-clamp-2 font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                </a>
+              </li>
+            </ul>
           </div>
-          <ul class="space-y-2">
-            <li v-for="rec in recByFeed" :key="rec.id">
-              <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                class="block rounded-xl border border-border p-2.5 text-xs transition-all hover:border-primary/30 hover:bg-muted"
-                @click="markAsRead(rec as Article)"
-              >
-                <p class="line-clamp-2 font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-                <p class="mt-1 text-[10px] text-muted-foreground">{{ formatDate(rec.publishedAt) }}</p>
-              </a>
-            </li>
-          </ul>
-        </div>
 
-        <!-- 기록 없을 때 오늘의 인기 -->
-        <div v-if="!recInsight.topTag && !recInsight.topFeed && recFallback.length > 0">
-          <div class="mb-2.5 flex items-center gap-1.5">
-            <Sparkles class="size-3 text-primary" />
-            <p class="text-[11px] font-bold text-foreground">오늘의 인기 아티클</p>
+          <!-- 뉴스 섹션 -->
+          <div v-if="recNews.length > 0">
+            <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
+            <ul class="space-y-2">
+              <li v-for="rec in recNews" :key="rec.id">
+                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                  class="block rounded-xl border border-border p-2.5 text-xs transition-all hover:border-primary/30 hover:bg-muted"
+                  @click="markAsRead(rec as Article)"
+                >
+                  <span class="mb-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                    {{ shortName(rec.feedName) }}
+                  </span>
+                  <p class="line-clamp-2 font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                </a>
+              </li>
+            </ul>
           </div>
-          <ul class="space-y-2">
-            <li v-for="rec in recFallback" :key="rec.id">
-              <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                class="block rounded-xl border border-border p-2.5 text-xs transition-all hover:border-primary/30 hover:bg-muted"
-                @click="markAsRead(rec as Article)"
-              >
-                <span class="mb-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
-                  {{ shortName(rec.feedName) }}
-                </span>
-                <p class="line-clamp-2 font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-              </a>
-            </li>
-          </ul>
         </div>
-
       </div>
     </div>
   </Teleport>
