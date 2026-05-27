@@ -477,9 +477,8 @@ onUnmounted(() => observer?.disconnect())
           <!-- 모바일 검색 -->
           <form class="relative lg:hidden" @submit.prevent="submitSearch">
             <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input v-model="searchInput" type="text" placeholder="아티클 검색"
+            <input v-model="searchInput" type="text" placeholder="제목 검색..."
               class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              placeholder="제목 검색..."
             />
             <button v-if="searchInput" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="clearSearch">
               <X class="size-3.5" />
