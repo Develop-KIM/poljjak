@@ -476,7 +476,12 @@ onUnmounted(() => observer?.disconnect())
               class="group relative flex h-full flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
               :class="{ 'opacity-75': readIds.has(article.id) }"
             >
-              <NuxtLink :to="`/articles/${article.id}`"
+              <!-- 국내: 상세 페이지 / 해외: 외부 바로 이동 -->
+              <component
+                :is="article.category === 'domestic' ? 'NuxtLink' : 'a'"
+                v-bind="article.category === 'domestic'
+                  ? { to: `/articles/${article.id}` }
+                  : { href: article.url, target: '_blank', rel: 'noopener noreferrer' }"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
                 @click="markAsRead(article)"
               >
@@ -497,7 +502,7 @@ onUnmounted(() => observer?.disconnect())
                     @click.prevent.stop="selectTag(selectedTag === tag ? null : tag)"
                   >{{ tag }}</button>
                 </div>
-              </NuxtLink>
+              </component>
               <div class="flex items-center justify-between border-t border-border px-4 py-3 md:px-5">
                 <span class="text-xs text-muted-foreground">{{ formatDate(article.publishedAt) }}</span>
                 <div class="flex items-center gap-1">

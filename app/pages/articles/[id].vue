@@ -109,6 +109,13 @@ async function generateSummary() {
   }
 }
 
+// 국내 아티클이고 AI 요약이 없으면 자동 생성
+onMounted(() => {
+  if (article.value?.category === 'domestic' && !article.value.aiSummary) {
+    generateSummary()
+  }
+})
+
 // ── 북마크 / 공유 ──────────────────────────────────
 const showLoginModal = ref(false)
 const bookmarkPending = ref(false)
@@ -183,16 +190,16 @@ async function share() {
           {{ new URL(article.url).hostname.replace('www.', '') }}
         </a>
 
+        <hr class="my-6 border-border" />
+
         <!-- 태그 -->
-        <div v-if="article.tags.length > 0" class="mt-4 flex flex-wrap gap-1.5">
+        <div v-if="article.tags.length > 0" class="mb-5 flex flex-wrap gap-1.5">
           <button v-for="tag in article.tags" :key="tag" type="button"
-            class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+            class="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
             @click="goToTag(tag)">
             <Tag class="size-3" />{{ tag }}
           </button>
         </div>
-
-        <hr class="my-6 border-border" />
 
         <!-- AI 요약 + 도식화 -->
         <div v-if="hasAiData" class="space-y-4">
