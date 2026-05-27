@@ -622,7 +622,7 @@ onUnmounted(() => observer?.disconnect())
                     <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
                     {{ shortName(rec.feedName) }}
                   </span>
-                  <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                  <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
                 </a>
               </li>
             </ul>
@@ -641,7 +641,7 @@ onUnmounted(() => observer?.disconnect())
                     <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
                     {{ shortName(rec.feedName) }}
                   </span>
-                  <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                  <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
                 </a>
               </li>
             </ul>
