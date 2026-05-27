@@ -30,15 +30,15 @@ const BRAND_COLORS: Record<string, string> = {
   '인프런 기술 블로그': '#00C471', '리디 기술 블로그': '#1E9EFF',
   '하이퍼커넥트 기술 블로그': '#E31D1C', '올리브영 기술 블로그': '#3DAA6D',
   '29CM 기술 블로그': '#1A1A1A',
-  'Hacker News': '#FF6600', 'dev.to': '#0A0A0A',
+  'Hacker News': '#FF6600', 'dev.to': '#6366F1',
   'Smashing Magazine': '#E85A4F', 'CSS-Tricks': '#FF453A',
   'Engineering at Meta': '#0866FF', 'Google Developers': '#4285F4',
-  'Netflix Tech Blog': '#E50914', 'Uber Engineering': '#1B1B1B',
+  'Netflix Tech Blog': '#E50914', 'Uber Engineering': '#9CA3AF',
   'Airbnb Engineering': '#FF5A5F', 'Shopify Engineering': '#96BF48',
-  'GitHub Blog': '#24292F', 'Stripe Blog': '#635BFF',
-  'Cloudflare Blog': '#F48120', 'Vercel Blog': '#000000',
+  'GitHub Blog': '#6B7280', 'Stripe Blog': '#635BFF',
+  'Cloudflare Blog': '#F48120', 'Vercel Blog': '#6B7280',
   'Discord Blog': '#5865F2', 'Figma Blog': '#F24E1E',
-  'Notion Blog': '#000000', 'Slack Engineering': '#4A154B',
+  'Notion Blog': '#6B7280', 'Slack Engineering': '#E01E5A',
   'Spotify Engineering': '#1DB954',
 }
 
@@ -344,7 +344,7 @@ onUnmounted(() => observer?.disconnect())
               <a :href="article.url" target="_blank" rel="noopener noreferrer"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
               >
-                <span class="flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                <span class="flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                   <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(article.feedName) }" />
                   {{ shortName(article.feedName) }}
                 </span>
