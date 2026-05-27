@@ -429,35 +429,6 @@ onUnmounted(() => observer?.disconnect())
           </li>
         </ul>
 
-        <template v-if="!feedsLoading">
-          <p class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">주제</p>
-          <ul class="space-y-0.5">
-            <li>
-              <button type="button"
-                class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
-                :class="selectedTag === null ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
-                @click="selectTag(null)"
-              >전체</button>
-            </li>
-            <li v-for="tag in TAGS" :key="tag" class="group/item flex items-center">
-              <button type="button"
-                class="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
-                :class="selectedTag === tag ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
-                @click="selectTag(tag)"
-              >{{ tag }}</button>
-              <button
-                type="button"
-                class="mr-1 shrink-0 rounded p-1 opacity-0 transition-opacity group-hover/item:opacity-100"
-                :class="subscribedTags.has(tag) ? 'text-primary opacity-100' : 'text-muted-foreground hover:text-foreground'"
-                :title="subscribedTags.has(tag) ? '구독 해제' : '새 글 알림 구독'"
-                @click.stop="toggleSubscribeTag(tag)"
-              >
-                <BellOff v-if="subscribedTags.has(tag)" class="size-3" />
-                <Bell v-else class="size-3" />
-              </button>
-            </li>
-          </ul>
-        </template>
       </aside>
 
       <!-- 메인 -->
@@ -603,78 +574,84 @@ onUnmounted(() => observer?.disconnect())
 
         <AppEmptyState v-else :title="emptyTitle" :description="emptyDesc" />
       </div>
-
-      <!-- 오른쪽 추천 사이드바 (xl 이상, sticky) -->
-      <aside v-if="hasRec" class="hidden w-60 shrink-0 xl:block">
-        <div class="sticky top-20 space-y-6">
-
-          <!-- 태그 기반 추천 -->
-          <div v-if="recByTag.length > 0">
-            <div class="mb-2.5 flex items-center gap-1.5">
-              <Sparkles class="size-3.5 text-primary" />
-              <p class="text-xs font-bold text-foreground">{{ recInsight.topTag }} 추천</p>
-            </div>
-            <ul class="space-y-2">
-              <li v-for="rec in recByTag" :key="rec.id">
-                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                  class="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
-                  @click="markAsRead(rec as Article)"
-                >
-                  <span class="mb-1.5 inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
-                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
-                    {{ shortName(rec.feedName) }}
-                  </span>
-                  <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <!-- 출처 기반 추천 -->
-          <div v-if="recByFeed.length > 0">
-            <div class="mb-2.5 flex items-center gap-1.5">
-              <span class="size-2 rounded-full" :style="{ backgroundColor: getBrandColor(recInsight.topFeed ?? '') }" />
-              <p class="text-xs font-bold text-foreground">{{ shortName(recInsight.topFeed ?? '') }} 새 글</p>
-            </div>
-            <ul class="space-y-2">
-              <li v-for="rec in recByFeed" :key="rec.id">
-                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                  class="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
-                  @click="markAsRead(rec as Article)"
-                >
-                  <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-                  <p class="mt-1 text-[10px] text-muted-foreground">{{ formatDate(rec.publishedAt) }}</p>
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <!-- 태그/출처 기록 없을 때 오늘의 인기 -->
-          <div v-if="!recInsight.topTag && !recInsight.topFeed && recFallback.length > 0">
-            <div class="mb-2.5 flex items-center gap-1.5">
-              <Sparkles class="size-3.5 text-primary" />
-              <p class="text-xs font-bold text-foreground">오늘의 인기 아티클</p>
-            </div>
-            <ul class="space-y-2">
-              <li v-for="rec in recFallback" :key="rec.id">
-                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                  class="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
-                  @click="markAsRead(rec as Article)"
-                >
-                  <span class="mb-1.5 inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
-                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
-                    {{ shortName(rec.feedName) }}
-                  </span>
-                  <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-                </a>
-              </li>
-            </ul>
-          </div>
-
-        </div>
-      </aside>
     </div>
   </div>
+
+  <!-- 1440px 컨테이너 밖, 오른쪽 여백에 고정 추천 패널 (뷰포트 1700px+ 전용) -->
+  <Teleport to="body">
+    <div
+      v-if="hasRec"
+      class="fixed top-20 z-20 hidden w-52 min-[1700px]:block"
+      style="left: calc(50% + 730px)"
+    >
+      <div class="max-h-[calc(100vh-88px)] space-y-5 overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-lg scrollbar-none">
+
+        <!-- 태그 기반 추천 -->
+        <div v-if="recByTag.length > 0">
+          <div class="mb-2.5 flex items-center gap-1.5">
+            <Sparkles class="size-3 text-primary" />
+            <p class="text-[11px] font-bold text-foreground">{{ recInsight.topTag }} 추천</p>
+          </div>
+          <ul class="space-y-2">
+            <li v-for="rec in recByTag" :key="rec.id">
+              <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                class="block rounded-xl border border-border p-2.5 text-xs transition-all hover:border-primary/30 hover:bg-muted"
+                @click="markAsRead(rec as Article)"
+              >
+                <span class="mb-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                  {{ shortName(rec.feedName) }}
+                </span>
+                <p class="line-clamp-2 font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- 출처 기반 추천 -->
+        <div v-if="recByFeed.length > 0">
+          <div class="mb-2.5 flex items-center gap-1.5">
+            <span class="size-2 rounded-full" :style="{ backgroundColor: getBrandColor(recInsight.topFeed ?? '') }" />
+            <p class="text-[11px] font-bold text-foreground">{{ shortName(recInsight.topFeed ?? '') }} 새 글</p>
+          </div>
+          <ul class="space-y-2">
+            <li v-for="rec in recByFeed" :key="rec.id">
+              <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                class="block rounded-xl border border-border p-2.5 text-xs transition-all hover:border-primary/30 hover:bg-muted"
+                @click="markAsRead(rec as Article)"
+              >
+                <p class="line-clamp-2 font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                <p class="mt-1 text-[10px] text-muted-foreground">{{ formatDate(rec.publishedAt) }}</p>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- 기록 없을 때 오늘의 인기 -->
+        <div v-if="!recInsight.topTag && !recInsight.topFeed && recFallback.length > 0">
+          <div class="mb-2.5 flex items-center gap-1.5">
+            <Sparkles class="size-3 text-primary" />
+            <p class="text-[11px] font-bold text-foreground">오늘의 인기 아티클</p>
+          </div>
+          <ul class="space-y-2">
+            <li v-for="rec in recFallback" :key="rec.id">
+              <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                class="block rounded-xl border border-border p-2.5 text-xs transition-all hover:border-primary/30 hover:bg-muted"
+                @click="markAsRead(rec as Article)"
+              >
+                <span class="mb-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                  {{ shortName(rec.feedName) }}
+                </span>
+                <p class="line-clamp-2 font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </Teleport>
 
   <LoginModal :open="showLoginModal" context="아티클 북마크" @close="showLoginModal = false" />
 </template>
