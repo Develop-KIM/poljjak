@@ -17,6 +17,9 @@ interface AdminUser {
   suspendedAt: string | null
   lastLoginAt: string | null
   createdAt: string
+  postCount: number
+  commentCount: number
+  analysisCount: number
 }
 
 const toast = useToastStore()
@@ -186,6 +189,9 @@ onMounted(fetchUsers)
             <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">역할</th>
             <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">가입일</th>
             <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">마지막 로그인</th>
+            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">게시글</th>
+            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">댓글</th>
+            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">분석</th>
             <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">상태</th>
             <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">액션</th>
           </tr>
@@ -222,6 +228,10 @@ onMounted(fetchUsers)
             <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ formatDate(user.createdAt) }}</td>
             <!-- 마지막 로그인: 중앙 정렬 -->
             <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ formatDate(user.lastLoginAt) }}</td>
+            <!-- 활동 수치 -->
+            <td class="px-4 py-3 text-center text-xs font-medium text-foreground">{{ user.postCount }}</td>
+            <td class="px-4 py-3 text-center text-xs font-medium text-foreground">{{ user.commentCount }}</td>
+            <td class="px-4 py-3 text-center text-xs font-medium text-foreground">{{ user.analysisCount }}</td>
             <!-- 상태: 중앙 정렬 -->
             <td class="px-4 py-3 text-center">
               <AppBadge :variant="user.suspendedAt ? 'red' : 'green'">

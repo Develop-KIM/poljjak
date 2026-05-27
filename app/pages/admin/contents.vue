@@ -37,6 +37,7 @@ const tabs: Array<{ label: string; value: ContentTab }> = [
 // 삭제 확인 대상
 const confirmTarget = ref<{ type: 'post' | 'comment'; id: string } | null>(null)
 const deletingIds = ref<Set<string>>(new Set())
+const restoringIds = ref<Set<string>>(new Set())
 
 async function fetchContents() {
   pending.value = true
@@ -81,6 +82,24 @@ function requestDelete(type: 'post' | 'comment', id: string) {
 
 function cancelDelete() {
   confirmTarget.value = null
+}
+
+async function restoreContent(type: 'post' | 'comment', id: string) {
+  if (restoringIds.value.has(id)) return
+  restoringIds.value = new Set([...restoringIds.value, id])
+  try {
+    await $fetch(`/api/admin/contents/${type}/${id}/restore`, { method: 'POST' })
+    toast.success('콘텐츠를 복구했어요')
+    const idx = items.value.findIndex((c) => c.id === id)
+    if (idx !== -1) items.value[idx] = { ...items.value[idx]!, isDeleted: false }
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '복구에 실패했어요')
+  } finally {
+    const next = new Set(restoringIds.value)
+    next.delete(id)
+    restoringIds.value = next
+  }
 }
 
 async function executeDelete() {
@@ -217,14 +236,26 @@ onMounted(fetchContents)
               </AppBadge>
             </td>
             <td class="px-4 py-3 text-center">
-              <AppButton
-                variant="destructive"
-                size="sm"
-                :disabled="item.isDeleted || deletingIds.has(item.id)"
-                @click="requestDelete(item.type, item.id)"
-              >
-                삭제
-              </AppButton>
+              <div class="flex items-center justify-center gap-1.5">
+                <AppButton
+                  v-if="item.isDeleted"
+                  variant="outline"
+                  size="sm"
+                  :loading="restoringIds.has(item.id)"
+                  @click="restoreContent(item.type, item.id)"
+                >
+                  복구
+                </AppButton>
+                <AppButton
+                  v-else
+                  variant="destructive"
+                  size="sm"
+                  :disabled="deletingIds.has(item.id)"
+                  @click="requestDelete(item.type, item.id)"
+                >
+                  삭제
+                </AppButton>
+              </div>
             </td>
           </tr>
         </tbody>

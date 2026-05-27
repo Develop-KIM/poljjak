@@ -13,7 +13,7 @@ import {
   LinearScale,
   Filler,
 } from 'chart.js'
-import { RotateCcw } from '@lucide/vue'
+import { Loader2, RefreshCw, RotateCcw } from '@lucide/vue'
 
 // chart.js 필수 컴포넌트 등록
 ChartJS.register(
@@ -34,6 +34,21 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 useSeoMeta({ title: '대시보드 · 폴짝 관리자' })
 
 const toast = useToastStore()
+
+const collecting = ref(false)
+async function triggerCollect() {
+  if (collecting.value) return
+  collecting.value = true
+  try {
+    const res = await $fetch<{ data: { inserted: number; skipped: number; cleaned: number } }>('/api/admin/articles/collect', { method: 'POST' })
+    toast.success(`수집 완료 — 신규 ${res.data.inserted}개, 중복 ${res.data.skipped}개, 정리 ${res.data.cleaned}개`)
+    await fetchStats()
+  } catch {
+    toast.error('아티클 수집에 실패했어요')
+  } finally {
+    collecting.value = false
+  }
+}
 
 // ─── 서비스·AI 현황 카드 ─────────────────────────────────────────────────
 
@@ -338,6 +353,18 @@ function formatNumber(n: number): string {
           <p class="mt-2 text-2xl font-black text-foreground">{{ formatNumber(stats?.totalSubscriptions ?? 0) }}</p>
           <p class="mt-1 text-xs text-muted-foreground">출처·태그 구독 합계</p>
         </div>
+      </div>
+      <div class="mt-3">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          :disabled="collecting"
+          @click="triggerCollect"
+        >
+          <Loader2 v-if="collecting" class="size-4 animate-spin" />
+          <RefreshCw v-else class="size-4" />
+          {{ collecting ? '수집 중...' : '지금 수집' }}
+        </button>
       </div>
     </section>
 

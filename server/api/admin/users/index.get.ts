@@ -1,13 +1,12 @@
-import { and, count, desc, ilike, isNull, or } from 'drizzle-orm'
+import { and, count, desc, ilike, isNull, or, sql } from 'drizzle-orm'
 import { requireAdmin } from '../../../utils/admin'
 import { db } from '../../../db'
-import { users } from '../../../db/schema'
+import { analyses, comments, posts, users } from '../../../db/schema'
 import { formatCommunityDate } from '../../../utils/community'
 
 const PAGE_SIZE = 20
 
 export default defineEventHandler(async (event) => {
-  // 관리자 권한 확인
   await requireAdmin(event)
 
   const query = getQuery(event)
@@ -15,7 +14,6 @@ export default defineEventHandler(async (event) => {
   const page = Math.max(1, Number(query.page ?? 1))
   const offset = (page - 1) * PAGE_SIZE
 
-  // 탈퇴하지 않은 사용자, nickname 또는 email ILIKE 검색
   const whereClause = q
     ? and(isNull(users.deletedAt), or(ilike(users.nickname, `%${q}%`), ilike(users.email, `%${q}%`)))
     : isNull(users.deletedAt)
@@ -30,6 +28,9 @@ export default defineEventHandler(async (event) => {
       suspendedAt: users.suspendedAt,
       lastLoginAt: users.lastLoginAt,
       createdAt: users.createdAt,
+      postCount: sql<number>`(SELECT COUNT(*) FROM posts WHERE user_id = ${users.id} AND deleted_at IS NULL)`,
+      commentCount: sql<number>`(SELECT COUNT(*) FROM comments WHERE user_id = ${users.id} AND deleted_at IS NULL)`,
+      analysisCount: sql<number>`(SELECT COUNT(*) FROM analyses WHERE user_id = ${users.id})`,
     })
     .from(users)
     .where(whereClause)
@@ -37,10 +38,7 @@ export default defineEventHandler(async (event) => {
     .limit(PAGE_SIZE)
     .offset(offset)
 
-  const [totalRow] = await db
-    .select({ count: count() })
-    .from(users)
-    .where(whereClause)
+  const [totalRow] = await db.select({ count: count() }).from(users).where(whereClause)
 
   const items = userRows.map((row) => ({
     id: row.id,
@@ -51,12 +49,10 @@ export default defineEventHandler(async (event) => {
     suspendedAt: row.suspendedAt ? formatCommunityDate(row.suspendedAt) : null,
     lastLoginAt: row.lastLoginAt ? formatCommunityDate(row.lastLoginAt) : null,
     createdAt: formatCommunityDate(row.createdAt),
+    postCount: Number(row.postCount),
+    commentCount: Number(row.commentCount),
+    analysisCount: Number(row.analysisCount),
   }))
 
-  return {
-    data: {
-      items,
-      total: totalRow?.count ?? 0,
-    },
-  }
+  return { data: { items, total: totalRow?.count ?? 0 } }
 })
