@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ChevronLeft, ChevronRight } from '@lucide/vue'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from '@lucide/vue'
 
 const props = defineProps<{
   current: number
@@ -27,6 +27,16 @@ const hasNextGroup = computed(() => groupEnd.value < props.total)
 
 <template>
   <div class="flex items-center justify-center gap-1">
+    <!-- 이전 그룹 -->
+    <button
+      v-if="hasPrevGroup"
+      type="button"
+      class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted disabled:opacity-30"
+      @click="emit('change', groupStart - 1)"
+    >
+      <ChevronsLeft class="size-4" />
+    </button>
+
     <!-- 이전 페이지 -->
     <button
       type="button"
@@ -35,16 +45,6 @@ const hasNextGroup = computed(() => groupEnd.value < props.total)
       @click="emit('change', current - 1)"
     >
       <ChevronLeft class="size-4" />
-    </button>
-
-    <!-- 이전 그룹 (...) -->
-    <button
-      v-if="hasPrevGroup"
-      type="button"
-      class="flex size-8 items-center justify-center rounded-lg text-sm text-muted-foreground transition-colors hover:bg-muted"
-      @click="emit('change', groupStart - 1)"
-    >
-      ‹‹
     </button>
 
     <!-- 현재 그룹 페이지들 -->
@@ -59,16 +59,6 @@ const hasNextGroup = computed(() => groupEnd.value < props.total)
       {{ p }}
     </button>
 
-    <!-- 다음 그룹 (...) -->
-    <button
-      v-if="hasNextGroup"
-      type="button"
-      class="flex size-8 items-center justify-center rounded-lg text-sm text-muted-foreground transition-colors hover:bg-muted"
-      @click="emit('change', groupEnd + 1)"
-    >
-      ››
-    </button>
-
     <!-- 다음 페이지 -->
     <button
       type="button"
@@ -77,6 +67,16 @@ const hasNextGroup = computed(() => groupEnd.value < props.total)
       @click="emit('change', current + 1)"
     >
       <ChevronRight class="size-4" />
+    </button>
+
+    <!-- 다음 그룹 -->
+    <button
+      v-if="hasNextGroup"
+      type="button"
+      class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted disabled:opacity-30"
+      @click="emit('change', groupEnd + 1)"
+    >
+      <ChevronsRight class="size-4" />
     </button>
   </div>
 </template>

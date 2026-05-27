@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { Bookmark, BookmarkCheck, Loader2, Search, X } from '@lucide/vue'
+import { Bookmark, BookmarkCheck, Loader2, Search, X, Share2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 
@@ -29,7 +29,6 @@ const BRAND_COLORS: Record<string, string> = {
   '무신사 기술 블로그': '#555555', '왓챠 기술 블로그': '#FF2F6E',
   '인프런 기술 블로그': '#00C471', '리디 기술 블로그': '#1E9EFF',
   '하이퍼커넥트 기술 블로그': '#E31D1C', '올리브영 기술 블로그': '#3DAA6D',
-  '29CM 기술 블로그': '#1A1A1A',
   'Hacker News': '#FF6600', 'dev.to': '#6366F1',
   'Smashing Magazine': '#E85A4F', 'CSS-Tricks': '#FF453A',
   'Engineering at Meta': '#0866FF', 'Google Developers': '#4285F4',
@@ -41,7 +40,6 @@ const BRAND_COLORS: Record<string, string> = {
   'Notion Blog': '#6B7280', 'Slack Engineering': '#E01E5A',
   'Spotify Engineering': '#1DB954',
 }
-
 function getBrandColor(feedName: string) { return BRAND_COLORS[feedName] ?? '#6B7280' }
 function shortName(feedName: string) {
   return feedName.replace(' 기술 블로그', '').replace(' Tech Blog', '')
@@ -58,6 +56,9 @@ type Period = 'all' | 'today' | 'week' | 'month'
 type Sort = 'latest' | 'trending'
 
 const TAGS = ['Frontend', 'Backend', 'DevOps', 'AI/ML', 'Database', 'Architecture', 'Mobile', 'Security', 'Performance', 'Data']
+const READ_KEY = 'poljjak_read_articles'
+const RECENT_KEY = 'poljjak_recent_articles'
+const MAX_RECENT = 20
 
 const activeTab = ref<ArticleTab>(route.query.category === 'international' ? 'international' : 'domestic')
 const selectedFeed = ref<string | null>(null)
@@ -78,6 +79,31 @@ const showLoginModal = ref(false)
 const sentinelRef = ref<HTMLElement | null>(null)
 const PAGE_SIZE = 21
 
+// ── 읽음 처리 ──────────────────────────────────────
+const readIds = ref<Set<string>>(new Set())
+function loadReadIds() {
+  if (!import.meta.client) return
+  try { readIds.value = new Set(JSON.parse(localStorage.getItem(READ_KEY) ?? '[]')) } catch { /* ignore */ }
+}
+function markAsRead(article: Article) {
+  if (!import.meta.client) return
+  readIds.value = new Set([...readIds.value, article.id])
+  // 최근 본 아티클 저장
+  try {
+    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Array<{
+      id: string; title: string; url: string; feedName: string; publishedAt: string; visitedAt: string
+    }>
+    const filtered = raw.filter((r) => r.id !== article.id)
+    filtered.unshift({
+      id: article.id, title: article.title, url: article.url,
+      feedName: article.feedName, publishedAt: article.publishedAt,
+      visitedAt: new Date().toISOString(),
+    })
+    localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, MAX_RECENT)))
+    localStorage.setItem(READ_KEY, JSON.stringify([...readIds.value]))
+  } catch { /* ignore */ }
+}
+
 const tabs: Array<{ label: string; value: ArticleTab }> = [
   { label: '기술 블로그', value: 'domestic' },
   { label: 'IT 뉴스', value: 'international' },
@@ -90,12 +116,35 @@ const currentFeedNames = computed(() =>
   activeTab.value === 'domestic' ? feedNames.value.domestic : feedNames.value.international,
 )
 const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
-const isDesktop = computed(() => import.meta.client ? window.innerWidth >= 1024 : true)
 
-// 모바일 select용 feedName 값 (null → '')
 const selectedFeedValue = computed({
   get: () => selectedFeed.value ?? '',
   set: (v: string) => { selectedFeed.value = v || null; currentPage.value = 1 },
+})
+
+// 활성 필터 태그
+const activeFilters = computed(() => {
+  const filters: Array<{ label: string; clear: () => void }> = []
+  if (selectedFeed.value) filters.push({ label: shortName(selectedFeed.value), clear: () => selectFeed(null) })
+  if (selectedTag.value) filters.push({ label: selectedTag.value, clear: () => selectTag(null) })
+  if (selectedPeriod.value !== 'all') {
+    const p = periods.find((p) => p.value === selectedPeriod.value)
+    if (p) filters.push({ label: p.label, clear: () => selectPeriod('all') })
+  }
+  if (selectedSort.value !== 'latest') filters.push({ label: '트렌딩', clear: () => selectSort('latest') })
+  if (searchQuery.value) filters.push({ label: `"${searchQuery.value}"`, clear: () => clearSearch() })
+  return filters
+})
+
+// 빈 상태 메시지
+const emptyTitle = computed(() => {
+  if (searchQuery.value) return `"${searchQuery.value}"에 대한 결과가 없어요`
+  if (activeFilters.value.length > 0) return '선택한 조건에 맞는 아티클이 없어요'
+  return '아직 수집된 아티클이 없어요'
+})
+const emptyDesc = computed(() => {
+  if (searchQuery.value || activeFilters.value.length > 0) return '다른 검색어나 필터를 시도해보세요'
+  return '곧 최신 기술 블로그 글이 올라올 예정이에요'
 })
 
 async function fetchFeeds() {
@@ -103,14 +152,13 @@ async function fetchFeeds() {
   try {
     const res = await $fetch<{ data: { domestic: string[]; international: string[] } }>('/api/articles/feeds')
     feedNames.value = res.data
-  } catch { /* 피드 목록 로드 실패 시 필터 숨김 */ }
+  } catch { /* ignore */ }
   finally { feedsLoading.value = false }
 }
 
 async function fetchArticles(append = false) {
   if (append) loadingMore.value = true
   else pending.value = true
-
   try {
     const res = await $fetch<{ data: Article[]; total: number }>('/api/articles', {
       query: {
@@ -133,12 +181,14 @@ async function fetchArticles(append = false) {
   }
 }
 
-function resetAndFetch() { currentPage.value = 1; articles.value = []; fetchArticles() }
-
-function selectTab(tab: ArticleTab) {
-  activeTab.value = tab; selectedFeed.value = null; resetAndFetch()
-  router.replace({ query: { category: tab } })
+function resetAndFetch() {
+  currentPage.value = 1
+  articles.value = []
+  if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
+  fetchArticles()
 }
+
+function selectTab(tab: ArticleTab) { activeTab.value = tab; selectedFeed.value = null; resetAndFetch(); router.replace({ query: { category: tab } }) }
 function selectFeed(name: string | null) { selectedFeed.value = name; resetAndFetch() }
 function selectTag(tag: string | null) { selectedTag.value = tag; resetAndFetch() }
 function selectSort(s: Sort) { selectedSort.value = s; resetAndFetch() }
@@ -146,10 +196,19 @@ function selectPeriod(p: Period) { selectedPeriod.value = p; resetAndFetch() }
 function submitSearch() { searchQuery.value = searchInput.value.trim(); resetAndFetch() }
 function clearSearch() { searchInput.value = ''; searchQuery.value = ''; resetAndFetch() }
 
-// 데스크탑 페이지네이션
 function goPage(page: number) { currentPage.value = page; fetchArticles(); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
-// 모바일 무한 스크롤
+// 공유
+async function shareArticle(article: Article) {
+  try {
+    await navigator.clipboard.writeText(article.url)
+    toast.success('링크가 복사됐어요')
+  } catch {
+    toast.error('복사에 실패했어요')
+  }
+}
+
+// 무한 스크롤
 let observer: IntersectionObserver | null = null
 function setupInfiniteScroll() {
   observer?.disconnect()
@@ -185,7 +244,7 @@ function formatDate(iso: string) {
 }
 
 watch([activeTab, selectedFeed, selectedTag, selectedPeriod, selectedSort, searchQuery], resetAndFetch)
-onMounted(() => { fetchFeeds(); fetchArticles(); nextTick(setupInfiniteScroll) })
+onMounted(() => { loadReadIds(); fetchFeeds(); fetchArticles(); nextTick(setupInfiniteScroll) })
 onUnmounted(() => observer?.disconnect())
 </script>
 
@@ -204,14 +263,12 @@ onUnmounted(() => observer?.disconnect())
     </div>
 
     <div class="flex gap-8">
-      <!-- ── 데스크탑 사이드바 (항상 공간 확보) ── -->
+      <!-- 사이드바 -->
       <aside class="hidden w-44 shrink-0 lg:block">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">출처</p>
-        <!-- 스켈레톤 -->
         <ul v-if="feedsLoading" class="space-y-1">
           <li v-for="i in 8" :key="i" class="h-9 animate-pulse rounded-lg bg-muted" />
         </ul>
-        <!-- 실제 목록 -->
         <ul v-else class="space-y-0.5">
           <li>
             <button type="button"
@@ -232,102 +289,86 @@ onUnmounted(() => observer?.disconnect())
           </li>
         </ul>
 
-        <!-- 태그 필터 -->
-        <p class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">주제</p>
-        <ul class="space-y-0.5" v-if="!feedsLoading">
-          <li>
-            <button type="button"
-              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
-              :class="selectedTag === null ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
-              @click="selectTag(null)"
-            >전체</button>
-          </li>
-          <li v-for="tag in TAGS" :key="tag">
-            <button type="button"
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
-              :class="selectedTag === tag ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
-              @click="selectTag(tag)"
-            >{{ tag }}</button>
-          </li>
-        </ul>
+        <template v-if="!feedsLoading">
+          <p class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">주제</p>
+          <ul class="space-y-0.5">
+            <li>
+              <button type="button"
+                class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
+                :class="selectedTag === null ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+                @click="selectTag(null)"
+              >전체</button>
+            </li>
+            <li v-for="tag in TAGS" :key="tag">
+              <button type="button"
+                class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
+                :class="selectedTag === tag ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+                @click="selectTag(tag)"
+              >{{ tag }}</button>
+            </li>
+          </ul>
+        </template>
       </aside>
 
-      <!-- ── 메인 ── -->
+      <!-- 메인 -->
       <div class="min-w-0 flex-1">
 
         <!-- 컨트롤 바 -->
-        <div class="mb-5 flex flex-col gap-3">
-          <!-- 데스크탑: 검색 + 정렬/기간 한 줄 -->
+        <div class="mb-4 flex flex-col gap-3">
+          <!-- 데스크탑 -->
           <div class="hidden items-center gap-2 lg:flex">
             <form class="relative flex-1" @submit.prevent="submitSearch">
               <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                v-model="searchInput" type="text" placeholder="아티클 검색"
+              <input v-model="searchInput" type="text" placeholder="아티클 검색"
                 class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
-              <button v-if="searchInput" type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                @click="clearSearch"
-              ><X class="size-3.5" /></button>
+              <button v-if="searchInput" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="clearSearch">
+                <X class="size-3.5" />
+              </button>
             </form>
             <div class="flex shrink-0 overflow-hidden rounded-xl border border-border bg-background">
-              <button type="button"
-                class="px-4 py-2 text-xs font-medium transition-colors"
-                :class="selectedSort === 'latest' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
-                @click="selectSort('latest')"
-              >최신순</button>
-              <button type="button"
-                class="px-4 py-2 text-xs font-medium transition-colors"
-                :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
-                @click="selectSort('trending')"
-              >트렌딩</button>
+              <button type="button" class="px-4 py-2 text-xs font-medium transition-colors" :class="selectedSort === 'latest' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('latest')">최신순</button>
+              <button type="button" class="px-4 py-2 text-xs font-medium transition-colors" :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('trending')">트렌딩</button>
             </div>
             <div class="flex shrink-0 overflow-hidden rounded-xl border border-border bg-background">
-              <button v-for="p in periods" :key="p.value" type="button"
-                class="px-3 py-2 text-xs font-medium transition-colors"
-                :class="selectedPeriod === p.value ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'"
-                @click="selectPeriod(p.value)"
-              >{{ p.label }}</button>
+              <button v-for="p in periods" :key="p.value" type="button" class="px-3 py-2 text-xs font-medium transition-colors" :class="selectedPeriod === p.value ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectPeriod(p.value)">{{ p.label }}</button>
             </div>
           </div>
 
-          <!-- 모바일: 검색창 -->
+          <!-- 모바일 검색 -->
           <form class="relative lg:hidden" @submit.prevent="submitSearch">
             <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              v-model="searchInput" type="text" placeholder="아티클 검색"
+            <input v-model="searchInput" type="text" placeholder="아티클 검색"
               class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
-            <button v-if="searchInput" type="button"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              @click="clearSearch"
-            ><X class="size-3.5" /></button>
+            <button v-if="searchInput" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="clearSearch">
+              <X class="size-3.5" />
+            </button>
           </form>
 
-          <!-- 모바일: 커스텀 드롭다운 -->
+          <!-- 모바일 드롭다운 -->
           <div class="grid grid-cols-2 gap-2 pr-1 lg:hidden">
-            <AppDropdown
-              :model-value="selectedFeedValue"
-              :options="[{ label: '전체 출처', value: '' }, ...currentFeedNames.map(n => ({ label: shortName(n), value: n }))]"
-              @update:model-value="selectedFeedValue = $event"
-            />
-            <AppDropdown
-              :model-value="selectedTag ?? ''"
-              :options="[{ label: '전체 주제', value: '' }, ...TAGS.map(t => ({ label: t, value: t }))]"
-              @update:model-value="selectTag($event || null)"
-            />
-            <AppDropdown
-              :model-value="selectedSort"
-              :options="[{ label: '최신순', value: 'latest' }, { label: '트렌딩', value: 'trending' }]"
-              @update:model-value="selectSort($event as Sort)"
-            />
-            <AppDropdown
-              :model-value="selectedPeriod"
-              :options="periods.map(p => ({ label: p.label, value: p.value }))"
-              @update:model-value="selectPeriod($event as Period)"
-            />
+            <AppDropdown :model-value="selectedFeedValue" :options="[{ label: '전체 출처', value: '' }, ...currentFeedNames.map(n => ({ label: shortName(n), value: n }))]" @update:model-value="selectedFeedValue = $event" />
+            <AppDropdown :model-value="selectedTag ?? ''" :options="[{ label: '전체 주제', value: '' }, ...TAGS.map(t => ({ label: t, value: t }))]" @update:model-value="selectTag($event || null)" />
+            <AppDropdown :model-value="selectedSort" :options="[{ label: '최신순', value: 'latest' }, { label: '트렌딩', value: 'trending' }]" @update:model-value="selectSort($event as Sort)" />
+            <AppDropdown :model-value="selectedPeriod" :options="periods.map(p => ({ label: p.label, value: p.value }))" @update:model-value="selectPeriod($event as Period)" />
           </div>
 
+          <!-- 활성 필터 태그 -->
+          <div v-if="activeFilters.length > 0" class="flex flex-wrap gap-2">
+            <span
+              v-for="f in activeFilters" :key="f.label"
+              class="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+            >
+              {{ f.label }}
+              <button type="button" class="ml-0.5 rounded-full hover:bg-primary/20" @click="f.clear()">
+                <X class="size-3" />
+              </button>
+            </span>
+            <button type="button" class="text-xs text-muted-foreground underline-offset-2 hover:underline" @click="selectedFeed = null; selectedTag = null; selectedPeriod = 'all'; selectedSort = 'latest'; clearSearch()">
+              전체 초기화
+            </button>
+          </div>
         </div>
 
         <!-- 로딩 -->
@@ -340,44 +381,56 @@ onUnmounted(() => observer?.disconnect())
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" style="min-height: 600px; align-content: start;">
             <div v-for="article in articles" :key="article.id"
               class="group relative flex h-full flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
+              :class="{ 'opacity-60': readIds.has(article.id) }"
             >
               <a :href="article.url" target="_blank" rel="noopener noreferrer"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
+                @click="markAsRead(article)"
               >
-                <span class="flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                <span class="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground">
                   <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(article.feedName) }" />
-                  {{ shortName(article.feedName) }}
+                  <span>{{ shortName(article.feedName) }}</span>
                 </span>
-                <p class="line-clamp-2 text-sm font-bold leading-snug text-foreground group-hover:text-primary">{{ article.title }}</p>
+                <p class="line-clamp-2 text-sm font-bold leading-snug group-hover:text-primary"
+                  :class="readIds.has(article.id) ? 'text-muted-foreground' : 'text-foreground'"
+                >{{ article.title }}</p>
                 <p v-if="article.summary" class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{{ article.summary }}</p>
               </a>
               <div class="flex items-center justify-between border-t border-border px-4 py-3 md:px-5">
                 <span class="text-xs text-muted-foreground">{{ formatDate(article.publishedAt) }}</span>
-                <button type="button"
-                  class="flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-accent"
-                  :class="article.isBookmarked ? 'text-primary' : 'text-muted-foreground'"
-                  @click.stop="toggleBookmark(article)"
-                >
-                  <BookmarkCheck v-if="article.isBookmarked" class="size-4" />
-                  <Bookmark v-else class="size-4" />
-                </button>
+                <div class="flex items-center gap-1">
+                  <!-- 공유 버튼 -->
+                  <button type="button"
+                    class="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    @click.stop="shareArticle(article)"
+                  >
+                    <Share2 class="size-3.5" />
+                  </button>
+                  <!-- 북마크 버튼 -->
+                  <button type="button"
+                    class="flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-accent"
+                    :class="article.isBookmarked ? 'text-primary' : 'text-muted-foreground'"
+                    @click.stop="toggleBookmark(article)"
+                  >
+                    <BookmarkCheck v-if="article.isBookmarked" class="size-4" />
+                    <Bookmark v-else class="size-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- 데스크탑: 페이지네이션 -->
           <div v-if="totalPages > 1" class="mt-6 hidden lg:block">
             <Pagination :current="currentPage" :total="totalPages" @change="goPage" />
           </div>
 
-          <!-- 모바일: 무한 스크롤 센티넬 -->
           <div ref="sentinelRef" class="flex justify-center py-4 lg:hidden">
             <Loader2 v-if="loadingMore" class="size-5 animate-spin text-muted-foreground" />
             <span v-else-if="!hasMore" class="text-xs text-muted-foreground">모든 아티클을 불러왔어요</span>
           </div>
         </div>
 
-        <AppEmptyState v-else title="아티클이 없어요" description="검색어나 필터를 바꿔보세요." />
+        <AppEmptyState v-else :title="emptyTitle" :description="emptyDesc" />
       </div>
     </div>
   </div>
