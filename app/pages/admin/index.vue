@@ -319,7 +319,7 @@ function formatNumber(n: number): string {
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <!-- 시간대별 분석 요청 막대 차트 -->
         <div class="rounded-xl border border-border bg-white p-5">
-          <p class="mb-4 text-sm font-semibold text-foreground">시간대별 분석 요청 (오늘, KST)</p>
+          <p class="mb-4 text-sm font-semibold text-foreground">오늘 시간대별 분석 요청</p>
           <div v-if="chartPending" class="flex h-56 items-center justify-center">
             <div class="size-7 animate-spin rounded-full border-4 border-border border-t-blue-500" />
           </div>
