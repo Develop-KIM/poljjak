@@ -105,8 +105,8 @@ function markAsRead(article: Article) {
 }
 
 const tabs: Array<{ label: string; value: ArticleTab }> = [
-  { label: '기술 블로그', value: 'domestic' },
-  { label: 'IT 뉴스', value: 'international' },
+  { label: '국내 블로그', value: 'domestic' },
+  { label: '해외 뉴스', value: 'international' },
 ]
 const periods: Array<{ label: string; value: Period }> = [
   { label: '전체', value: 'all' }, { label: '오늘', value: 'today' },
@@ -291,6 +291,15 @@ async function toggleBookmark(article: Article) {
 }
 
 function formatDate(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 60) return m <= 1 ? '방금 전' : `${m}분 전`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}시간 전`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d}일 전`
+  if (d < 30) return `${Math.floor(d / 7)}주 전`
+  if (d < 365) return `${Math.floor(d / 30)}개월 전`
   return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
@@ -390,7 +399,7 @@ onUnmounted(() => observer?.disconnect())
           <div class="hidden items-center gap-2 lg:flex">
             <form class="relative flex-1" @submit.prevent="submitSearch">
               <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input v-model="searchInput" type="text" placeholder="아티클 검색"
+              <input v-model="searchInput" type="text" placeholder="제목 검색..."
                 class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
               <button v-if="searchInput" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="clearSearch">
@@ -411,6 +420,7 @@ onUnmounted(() => observer?.disconnect())
             <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input v-model="searchInput" type="text" placeholder="아티클 검색"
               class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              placeholder="제목 검색..."
             />
             <button v-if="searchInput" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="clearSearch">
               <X class="size-3.5" />
@@ -419,8 +429,8 @@ onUnmounted(() => observer?.disconnect())
 
           <!-- 모바일 드롭다운 -->
           <div class="grid grid-cols-2 gap-2 pr-1 lg:hidden">
-            <AppDropdown :model-value="selectedFeedValue" :options="[{ label: '전체 출처', value: '' }, ...currentFeedNames.map(n => ({ label: shortName(n), value: n }))]" @update:model-value="selectedFeedValue = $event" />
-            <AppDropdown :model-value="selectedTag ?? ''" :options="[{ label: '전체 주제', value: '' }, ...TAGS.map(t => ({ label: t, value: t }))]" @update:model-value="selectTag($event || null)" />
+            <AppDropdown :model-value="selectedFeedValue" :options="[{ label: '출처', value: '' }, ...currentFeedNames.map(n => ({ label: shortName(n), value: n }))]" @update:model-value="selectedFeedValue = $event" />
+            <AppDropdown :model-value="selectedTag ?? ''" :options="[{ label: '주제', value: '' }, ...TAGS.map(t => ({ label: t, value: t }))]" @update:model-value="selectTag($event || null)" />
             <AppDropdown :model-value="selectedSort" :options="[{ label: '최신순', value: 'latest' }, { label: '트렌딩', value: 'trending' }]" @update:model-value="selectSort($event as Sort)" />
             <AppDropdown :model-value="selectedPeriod" :options="periods.map(p => ({ label: p.label, value: p.value }))" @update:model-value="selectPeriod($event as Period)" />
           </div>
@@ -452,7 +462,7 @@ onUnmounted(() => observer?.disconnect())
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" style="min-height: 600px; align-content: start;">
             <div v-for="article in articles" :key="article.id"
               class="group relative flex h-full flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
-              :class="{ 'opacity-60': readIds.has(article.id) }"
+              :class="{ 'opacity-75': readIds.has(article.id) }"
             >
               <NuxtLink :to="`/articles/${article.id}`"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"

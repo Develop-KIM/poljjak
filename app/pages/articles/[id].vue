@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Bookmark, BookmarkCheck, Share2, ArrowLeft, ExternalLink, Tag, Calendar } from '@lucide/vue'
+import { Bookmark, BookmarkCheck, Share2, ArrowLeft, ExternalLink, Tag } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToastStore()
 
@@ -35,6 +36,19 @@ function shortName(feedName: string) {
     .replace(' Engineering', '').replace(' Developers', '').replace(' Blog', '')
 }
 
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 60) return m <= 1 ? '방금 전' : `${m}분 전`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}시간 전`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d}일 전`
+  if (d < 30) return `${Math.floor(d / 7)}주 전`
+  if (d < 365) return `${Math.floor(d / 30)}개월 전`
+  return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
 interface ArticleDetail {
   id: string; feedName: string; category: 'domestic' | 'international'
   title: string; url: string; summary: string | null
@@ -54,8 +68,13 @@ useSeoMeta({
   ogUrl: computed(() => `https://poljjak.kr/articles/${route.params.id}`),
 })
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+function goBack() {
+  if (window.history.length > 1) router.back()
+  else router.push('/articles')
+}
+
+function goToTag(tag: string) {
+  router.push(`/articles?tag=${encodeURIComponent(tag)}`)
 }
 
 const showLoginModal = ref(false)
@@ -92,38 +111,46 @@ async function share() {
 <template>
   <div class="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-10">
     <!-- 뒤로 가기 -->
-    <NuxtLink
-      to="/articles"
+    <button
+      type="button"
       class="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      @click="goBack"
     >
       <ArrowLeft class="size-4" />
-      아티클 목록
-    </NuxtLink>
+      목록으로
+    </button>
 
-    <!-- 로딩 -->
-    <div v-if="status === 'pending'" class="flex justify-center py-32">
-      <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+    <!-- 로딩 스켈레톤 -->
+    <div v-if="status === 'pending'" class="flex gap-10">
+      <div class="min-w-0 flex-1 space-y-4">
+        <div class="h-4 w-24 animate-pulse rounded-full bg-muted" />
+        <div class="space-y-2">
+          <div class="h-8 animate-pulse rounded-lg bg-muted" />
+          <div class="h-8 w-3/4 animate-pulse rounded-lg bg-muted" />
+        </div>
+        <div class="mt-8 h-40 animate-pulse rounded-2xl bg-muted" />
+      </div>
     </div>
 
     <!-- 404 -->
-    <div v-else-if="!article" class="py-32 text-center text-muted-foreground">
+    <div v-else-if="!article" class="py-32 text-center">
       <p class="text-lg font-semibold text-foreground">아티클을 찾을 수 없어요</p>
-      <p class="mt-1 text-sm">삭제됐거나 잘못된 주소예요</p>
+      <p class="mt-1 text-sm text-muted-foreground">삭제됐거나 잘못된 주소예요</p>
+      <NuxtLink to="/articles" class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+        <ArrowLeft class="size-4" />아티클 목록으로
+      </NuxtLink>
     </div>
 
     <div v-else class="flex gap-10">
       <!-- 본문 -->
       <article class="min-w-0 flex-1">
-        <!-- 출처 배지 -->
-        <div class="mb-4 flex items-center gap-2">
+        <!-- 메타 정보 -->
+        <div class="mb-4 flex flex-wrap items-center gap-2">
           <span class="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium leading-none text-muted-foreground">
             <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(article.feedName) }" />
             {{ shortName(article.feedName) }}
           </span>
-          <span class="text-xs text-muted-foreground">
-            <Calendar class="mr-0.5 inline size-3" />
-            {{ formatDate(article.publishedAt) }}
-          </span>
+          <span class="text-xs text-muted-foreground">{{ timeAgo(article.publishedAt) }}</span>
         </div>
 
         <!-- 제목 -->
@@ -131,15 +158,28 @@ async function share() {
           {{ article.title }}
         </h1>
 
-        <!-- 태그 -->
+        <!-- 원문 링크 (제목 바로 아래) -->
+        <a
+          :href="article.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+        >
+          <ExternalLink class="size-3.5" />
+          {{ new URL(article.url).hostname.replace('www.', '') }}
+        </a>
+
+        <!-- 태그 (클릭하면 해당 태그 목록으로) -->
         <div v-if="article.tags.length > 0" class="mt-4 flex flex-wrap gap-1.5">
-          <span
+          <button
             v-for="tag in article.tags" :key="tag"
-            class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+            type="button"
+            class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+            @click="goToTag(tag)"
           >
             <Tag class="size-3" />
             {{ tag }}
-          </span>
+          </button>
         </div>
 
         <!-- 구분선 -->
@@ -147,51 +187,64 @@ async function share() {
 
         <!-- 요약 -->
         <div v-if="article.summary" class="rounded-2xl border border-border bg-muted/40 p-5">
-          <p class="text-sm font-semibold text-muted-foreground mb-2">요약</p>
+          <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">요약</p>
           <p class="text-base leading-7 text-foreground">{{ article.summary }}</p>
         </div>
         <div v-else class="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
           요약 정보가 없어요
         </div>
 
-        <!-- 액션 -->
+        <!-- 액션 버튼 -->
         <div class="mt-6 flex flex-wrap items-center gap-3">
-          <!-- 원문 읽기 -->
           <a
             :href="article.url"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            class="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 active:opacity-80"
           >
             원문 읽기
             <ExternalLink class="size-4" />
           </a>
-
-          <!-- 북마크 -->
           <button
             type="button"
-            class="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
-            :class="article.isBookmarked ? 'text-primary border-primary/30 bg-primary/5' : 'text-muted-foreground'"
+            class="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted active:bg-muted"
+            :class="article.isBookmarked ? 'border-primary/30 bg-primary/5 text-primary' : 'border-border text-muted-foreground'"
             @click="toggleBookmark"
           >
             <BookmarkCheck v-if="article.isBookmarked" class="size-4" />
             <Bookmark v-else class="size-4" />
             {{ article.isBookmarked ? '저장됨' : '저장' }}
           </button>
-
-          <!-- 공유 -->
           <button
             type="button"
-            class="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+            class="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted active:bg-muted"
             @click="share"
           >
             <Share2 class="size-4" />
             공유
           </button>
         </div>
+
+        <!-- 모바일: 관련 글 하단 -->
+        <div v-if="article.related.length > 0" class="mt-10 xl:hidden">
+          <p class="mb-3 text-sm font-bold text-foreground">
+            {{ shortName(article.feedName) }}의 다른 글
+          </p>
+          <ul class="grid gap-2 sm:grid-cols-2">
+            <li v-for="r in article.related" :key="r.id">
+              <NuxtLink
+                :to="`/articles/${r.id}`"
+                class="block rounded-xl border border-border bg-card p-3 text-sm transition-all hover:border-primary/30 hover:shadow-sm active:bg-muted"
+              >
+                <p class="line-clamp-2 font-medium leading-snug text-foreground">{{ r.title }}</p>
+                <p class="mt-1.5 text-xs text-muted-foreground">{{ timeAgo(r.publishedAt) }}</p>
+              </NuxtLink>
+            </li>
+          </ul>
+        </div>
       </article>
 
-      <!-- 사이드: 관련 아티클 -->
+      <!-- 데스크탑 사이드: 관련 글 -->
       <aside v-if="article.related.length > 0" class="hidden w-64 shrink-0 xl:block">
         <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {{ shortName(article.feedName) }}의 다른 글
@@ -203,7 +256,7 @@ async function share() {
               class="block rounded-xl border border-border bg-card p-3 text-sm transition-all hover:border-primary/30 hover:shadow-sm"
             >
               <p class="line-clamp-2 font-medium leading-snug text-foreground">{{ r.title }}</p>
-              <p class="mt-1.5 text-xs text-muted-foreground">{{ formatDate(r.publishedAt) }}</p>
+              <p class="mt-1.5 text-xs text-muted-foreground">{{ timeAgo(r.publishedAt) }}</p>
             </NuxtLink>
           </li>
         </ul>
