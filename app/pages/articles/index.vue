@@ -183,7 +183,7 @@ function recordArticleClick(articleId: string) {
     body: { clientId: getArticleClientId() },
   }).catch(() => {})
 }
-function markAsRead(article: Article) {
+function markAsRead(article: Article | RecommendArticle) {
   if (!import.meta.client) return
   readIds.value = new Set([...readIds.value, article.id])
   recordArticleClick(article.id)
@@ -1066,7 +1066,7 @@ onUnmounted(() => observer?.disconnect())
                   target="_blank"
                   rel="noopener noreferrer"
                   class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
-                  @click="markAsRead(rec as Article)"
+                  @click="markAsRead(rec)"
                 >
                   <span
                     class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground"
@@ -1095,7 +1095,7 @@ onUnmounted(() => observer?.disconnect())
                   target="_blank"
                   rel="noopener noreferrer"
                   class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
-                  @click="markAsRead(rec as Article)"
+                  @click="markAsRead(rec)"
                 >
                   <span
                     class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground"
@@ -1162,7 +1162,7 @@ onUnmounted(() => observer?.disconnect())
                       rel="noopener noreferrer"
                       class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                       @click="
-                        markAsRead(rec as Article)
+                        markAsRead(rec)
                         recSheetOpen = false
                       "
                     >
@@ -1196,7 +1196,7 @@ onUnmounted(() => observer?.disconnect())
                       rel="noopener noreferrer"
                       class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                       @click="
-                        markAsRead(rec as Article)
+                        markAsRead(rec)
                         recSheetOpen = false
                       "
                     >
