@@ -133,8 +133,11 @@ JSON 이외의 텍스트는 절대 출력하지 마세요.
 - medium: 개선 시 경쟁력이 높아지는 문제
 - low: 완성도를 높이는 부가적 개선`
 
-export function buildAnalysisPrompt(role: JobRole, seniority: Seniority): string {
-  return `${BASE_PROMPT}\n${JOB_ROLE_CRITERIA[role]}\n${SENIORITY_STANDARDS[seniority]}`
+export function buildAnalysisPrompt(role?: JobRole | null, seniority?: Seniority | null): string {
+  const parts = [BASE_PROMPT]
+  if (role && JOB_ROLE_CRITERIA[role]) parts.push(JOB_ROLE_CRITERIA[role])
+  if (seniority && SENIORITY_STANDARDS[seniority]) parts.push(SENIORITY_STANDARDS[seniority])
+  return parts.join('\n')
 }
 
 export const JOB_ROLE_LABELS: Record<JobRole, string> = {

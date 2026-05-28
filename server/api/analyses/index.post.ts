@@ -59,15 +59,10 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const jobRole = jobRolePart?.data?.toString('utf8')?.trim() as JobRole | undefined
-  const seniority = seniorityPart?.data?.toString('utf8')?.trim() as Seniority | undefined
-
-  if (!jobRole || !VALID_JOB_ROLES.includes(jobRole)) {
-    throw createError({ statusCode: 400, statusMessage: '직군을 선택해주세요' })
-  }
-  if (!seniority || !VALID_SENIORITIES.includes(seniority)) {
-    throw createError({ statusCode: 400, statusMessage: '연차를 선택해주세요' })
-  }
+  const jobRoleRaw = jobRolePart?.data?.toString('utf8')?.trim() as JobRole | undefined
+  const seniorityRaw = seniorityPart?.data?.toString('utf8')?.trim() as Seniority | undefined
+  const jobRole = jobRoleRaw && VALID_JOB_ROLES.includes(jobRoleRaw) ? jobRoleRaw : null
+  const seniority = seniorityRaw && VALID_SENIORITIES.includes(seniorityRaw) ? seniorityRaw : null
 
   const additionalNote = notePart?.data?.toString('utf8')?.trim()
 
@@ -103,8 +98,8 @@ async function runAnalysis(
   analysisId: string,
   text: string,
   userId: string,
-  jobRole: JobRole,
-  seniority: Seniority,
+  jobRole: JobRole | null,
+  seniority: Seniority | null,
   additionalNote?: string
 ) {
   console.log(

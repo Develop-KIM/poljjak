@@ -1,52 +1,19 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ArrowRight, CheckCircle2, Loader2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 
 useSeoMeta({
   title: '포트폴리오 분석',
-  description:
-    'PDF 포트폴리오를 업로드하면 직군·연차 맞춤 AI 분석을 수행하고 Before/After 개선안을 제시해드려요.',
+  description: 'PDF 포트폴리오를 업로드하면 AI가 분석하고 Before/After 개선안을 제시해드려요.',
   ogTitle: '포트폴리오 분석 · 폴짝',
-  ogDescription: 'PDF를 올리면 직군·연차별 맞춤 AI 분석과 우선순위 액션 플랜을 받아볼 수 있어요.',
+  ogDescription: 'PDF를 올리면 AI 분석과 우선순위 액션 플랜을 받아볼 수 있어요.',
   ogUrl: 'https://poljjak.kr/analyze',
 })
-
-type JobRole = 'frontend' | 'backend' | 'fullstack' | 'devops' | 'ml'
-type Seniority = 'junior' | 'mid' | 'senior'
-
-interface JobRoleOption {
-  value: JobRole
-  label: string
-  emoji: string
-  desc: string
-}
-
-interface SeniorityOption {
-  value: Seniority
-  label: string
-  desc: string
-}
-
-const JOB_ROLES: JobRoleOption[] = [
-  { value: 'frontend', label: '프론트엔드', emoji: '🖥️', desc: 'React, Vue, UI/UX' },
-  { value: 'backend', label: '백엔드', emoji: '⚙️', desc: 'API, DB, 서버' },
-  { value: 'fullstack', label: '풀스택', emoji: '🔗', desc: '프론트+백엔드 전반' },
-  { value: 'devops', label: 'DevOps', emoji: '🚀', desc: 'CI/CD, 클라우드, 인프라' },
-  { value: 'ml', label: 'ML/AI', emoji: '🤖', desc: '모델 개발, MLOps' },
-]
-
-const SENIORITIES: SeniorityOption[] = [
-  { value: 'junior', label: '신입', desc: '인턴·첫 취업 준비 중' },
-  { value: 'mid', label: '주니어', desc: '1~3년차' },
-  { value: 'senior', label: '시니어', desc: '5년차 이상' },
-]
 
 const authStore = useAuthStore()
 const toast = useToastStore()
 
-const selectedRole = ref<JobRole | null>(null)
-const selectedSeniority = ref<Seniority | null>(null)
 const uploadedFiles = ref<File[]>([])
 const additionalNote = ref('')
 const showLoginModal = ref(false)
@@ -56,7 +23,7 @@ const analysisStep = ref(0)
 const steps = [
   { label: 'PDF 업로드 중', sublabel: '파일을 서버로 전송하고 있어요' },
   { label: '텍스트 추출 중', sublabel: 'PDF에서 내용을 읽고 있어요' },
-  { label: 'AI 분석 중', sublabel: `직군·연차 기준으로 꼼꼼히 분석하고 있어요` },
+  { label: 'AI 분석 중', sublabel: '포트폴리오를 꼼꼼히 분석하고 있어요' },
 ]
 
 let stepTimer: ReturnType<typeof setInterval> | null = null
@@ -76,48 +43,10 @@ function stopStepAnimation() {
   analysisStep.value = 0
 }
 
-const canAnalyze = computed(
-  () =>
-    uploadedFiles.value.length > 0 &&
-    selectedRole.value !== null &&
-    selectedSeniority.value !== null &&
-    !analyzing.value
-)
-
-const PREFS_KEY = 'poljjak_analyze_prefs'
-
-function loadPrefs() {
-  try {
-    const raw = localStorage.getItem(PREFS_KEY)
-    if (!raw) return
-    const prefs = JSON.parse(raw) as { jobRole?: string; seniority?: string }
-    const validRoles: JobRole[] = ['frontend', 'backend', 'fullstack', 'devops', 'ml']
-    const validSeniorities: Seniority[] = ['junior', 'mid', 'senior']
-    if (prefs.jobRole && validRoles.includes(prefs.jobRole as JobRole))
-      selectedRole.value = prefs.jobRole as JobRole
-    if (prefs.seniority && validSeniorities.includes(prefs.seniority as Seniority))
-      selectedSeniority.value = prefs.seniority as Seniority
-  } catch {
-    /* ignore */
-  }
-}
-
-function savePrefs() {
-  try {
-    localStorage.setItem(
-      PREFS_KEY,
-      JSON.stringify({ jobRole: selectedRole.value, seniority: selectedSeniority.value })
-    )
-  } catch {
-    /* ignore */
-  }
-}
-
-watch([selectedRole, selectedSeniority], savePrefs)
+const canAnalyze = computed(() => uploadedFiles.value.length > 0 && !analyzing.value)
 
 onMounted(() => {
   if (!authStore.isLoggedIn) showLoginModal.value = true
-  loadPrefs()
 })
 
 async function handleStartAnalysis() {
@@ -133,8 +62,6 @@ async function handleStartAnalysis() {
   try {
     const formData = new FormData()
     uploadedFiles.value.forEach((f) => formData.append('file', f))
-    formData.append('jobRole', selectedRole.value!)
-    formData.append('seniority', selectedSeniority.value!)
     if (additionalNote.value.trim()) {
       formData.append('additionalNote', additionalNote.value.trim())
     }
@@ -208,66 +135,15 @@ async function handleStartAnalysis() {
       <div class="max-w-2xl">
         <AppBadge variant="blue">포트폴리오 분석</AppBadge>
         <h1 class="mt-4 text-3xl font-black leading-tight text-foreground md:text-4xl">
-          직군·연차 맞춤 AI 분석
+          AI 포트폴리오 분석
         </h1>
         <p class="mt-4 text-base leading-7 text-muted-foreground">
-          직군과 연차를 선택하면 해당 기준에 맞는 피드백과 Before/After 개선안을 받을 수 있어요.
+          PDF를 업로드하면 AI가 개선이 필요한 부분을 찾아 Before/After 개선안을 제시해드려요.
         </p>
       </div>
 
       <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
         <div class="flex flex-col gap-6">
-          <!-- 직군 선택 -->
-          <AppCard>
-            <h2 class="text-sm font-bold text-foreground">
-              직군 선택
-              <span class="ml-1 text-destructive">*</span>
-            </h2>
-            <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
-              <button
-                v-for="role in JOB_ROLES"
-                :key="role.value"
-                type="button"
-                class="flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3 text-center transition-all"
-                :class="
-                  selectedRole === role.value
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border text-muted-foreground hover:border-primary/40 hover:bg-muted'
-                "
-                @click="selectedRole = role.value"
-              >
-                <span class="text-2xl">{{ role.emoji }}</span>
-                <span class="text-xs font-bold">{{ role.label }}</span>
-                <span class="text-[10px] text-muted-foreground">{{ role.desc }}</span>
-              </button>
-            </div>
-          </AppCard>
-
-          <!-- 연차 선택 -->
-          <AppCard>
-            <h2 class="text-sm font-bold text-foreground">
-              연차 선택
-              <span class="ml-1 text-destructive">*</span>
-            </h2>
-            <div class="mt-3 grid grid-cols-3 gap-2">
-              <button
-                v-for="s in SENIORITIES"
-                :key="s.value"
-                type="button"
-                class="flex flex-col gap-0.5 rounded-xl border-2 px-4 py-3 text-left transition-all"
-                :class="
-                  selectedSeniority === s.value
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border text-muted-foreground hover:border-primary/40 hover:bg-muted'
-                "
-                @click="selectedSeniority = s.value"
-              >
-                <span class="text-sm font-bold">{{ s.label }}</span>
-                <span class="text-[11px] text-muted-foreground">{{ s.desc }}</span>
-              </button>
-            </div>
-          </AppCard>
-
           <!-- PDF 업로드 -->
           <AppCard>
             <h2 class="text-sm font-bold text-foreground">PDF 업로드</h2>
@@ -320,10 +196,6 @@ async function handleStartAnalysis() {
               <li class="flex gap-2">
                 <CheckCircle2 class="mt-0.5 size-4 shrink-0 text-emerald-500" />
                 <span>섹션별 Before/After 문장</span>
-              </li>
-              <li class="flex gap-2">
-                <CheckCircle2 class="mt-0.5 size-4 shrink-0 text-emerald-500" />
-                <span>체크리스트형 액션 플랜</span>
               </li>
             </ul>
           </AppCard>

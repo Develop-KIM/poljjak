@@ -134,8 +134,8 @@ export async function summarizeArticle(title: string, content: string): Promise<
 
 export async function analyzePortfolio(
   text: string,
-  jobRole: JobRole,
-  seniority: Seniority,
+  jobRole?: JobRole | null,
+  seniority?: Seniority | null,
   additionalNote?: string
 ): Promise<AnalysisResponse> {
   const apiKey = process.env.CLOVA_STUDIO_API_KEY?.trim()
