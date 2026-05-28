@@ -11,7 +11,17 @@ const analysisId = Array.isArray(route.query.analysisId)
   ? route.query.analysisId[0]
   : route.query.analysisId
 
-const category = ref(analysisId ? '피드백' : '')
+const VALID_CATEGORIES = ['피드백', '프로젝트 모집', '스터디 모집']
+const categoryQuery = Array.isArray(route.query.category)
+  ? route.query.category[0]
+  : route.query.category
+const initialCategory = analysisId
+  ? '피드백'
+  : categoryQuery && VALID_CATEGORIES.includes(categoryQuery)
+    ? categoryQuery
+    : ''
+
+const category = ref(initialCategory)
 const title = ref('')
 const body = ref('')
 const imageUrls = ref<string[]>([])
@@ -212,30 +222,8 @@ async function handleSubmit() {
     <!-- ── 커뮤니티 직접 작성: 2열 레이아웃 (xl 이상) ── -->
     <template v-else>
       <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_280px] xl:items-start">
-        <!-- 좌: 본문 편집 영역 -->
-        <div class="grid gap-5">
-          <div>
-            <label class="text-sm font-bold text-foreground">제목</label>
-            <AppInput v-model="title" placeholder="제목을 입력해주세요" class="mt-2" />
-          </div>
-
-          <PostImageUploader v-model="imageUrls" :max-images="isFeedbackCategory ? 5 : 1" />
-
-          <div>
-            <label class="text-sm font-bold text-foreground">{{ bodyLabel }}</label>
-            <AppTextarea
-              v-model="body"
-              :placeholder="bodyPlaceholder"
-              :rows="16"
-              :maxlength="MAX_BODY"
-              :show-count="true"
-              class="mt-2"
-            />
-          </div>
-        </div>
-
-        <!-- 우: 사이드바 (카테고리 + 액션) -->
-        <div class="grid gap-4 xl:sticky xl:top-6">
+        <!-- 사이드바: 모바일에서 최상단, xl+에서 오른쪽 열 -->
+        <div class="grid gap-4 xl:order-last xl:sticky xl:top-6">
           <div class="rounded-xl border border-border bg-card p-4">
             <label class="text-sm font-bold text-foreground">카테고리</label>
             <AppSelect
@@ -258,6 +246,28 @@ async function handleSubmit() {
             >
               게시하기
             </AppButton>
+          </div>
+        </div>
+
+        <!-- 본문: xl+에서 왼쪽 열 -->
+        <div class="grid gap-5 xl:order-first">
+          <div>
+            <label class="text-sm font-bold text-foreground">제목</label>
+            <AppInput v-model="title" placeholder="제목을 입력해주세요" class="mt-2" />
+          </div>
+
+          <PostImageUploader v-model="imageUrls" :max-images="isFeedbackCategory ? 5 : 1" />
+
+          <div>
+            <label class="text-sm font-bold text-foreground">{{ bodyLabel }}</label>
+            <AppTextarea
+              v-model="body"
+              :placeholder="bodyPlaceholder"
+              :rows="16"
+              :maxlength="MAX_BODY"
+              :show-count="true"
+              class="mt-2"
+            />
           </div>
         </div>
       </div>

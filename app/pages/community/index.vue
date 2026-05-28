@@ -167,13 +167,22 @@ function handleTabChange(value: string) {
   activeTab.value = value as CommunityTab
 }
 
+const TAB_CATEGORY_MAP: Record<string, string> = {
+  feedback: '피드백',
+  project: '프로젝트 모집',
+  study: '스터디 모집',
+}
+
 function handleWrite() {
   if (!authStore.isLoggedIn) {
     loginContext.value = '글쓰기'
     showLoginModal.value = true
     return
   }
-  navigateTo('/community/write')
+  const category = TAB_CATEGORY_MAP[activeTab.value]
+  navigateTo(
+    category ? `/community/write?category=${encodeURIComponent(category)}` : '/community/write'
+  )
 }
 
 function goPage(p: number) {
