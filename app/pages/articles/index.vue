@@ -1042,9 +1042,6 @@ onUnmounted(() => observer?.disconnect())
 
           <div ref="sentinelRef" class="flex justify-center py-4 min-[2000px]:hidden">
             <Loader2 v-if="loadingMore" class="size-5 animate-spin text-muted-foreground" />
-            <span v-else-if="!hasMore" class="text-xs text-muted-foreground"
-              >모든 아티클을 불러왔어요</span
-            >
           </div>
         </div>
 
