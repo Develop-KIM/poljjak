@@ -5,17 +5,15 @@ import {
   Lock,
   Unlock,
   MessageSquare,
-  Check,
   CheckCircle2,
   Loader2,
   AlertCircle,
   ChevronRight,
   Download,
-  ScanFace,
   EyeOff,
 } from '@lucide/vue'
 import { marked } from 'marked'
-import type { AnalysisResultV2, AnalysisIssue, AnalysisActionItem } from '~~/server/utils/clova'
+import type { AnalysisResultV2, AnalysisIssue } from '~~/server/utils/clova'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -33,8 +31,6 @@ interface Analysis {
   seniority: string | null
   pdfUrl: string | null
   issues: AnalysisIssue[] | null
-  actionPlan: AnalysisActionItem[] | null
-  checkedItems: string[] | null
   afterHtml: string | null
   result: AnalysisResultV2 | null
   createdAt: string
@@ -63,7 +59,6 @@ const pending = ref(true)
 const error = ref<string | null>(null)
 const linkCopied = ref(false)
 const toggling = ref(false)
-const savingCheck = ref(false)
 const downloadingPdf = ref(false)
 const maskingFaces = ref(false)
 const faceMasked = ref(false)
@@ -75,7 +70,6 @@ let stepTimer: ReturnType<typeof setInterval> | null = null
 // 분할 뷰어
 const beforePanel = ref<HTMLElement | null>(null)
 const afterPanel = ref<HTMLElement | null>(null)
-const syncingScroll = ref(false)
 
 // 이슈 필터
 const issueFilter = ref<'all' | 'high' | 'medium' | 'low'>('all')
@@ -125,8 +119,6 @@ const filteredIssues = computed(() =>
     : issues.value.filter((i) => i.priority === issueFilter.value)
 )
 
-const checkedItems = ref<Set<string>>(new Set())
-
 const createdAtLabel = computed(() => {
   if (!analysis.value?.createdAt) return ''
   return new Date(analysis.value.createdAt).toLocaleDateString('ko-KR', {
@@ -143,10 +135,6 @@ async function fetchAnalysis() {
     const res = await $fetch<{ data: Analysis }>(`/api/analyses/${id}`)
     analysis.value = res.data
     error.value = res.data.status === 'failed' ? '분석에 실패했어요. 다시 시도해주세요.' : null
-
-    if (res.data.checkedItems) {
-      checkedItems.value = new Set(res.data.checkedItems)
-    }
 
     if (shouldShowProgress.value) {
       startProcessingAnimation()
@@ -179,31 +167,9 @@ function stopProcessingAnimation() {
   stepTimer = null
 }
 
-// 동기 스크롤
-function onBeforeScroll() {
-  if (syncingScroll.value || !afterPanel.value || !beforePanel.value) return
-  syncingScroll.value = true
-  const ratio =
-    beforePanel.value.scrollTop /
-    (beforePanel.value.scrollHeight - beforePanel.value.clientHeight || 1)
-  afterPanel.value.scrollTop =
-    ratio * (afterPanel.value.scrollHeight - afterPanel.value.clientHeight)
-  requestAnimationFrame(() => {
-    syncingScroll.value = false
-  })
-}
-
-function onAfterScroll() {
-  if (syncingScroll.value || !beforePanel.value || !afterPanel.value) return
-  syncingScroll.value = true
-  const ratio =
-    afterPanel.value.scrollTop /
-    (afterPanel.value.scrollHeight - afterPanel.value.clientHeight || 1)
-  beforePanel.value.scrollTop =
-    ratio * (beforePanel.value.scrollHeight - beforePanel.value.clientHeight)
-  requestAnimationFrame(() => {
-    syncingScroll.value = false
-  })
+async function onPdfRendered() {
+  if (faceMasked.value || maskingFaces.value) return
+  await toggleFaceMask()
 }
 
 onMounted(async () => {
@@ -266,25 +232,6 @@ async function copyShareLink() {
   setTimeout(() => {
     linkCopied.value = false
   }, 2000)
-}
-
-async function toggleCheck(actionId: string) {
-  if (savingCheck.value) return
-  const newSet = new Set(checkedItems.value)
-  if (newSet.has(actionId)) newSet.delete(actionId)
-  else newSet.add(actionId)
-  checkedItems.value = newSet
-  savingCheck.value = true
-  try {
-    await $fetch(`/api/analyses/${id}`, {
-      method: 'PATCH',
-      body: { checkedItems: [...newSet] },
-    })
-  } catch {
-    // 실패해도 UI는 유지
-  } finally {
-    savingCheck.value = false
-  }
 }
 
 function scrollToIssue(issueId: string) {
@@ -582,38 +529,41 @@ async function downloadAfterPdf() {
         <div class="mb-3 flex items-center gap-3">
           <h2 class="text-lg font-black text-foreground">Before / After</h2>
           <span class="text-sm text-muted-foreground"
-            >좌우 동기 스크롤 · 파란 밑줄에 마우스를 올리면 변경 이유를 확인할 수 있어요</span
+            >파란 밑줄에 마우스를 올리면 변경 이유를 확인할 수 있어요</span
           >
         </div>
 
-        <div
-          class="grid h-[70vh] grid-cols-2 gap-3 overflow-hidden rounded-2xl border border-border bg-card"
-        >
+        <div class="grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card">
           <!-- Before: PDF 원본 -->
-          <div class="flex flex-col overflow-hidden border-r border-border">
+          <div class="flex flex-col border-r border-border">
             <div class="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2.5">
               <span class="size-2.5 rounded-full bg-red-400" />
               <span class="text-xs font-bold text-muted-foreground">BEFORE · 원본</span>
               <button
-                v-if="analysis.pdfUrl"
+                v-if="analysis.pdfUrl && faceMasked"
                 type="button"
-                class="ml-auto flex items-center gap-1.5 text-[11px] font-semibold transition-opacity hover:opacity-70 disabled:opacity-40"
-                :class="faceMasked ? 'text-emerald-600' : 'text-muted-foreground'"
-                :disabled="maskingFaces"
+                class="ml-auto flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 transition-opacity hover:opacity-70"
                 @click="toggleFaceMask"
               >
-                <Loader2 v-if="maskingFaces" class="size-3 animate-spin" />
-                <EyeOff v-else-if="faceMasked" class="size-3" />
-                <ScanFace v-else class="size-3" />
-                {{ faceMasked ? '마스킹 해제' : '얼굴 마스킹' }}
+                <EyeOff class="size-3" />
+                마스킹 해제
               </button>
+              <Loader2
+                v-else-if="maskingFaces"
+                class="ml-auto size-3.5 animate-spin text-muted-foreground"
+              />
             </div>
-            <div ref="beforePanel" class="flex-1 overflow-y-auto p-4" @scroll="onBeforeScroll">
+            <div ref="beforePanel" class="p-4">
               <ClientOnly>
-                <vue-pdf-embed v-if="analysis.pdfUrl" :source="analysis.pdfUrl" class="w-full" />
+                <vue-pdf-embed
+                  v-if="analysis.pdfUrl"
+                  :source="analysis.pdfUrl"
+                  class="w-full"
+                  @rendered="onPdfRendered"
+                />
                 <div
                   v-else
-                  class="flex h-full flex-col items-center justify-center gap-3 py-16 text-center"
+                  class="flex flex-col items-center justify-center gap-3 py-16 text-center"
                 >
                   <span class="text-4xl">📄</span>
                   <p class="text-sm text-muted-foreground">
@@ -630,7 +580,7 @@ async function downloadAfterPdf() {
           </div>
 
           <!-- After: AI 개선본 -->
-          <div class="flex flex-col overflow-hidden">
+          <div class="flex flex-col">
             <div class="flex items-center gap-2 border-b border-border bg-primary/5 px-4 py-2.5">
               <span class="size-2.5 rounded-full bg-emerald-400" />
               <span class="text-xs font-bold text-primary">AFTER · AI 개선본</span>
@@ -645,21 +595,16 @@ async function downloadAfterPdf() {
                 PDF 저장
               </button>
             </div>
-            <div
-              ref="afterPanel"
-              data-after-panel
-              class="flex-1 overflow-y-auto bg-muted/30 p-4"
-              @scroll="onAfterScroll"
-            >
+            <div ref="afterPanel" data-after-panel class="bg-muted/30 p-4">
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
                 v-if="renderedAfterHtml"
-                class="after-html-viewer mx-auto min-h-full rounded-lg bg-white px-10 py-10 shadow-sm"
+                class="after-html-viewer mx-auto rounded-lg bg-white px-10 py-10 shadow-sm"
                 v-html="renderedAfterHtml"
               />
               <div
-                v-if="!renderedAfterHtml"
-                class="flex h-full flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground"
+                v-else
+                class="flex flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground"
               >
                 <span class="text-4xl">✨</span>
                 <p class="text-sm">AI 개선본을 생성하고 있어요</p>
@@ -739,56 +684,6 @@ async function downloadAfterPdf() {
             </div>
           </div>
         </div>
-      </section>
-
-      <!-- 액션 플랜 -->
-      <section v-if="analysis.actionPlan && analysis.actionPlan.length > 0" class="mt-8">
-        <h2 class="text-lg font-black text-foreground">액션 플랜</h2>
-        <p class="mt-1 text-sm text-muted-foreground">체크하면 자동으로 저장돼요</p>
-        <div class="mt-4 grid gap-2">
-          <button
-            v-for="action in analysis.actionPlan"
-            :key="action.id"
-            type="button"
-            class="flex items-center gap-3 rounded-xl border p-4 text-left transition-all"
-            :class="
-              checkedItems.has(action.id)
-                ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30'
-                : 'border-border bg-card hover:border-primary/30 hover:bg-muted/30'
-            "
-            @click="toggleCheck(action.id)"
-          >
-            <div
-              class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
-              :class="
-                checkedItems.has(action.id) ? 'border-emerald-500 bg-emerald-500' : 'border-border'
-              "
-            >
-              <Check v-if="checkedItems.has(action.id)" class="size-3 text-white" />
-            </div>
-            <div class="min-w-0 flex-1">
-              <p
-                class="text-sm font-semibold transition-colors"
-                :class="
-                  checkedItems.has(action.id)
-                    ? 'text-muted-foreground line-through'
-                    : 'text-foreground'
-                "
-              >
-                {{ action.task }}
-              </p>
-            </div>
-            <span
-              class="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold"
-              :class="PRIORITY_STYLES[action.priority]?.cls"
-            >
-              {{ PRIORITY_STYLES[action.priority]?.label }}
-            </span>
-          </button>
-        </div>
-        <p class="mt-3 text-xs text-muted-foreground">
-          {{ checkedItems.size }} / {{ analysis.actionPlan.length }}개 완료
-        </p>
       </section>
     </template>
 
