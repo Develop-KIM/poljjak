@@ -17,15 +17,19 @@ export default defineEventHandler(async (event) => {
   // 최근 7일 시작일
   const sevenDaysAgo = new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000)
 
-  // 오늘 시간대별 분석 요청 수 (KST 기준 시간 추출)
+  // KST 시간 추출용 표현식 (TIMESTAMP WITHOUT TIME ZONE → UTC 해석 → KST 변환)
+  const kstHour = sql`EXTRACT(HOUR FROM ${analyses.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')`
+  const kstDate = sql`TO_CHAR(${analyses.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD')`
+
+  // 오늘 시간대별 분석 요청 수 (KST 기준) — SELECT와 GROUP BY 표현식 일치
   const hourlyRaw = await db
     .select({
-      hour: sql<number>`EXTRACT(HOUR FROM ${analyses.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::int`,
+      hour: sql<number>`${kstHour}::int`,
       count: sql<number>`COUNT(*)::int`,
     })
     .from(analyses)
     .where(gte(analyses.createdAt, todayStart))
-    .groupBy(sql`EXTRACT(HOUR FROM ${analyses.createdAt} AT TIME ZONE 'Asia/Seoul')`)
+    .groupBy(kstHour)
 
   // 데이터 없는 시간대를 0으로 채워 0~23 전체 24개 반환
   const hourMap = new Map<number, number>()
@@ -37,16 +41,16 @@ export default defineEventHandler(async (event) => {
     count: hourMap.get(h) ?? 0,
   }))
 
-  // 최근 7일 completed 분석 일별 평균 응답시간(초)
+  // 최근 7일 completed 분석 일별 평균 응답시간(초) — SELECT/GROUP BY/ORDER BY 표현식 일치
   const dailyRaw = await db
     .select({
-      date: sql<string>`TO_CHAR(${analyses.createdAt} AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD')`,
+      date: sql<string>`${kstDate}`,
       avgSec: sql<number>`ROUND(AVG(EXTRACT(EPOCH FROM (${analyses.updatedAt} - ${analyses.createdAt}))), 1)`,
     })
     .from(analyses)
     .where(and(gte(analyses.createdAt, sevenDaysAgo), sql`${analyses.status} = 'completed'`))
-    .groupBy(sql`TO_CHAR(${analyses.createdAt} AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD')`)
-    .orderBy(sql`TO_CHAR(${analyses.createdAt} AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD')`)
+    .groupBy(kstDate)
+    .orderBy(kstDate)
 
   const dailyAvgResponseSec = dailyRaw.map((row) => ({
     date: row.date,
