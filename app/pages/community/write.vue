@@ -209,50 +209,56 @@ async function handleSubmit() {
       </div>
     </template>
 
-    <!-- ── 커뮤니티 직접 작성: 단일 컬럼 ── -->
+    <!-- ── 커뮤니티 직접 작성: 2열 레이아웃 (xl 이상) ── -->
     <template v-else>
-      <div class="mt-6 grid gap-5 max-w-2xl">
-        <div>
-          <label class="text-sm font-bold text-foreground">카테고리</label>
-          <AppSelect
-            v-model="category"
-            :options="categoryOptions"
-            placeholder="카테고리를 선택해주세요"
-            class="mt-2"
-          />
+      <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_280px] xl:items-start">
+        <!-- 좌: 본문 편집 영역 -->
+        <div class="grid gap-5">
+          <div>
+            <label class="text-sm font-bold text-foreground">제목</label>
+            <AppInput v-model="title" placeholder="제목을 입력해주세요" class="mt-2" />
+          </div>
+
+          <PostImageUploader v-model="imageUrls" :max-images="isFeedbackCategory ? 5 : 1" />
+
+          <div>
+            <label class="text-sm font-bold text-foreground">{{ bodyLabel }}</label>
+            <AppTextarea
+              v-model="body"
+              :placeholder="bodyPlaceholder"
+              :rows="16"
+              :maxlength="MAX_BODY"
+              :show-count="true"
+              class="mt-2"
+            />
+          </div>
         </div>
 
-        <div>
-          <label class="text-sm font-bold text-foreground">제목</label>
-          <AppInput v-model="title" placeholder="제목을 입력해주세요" class="mt-2" />
-        </div>
+        <!-- 우: 사이드바 (카테고리 + 액션) -->
+        <div class="grid gap-4 xl:sticky xl:top-6">
+          <div class="rounded-xl border border-border bg-card p-4">
+            <label class="text-sm font-bold text-foreground">카테고리</label>
+            <AppSelect
+              v-model="category"
+              :options="categoryOptions"
+              placeholder="카테고리를 선택해주세요"
+              class="mt-2"
+            />
+          </div>
 
-        <PostImageUploader v-model="imageUrls" :max-images="isFeedbackCategory ? 5 : 1" />
-
-        <div>
-          <label class="text-sm font-bold text-foreground">{{ bodyLabel }}</label>
-          <AppTextarea
-            v-model="body"
-            :placeholder="bodyPlaceholder"
-            :rows="12"
-            :maxlength="MAX_BODY"
-            :show-count="true"
-            class="mt-2"
-          />
-        </div>
-
-        <div class="flex gap-3">
-          <NuxtLink to="/community" class="flex-1">
-            <AppButton variant="outline" class="w-full">취소</AppButton>
-          </NuxtLink>
-          <AppButton
-            class="flex-1"
-            :disabled="!canSubmit"
-            :loading="submitting"
-            @click="handleSubmit"
-          >
-            게시하기
-          </AppButton>
+          <div class="flex gap-3 xl:flex-col">
+            <NuxtLink to="/community" class="flex-1">
+              <AppButton variant="outline" class="w-full">취소</AppButton>
+            </NuxtLink>
+            <AppButton
+              class="flex-1"
+              :disabled="!canSubmit"
+              :loading="submitting"
+              @click="handleSubmit"
+            >
+              게시하기
+            </AppButton>
+          </div>
         </div>
       </div>
     </template>

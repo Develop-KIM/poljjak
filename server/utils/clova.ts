@@ -203,6 +203,7 @@ ${text}`
   }
 
   if (response.status.code !== '20000') {
+    console.error('[CLOVA] 에러 응답:', response.status.code, response.status.message)
     throw createError({ statusCode: 502, statusMessage: 'AI 분석 중 오류가 발생했어요' })
   }
 
