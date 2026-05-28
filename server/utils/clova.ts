@@ -186,12 +186,12 @@ ${text}`
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
         ],
-        maxTokens: 4096,
+        maxTokens: 8192,
         temperature: 0.3,
         topP: 0.8,
         stream: false,
       },
-      timeout: 60000,
+      timeout: 120000,
     })
   } catch (e: unknown) {
     const err = e as { message?: string; statusCode?: number; data?: unknown }

@@ -391,11 +391,11 @@ async function applyTextPiiMask() {
     type TItem = { str: string; transform: number[]; width: number; height: number }
     const items = textContent.items.filter((it): it is TItem => 'str' in it)
 
-    // y좌표 기준으로 같은 라인 묶기 (허용 오차 ±3 PDF 단위)
+    // y좌표 기준으로 같은 라인 묶기 (허용 오차 ±8 PDF 단위 — 폰트 크기 차이 대응)
     const lines: TItem[][] = []
     for (const item of items) {
       const y = item.transform[5]!
-      const line = lines.find((l) => Math.abs(l[0]!.transform[5]! - y) <= 3)
+      const line = lines.find((l) => Math.abs(l[0]!.transform[5]! - y) <= 8)
       if (line) line.push(item)
       else lines.push([item])
     }
@@ -456,21 +456,9 @@ async function applyTextPiiMask() {
 
       if (w <= 0 || h <= 0) continue
 
-      // 픽셀화 블러 (다운샘플 → 업샘플)
-      const factor = Math.max(4, Math.floor(w / 10))
-      const tmp = document.createElement('canvas')
-      tmp.width = Math.max(1, Math.round(w / factor))
-      tmp.height = Math.max(1, Math.round(h / factor))
-      try {
-        tmp.getContext('2d')!.drawImage(canvas, x, y, w, h, 0, 0, tmp.width, tmp.height)
-        ctx.imageSmoothingEnabled = false
-        ctx.drawImage(tmp, 0, 0, tmp.width, tmp.height, x, y, w, h)
-        ctx.imageSmoothingEnabled = true
-      } catch {
-        // tainted canvas는 skip
-      }
-      ctx.fillStyle = 'rgba(0,0,0,0.08)'
-      ctx.fillRect(x, y, w, h)
+      // 솔리드 마스킹 — CORS tainted canvas에서도 항상 동작
+      ctx.fillStyle = '#1c1c1e'
+      ctx.fillRect(x - 1, y - 1, w + 2, h + 2)
     }
 
     const parent = canvas.parentElement
