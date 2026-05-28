@@ -185,11 +185,15 @@ function clearSearch() {
   resetAndFetch()
 }
 
-onMounted(fetchPosts)
-watch(activeTab, () => {
+function resetFeedbackFilters() {
   feedbackJobType.value = ''
   feedbackCareerLevel.value = ''
   feedbackHasAnalysis.value = false
+}
+
+onMounted(fetchPosts)
+watch(activeTab, () => {
+  resetFeedbackFilters()
   activeSort.value = 'latest'
   keyword.value = ''
   searchInput.value = ''
@@ -277,11 +281,7 @@ function goPage(p: number) {
         v-if="feedbackJobType || feedbackCareerLevel || feedbackHasAnalysis"
         type="button"
         class="h-9 rounded-full px-3 text-sm text-muted-foreground hover:text-foreground"
-        @click="
-          feedbackJobType = ''
-          feedbackCareerLevel = ''
-          feedbackHasAnalysis = false
-        "
+        @click="resetFeedbackFilters"
       >
         초기화
       </button>
