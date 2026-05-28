@@ -10,6 +10,7 @@ import {
   Loader2,
   AlertCircle,
   ChevronRight,
+  Download,
 } from '@lucide/vue'
 import type { AnalysisResultV2, AnalysisIssue, AnalysisActionItem } from '~~/server/utils/clova'
 
@@ -60,6 +61,7 @@ const error = ref<string | null>(null)
 const linkCopied = ref(false)
 const toggling = ref(false)
 const savingCheck = ref(false)
+const downloadingPdf = ref(false)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let stepTimer: ReturnType<typeof setInterval> | null = null
 
@@ -252,6 +254,77 @@ function scrollToIssue(issueId: string) {
   const el = afterPanel.value.querySelector(`[data-issue-id="${issueId}"]`)
   el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
+
+async function downloadAfterPdf() {
+  if (!analysis.value?.afterHtml || downloadingPdf.value) return
+  downloadingPdf.value = true
+  try {
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf'),
+    ])
+
+    // After HTML 렌더링용 임시 스타일 (A4 너비 기준)
+    const style = document.createElement('style')
+    style.textContent = `
+      .after-pdf-wrap h1, .after-pdf-wrap h2, .after-pdf-wrap h3 { font-weight: 800; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+      .after-pdf-wrap h1 { font-size: 1.35rem; }
+      .after-pdf-wrap h2 { font-size: 1.15rem; }
+      .after-pdf-wrap h3 { font-size: 1rem; }
+      .after-pdf-wrap p { margin-bottom: 0.75rem; }
+      .after-pdf-wrap ul, .after-pdf-wrap ol { padding-left: 1.5rem; margin-bottom: 0.75rem; }
+      .after-pdf-wrap li { margin-bottom: 0.25rem; }
+    `
+    document.head.appendChild(style)
+
+    const container = document.createElement('div')
+    container.className = 'after-pdf-wrap'
+    Object.assign(container.style, {
+      position: 'fixed',
+      left: '-9999px',
+      top: '0',
+      width: '794px',
+      padding: '60px 56px',
+      background: '#ffffff',
+      color: '#111111',
+      fontFamily: '"Pretendard", "Apple SD Gothic Neo", sans-serif',
+      fontSize: '14px',
+      lineHeight: '1.8',
+    })
+    container.innerHTML = analysis.value.afterHtml
+    document.body.appendChild(container)
+
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+    })
+
+    document.body.removeChild(container)
+    document.head.removeChild(style)
+
+    // A4 기준 멀티 페이지 PDF 생성
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+    const pageW = pdf.internal.pageSize.getWidth()
+    const pageH = pdf.internal.pageSize.getHeight()
+    const scale = pageW / canvas.width
+    const totalH = canvas.height * scale
+
+    let offset = 0
+    while (offset < totalH) {
+      if (offset > 0) pdf.addPage()
+      pdf.addImage(canvas, 'JPEG', 0, -offset, pageW, totalH)
+      offset += pageH
+    }
+
+    pdf.save(`after-${id}.pdf`)
+    toast.success('PDF가 다운로드됐어요')
+  } catch {
+    toast.error('PDF 생성에 실패했어요')
+  } finally {
+    downloadingPdf.value = false
+  }
+}
 </script>
 
 <template>
@@ -400,6 +473,16 @@ function scrollToIssue(issueId: string) {
             <div class="flex items-center gap-2 border-b border-border bg-primary/5 px-4 py-2.5">
               <span class="size-2.5 rounded-full bg-emerald-400" />
               <span class="text-xs font-bold text-primary">AFTER · AI 개선본</span>
+              <button
+                type="button"
+                class="ml-auto flex items-center gap-1 text-[11px] font-semibold text-primary transition-opacity hover:opacity-70 disabled:opacity-40"
+                :disabled="downloadingPdf"
+                @click="downloadAfterPdf"
+              >
+                <Loader2 v-if="downloadingPdf" class="size-3 animate-spin" />
+                <Download v-else class="size-3" />
+                PDF 저장
+              </button>
             </div>
             <div
               ref="afterPanel"
