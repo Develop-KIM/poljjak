@@ -904,10 +904,8 @@ onUnmounted(() => observer?.disconnect())
               :class="{ 'opacity-75': readIds.has(article.id) }"
             >
               <!-- 썸네일 -->
-              <a
-                :href="article.url"
-                target="_blank"
-                rel="noopener noreferrer"
+              <NuxtLink
+                :to="`/articles/${article.id}`"
                 class="block overflow-hidden rounded-t-2xl"
                 @click="markAsRead(article)"
               >
@@ -930,11 +928,9 @@ onUnmounted(() => observer?.disconnect())
                     >{{ shortName(article.feedName).charAt(0) }}</span
                   >
                 </div>
-              </a>
-              <a
-                :href="article.url"
-                target="_blank"
-                rel="noopener noreferrer"
+              </NuxtLink>
+              <NuxtLink
+                :to="`/articles/${article.id}`"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
                 @click="markAsRead(article)"
               >
@@ -968,7 +964,7 @@ onUnmounted(() => observer?.disconnect())
                     {{ tag }}
                   </button>
                 </div>
-              </a>
+              </NuxtLink>
               <div
                 class="flex items-center justify-between border-t border-border px-4 py-3 md:px-5"
               >
@@ -1073,10 +1069,8 @@ onUnmounted(() => observer?.disconnect())
             </p>
             <ul class="space-y-2">
               <li v-for="rec in recBlog" :key="rec.id">
-                <a
-                  :href="rec.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <NuxtLink
+                  :to="`/articles/${rec.id}`"
                   class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                   @click="markAsRead(rec)"
                 >
@@ -1092,7 +1086,7 @@ onUnmounted(() => observer?.disconnect())
                   <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">
                     {{ rec.title }}
                   </p>
-                </a>
+                </NuxtLink>
               </li>
             </ul>
           </div>
@@ -1102,10 +1096,8 @@ onUnmounted(() => observer?.disconnect())
             </p>
             <ul class="space-y-2">
               <li v-for="rec in recNews" :key="rec.id">
-                <a
-                  :href="rec.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <NuxtLink
+                  :to="`/articles/${rec.id}`"
                   class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                   @click="markAsRead(rec)"
                 >
@@ -1121,7 +1113,7 @@ onUnmounted(() => observer?.disconnect())
                   <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">
                     {{ rec.title }}
                   </p>
-                </a>
+                </NuxtLink>
               </li>
             </ul>
           </div>
@@ -1168,10 +1160,8 @@ onUnmounted(() => observer?.disconnect())
                 </p>
                 <ul class="space-y-2">
                   <li v-for="rec in recBlog.slice(0, 2)" :key="rec.id">
-                    <a
-                      :href="rec.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <NuxtLink
+                      :to="`/articles/${rec.id}`"
                       class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                       @click="clickRec(rec)"
                     >
@@ -1187,7 +1177,7 @@ onUnmounted(() => observer?.disconnect())
                       <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">
                         {{ rec.title }}
                       </p>
-                    </a>
+                    </NuxtLink>
                   </li>
                 </ul>
               </div>
@@ -1199,10 +1189,8 @@ onUnmounted(() => observer?.disconnect())
                 </p>
                 <ul class="space-y-2">
                   <li v-for="rec in recNews.slice(0, 2)" :key="rec.id">
-                    <a
-                      :href="rec.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <NuxtLink
+                      :to="`/articles/${rec.id}`"
                       class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                       @click="clickRec(rec)"
                     >
@@ -1218,7 +1206,7 @@ onUnmounted(() => observer?.disconnect())
                       <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">
                         {{ rec.title }}
                       </p>
-                    </a>
+                    </NuxtLink>
                   </li>
                 </ul>
               </div>
