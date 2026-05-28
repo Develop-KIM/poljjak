@@ -1,7 +1,7 @@
 import { and, count, desc, ilike, isNull, or, sql } from 'drizzle-orm'
 import { requireAdmin } from '../../../utils/admin'
 import { db } from '../../../db'
-import { analyses, comments, posts, users } from '../../../db/schema'
+import { users } from '../../../db/schema'
 import { formatCommunityDate } from '../../../utils/community'
 
 const PAGE_SIZE = 20
@@ -15,7 +15,10 @@ export default defineEventHandler(async (event) => {
   const offset = (page - 1) * PAGE_SIZE
 
   const whereClause = q
-    ? and(isNull(users.deletedAt), or(ilike(users.nickname, `%${q}%`), ilike(users.email, `%${q}%`)))
+    ? and(
+        isNull(users.deletedAt),
+        or(ilike(users.nickname, `%${q}%`), ilike(users.email, `%${q}%`))
+      )
     : isNull(users.deletedAt)
 
   const userRows = await db
@@ -28,9 +31,9 @@ export default defineEventHandler(async (event) => {
       suspendedAt: users.suspendedAt,
       lastLoginAt: users.lastLoginAt,
       createdAt: users.createdAt,
-      postCount: sql<number>`(SELECT COUNT(*) FROM posts WHERE user_id = ${users.id} AND deleted_at IS NULL)`,
-      commentCount: sql<number>`(SELECT COUNT(*) FROM comments WHERE user_id = ${users.id} AND deleted_at IS NULL)`,
-      analysisCount: sql<number>`(SELECT COUNT(*) FROM analyses WHERE user_id = ${users.id})`,
+      postCount: sql<number>`(SELECT COUNT(*) FROM posts WHERE user_id = "users"."id" AND deleted_at IS NULL)`,
+      commentCount: sql<number>`(SELECT COUNT(*) FROM comments WHERE user_id = "users"."id" AND deleted_at IS NULL)`,
+      analysisCount: sql<number>`(SELECT COUNT(*) FROM analyses WHERE user_id = "users"."id")`,
     })
     .from(users)
     .where(whereClause)

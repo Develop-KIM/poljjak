@@ -32,12 +32,7 @@ const actionLoading = ref<Record<string, boolean>>({})
 const PAGE_SIZE = 20
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 
-// 역할 변경 확인 모달
 const roleConfirmTarget = ref<{ user: AdminUser; nextRole: UserRole } | null>(null)
-
-function formatDate(val: string | null): string {
-  return val ?? '-'
-}
 
 function jobTypeLabel(jobType: JobType): string {
   if (jobType === 'developer') return '개발자'
@@ -50,10 +45,9 @@ async function fetchUsers() {
   try {
     const query: Record<string, string | number> = { page: currentPage.value }
     if (searchInput.value.trim()) query.q = searchInput.value.trim()
-    const res = await $fetch<{ data: { items: AdminUser[]; total: number } }>(
-      '/api/admin/users',
-      { query }
-    )
+    const res = await $fetch<{ data: { items: AdminUser[]; total: number } }>('/api/admin/users', {
+      query,
+    })
     users.value = res.data.items
     total.value = res.data.total
   } catch (e: unknown) {
@@ -75,13 +69,11 @@ function goPage(p: number) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// 역할 변경 — 확인 모달 오픈
 function requestRoleChange(user: AdminUser) {
   const nextRole: UserRole = user.role === 'admin' ? 'user' : 'admin'
   roleConfirmTarget.value = { user, nextRole }
 }
 
-// 역할 변경 확인
 async function confirmRoleChange() {
   if (!roleConfirmTarget.value) return
   const { user, nextRole } = roleConfirmTarget.value
@@ -144,12 +136,17 @@ onMounted(fetchUsers)
         <div class="relative w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl">
           <h3 class="text-base font-black text-foreground">역할을 변경할까요?</h3>
           <p class="mt-2 text-sm text-muted-foreground">
-            <span class="font-semibold text-foreground">{{ roleConfirmTarget.user.nickname }}</span>님의 역할을
-            <span class="font-semibold text-primary">{{ roleConfirmTarget.nextRole === 'admin' ? '관리자' : '일반 사용자' }}</span>로
-            변경해요.
+            <span class="font-semibold text-foreground">{{ roleConfirmTarget.user.nickname }}</span
+            >님의 역할을
+            <span class="font-semibold text-primary">{{
+              roleConfirmTarget.nextRole === 'admin' ? '관리자' : '일반 사용자'
+            }}</span
+            >로 변경해요.
           </p>
           <div class="mt-5 flex gap-2">
-            <AppButton variant="outline" class="flex-1" @click="roleConfirmTarget = null">취소</AppButton>
+            <AppButton variant="outline" class="flex-1" @click="roleConfirmTarget = null"
+              >취소</AppButton
+            >
             <AppButton class="flex-1" @click="confirmRoleChange">변경</AppButton>
           </div>
         </div>
@@ -178,42 +175,133 @@ onMounted(fetchUsers)
       검색 결과가 없어요
     </div>
 
-    <!-- 사용자 테이블 -->
-    <div v-else class="overflow-x-auto rounded-xl border border-border">
-      <table class="w-full min-w-[900px] border-collapse text-sm">
-        <thead>
-          <tr class="bg-muted">
-            <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">닉네임</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">이메일</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">직군</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">역할</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">가입일</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">마지막 로그인</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">게시글</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">댓글</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">분석</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">상태</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">액션</th>
-          </tr>
-        </thead>
-        <tbody class="bg-background">
-          <tr
-            v-for="user in users"
-            :key="user.id"
-            class="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
-          >
-            <!-- 닉네임: 왼쪽 정렬 -->
-            <td class="px-4 py-3 font-medium text-foreground">{{ user.nickname }}</td>
-            <!-- 이메일: 중앙 정렬 -->
-            <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ user.email ?? '-' }}</td>
-            <!-- 직군: 중앙 정렬 -->
-            <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ jobTypeLabel(user.jobType) }}</td>
-            <!-- 역할: 중앙 정렬, 클릭 → 확인 모달 -->
-            <td class="px-4 py-3 text-center">
+    <template v-else>
+      <!-- ── 데스크탑 테이블 (xl 이상) ── -->
+      <div class="hidden xl:block overflow-x-auto rounded-xl border border-border">
+        <table class="w-full min-w-[960px] border-collapse text-sm">
+          <thead>
+            <tr class="bg-muted">
+              <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+                닉네임
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                이메일
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                직군
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                역할
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                가입일
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                마지막 로그인
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                게시글
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                댓글
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                분석
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                상태
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                액션
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-background">
+            <tr
+              v-for="user in users"
+              :key="user.id"
+              class="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
+            >
+              <td class="px-4 py-3 font-medium text-foreground">{{ user.nickname }}</td>
+              <td class="px-4 py-3 text-center text-xs text-muted-foreground">
+                {{ user.email ?? '-' }}
+              </td>
+              <td class="px-4 py-3 text-center text-xs text-muted-foreground">
+                {{ jobTypeLabel(user.jobType) }}
+              </td>
+              <td class="px-4 py-3 text-center">
+                <button
+                  type="button"
+                  :disabled="actionLoading[user.id]"
+                  class="inline-flex cursor-pointer items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset transition-colors hover:opacity-80 disabled:opacity-50"
+                  :class="
+                    user.role === 'admin'
+                      ? 'bg-blue-50 text-blue-700 ring-blue-100'
+                      : 'bg-slate-100 text-slate-600 ring-slate-200'
+                  "
+                  @click="requestRoleChange(user)"
+                >
+                  {{ user.role === 'admin' ? '관리자' : '일반' }}
+                </button>
+              </td>
+              <td class="px-4 py-3 text-center text-xs text-muted-foreground">
+                {{ user.createdAt }}
+              </td>
+              <td class="px-4 py-3 text-center text-xs text-muted-foreground">
+                {{ user.lastLoginAt ?? '-' }}
+              </td>
+              <td class="px-4 py-3 text-center text-xs font-medium text-foreground">
+                {{ user.postCount }}
+              </td>
+              <td class="px-4 py-3 text-center text-xs font-medium text-foreground">
+                {{ user.commentCount }}
+              </td>
+              <td class="px-4 py-3 text-center text-xs font-medium text-foreground">
+                {{ user.analysisCount }}
+              </td>
+              <td class="px-4 py-3 text-center">
+                <AppBadge :variant="user.suspendedAt ? 'red' : 'green'">
+                  {{ user.suspendedAt ? '정지됨' : '정상' }}
+                </AppBadge>
+              </td>
+              <td class="px-4 py-3 text-center">
+                <AppButton
+                  :variant="user.suspendedAt ? 'outline' : 'destructive'"
+                  size="sm"
+                  :loading="actionLoading[user.id]"
+                  @click="toggleSuspend(user)"
+                >
+                  {{ user.suspendedAt ? '정지해제' : '정지' }}
+                </AppButton>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── 모바일 카드 (xl 미만) ── -->
+      <div class="grid gap-3 xl:hidden">
+        <div
+          v-for="user in users"
+          :key="user.id"
+          class="rounded-xl border border-border bg-card p-4"
+        >
+          <!-- 카드 헤더 -->
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="truncate font-semibold text-foreground">{{ user.nickname }}</p>
+              <p class="mt-0.5 truncate text-xs text-muted-foreground">
+                {{ user.email ?? '-' }}
+              </p>
+            </div>
+            <div class="flex shrink-0 items-center gap-1.5">
+              <AppBadge :variant="user.suspendedAt ? 'red' : 'green'">
+                {{ user.suspendedAt ? '정지됨' : '정상' }}
+              </AppBadge>
               <button
                 type="button"
                 :disabled="actionLoading[user.id]"
-                class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset transition-colors disabled:opacity-50 cursor-pointer hover:opacity-80"
+                class="inline-flex cursor-pointer items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset transition-colors hover:opacity-80 disabled:opacity-50"
                 :class="
                   user.role === 'admin'
                     ? 'bg-blue-50 text-blue-700 ring-blue-100'
@@ -223,39 +311,62 @@ onMounted(fetchUsers)
               >
                 {{ user.role === 'admin' ? '관리자' : '일반' }}
               </button>
-            </td>
-            <!-- 가입일: 중앙 정렬 -->
-            <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ formatDate(user.createdAt) }}</td>
-            <!-- 마지막 로그인: 중앙 정렬 -->
-            <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ formatDate(user.lastLoginAt) }}</td>
-            <!-- 활동 수치 -->
-            <td class="px-4 py-3 text-center text-xs font-medium text-foreground">{{ user.postCount }}</td>
-            <td class="px-4 py-3 text-center text-xs font-medium text-foreground">{{ user.commentCount }}</td>
-            <td class="px-4 py-3 text-center text-xs font-medium text-foreground">{{ user.analysisCount }}</td>
-            <!-- 상태: 중앙 정렬 -->
-            <td class="px-4 py-3 text-center">
-              <AppBadge :variant="user.suspendedAt ? 'red' : 'green'">
-                {{ user.suspendedAt ? '정지됨' : '정상' }}
-              </AppBadge>
-            </td>
-            <!-- 액션: 중앙 정렬 -->
-            <td class="px-4 py-3 text-center">
-              <AppButton
-                :variant="user.suspendedAt ? 'outline' : 'destructive'"
-                size="sm"
-                :loading="actionLoading[user.id]"
-                @click="toggleSuspend(user)"
-              >
-                {{ user.suspendedAt ? '정지해제' : '정지' }}
-              </AppButton>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+          </div>
+
+          <!-- 메타 정보 -->
+          <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+            <div>
+              <span class="text-muted-foreground">직군</span>
+              <span class="ml-1.5 font-medium text-foreground">{{
+                jobTypeLabel(user.jobType)
+              }}</span>
+            </div>
+            <div>
+              <span class="text-muted-foreground">가입일</span>
+              <span class="ml-1.5 font-medium text-foreground">{{ user.createdAt }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="text-muted-foreground">마지막 로그인</span>
+              <span class="ml-1.5 font-medium text-foreground">{{ user.lastLoginAt ?? '-' }}</span>
+            </div>
+          </div>
+
+          <!-- 활동 수치 -->
+          <div class="mt-3 flex gap-4 rounded-lg bg-muted/60 px-3 py-2">
+            <div class="text-center">
+              <p class="text-xs text-muted-foreground">게시글</p>
+              <p class="mt-0.5 text-sm font-bold text-foreground">{{ user.postCount }}</p>
+            </div>
+            <div class="text-center">
+              <p class="text-xs text-muted-foreground">댓글</p>
+              <p class="mt-0.5 text-sm font-bold text-foreground">{{ user.commentCount }}</p>
+            </div>
+            <div class="text-center">
+              <p class="text-xs text-muted-foreground">분석</p>
+              <p class="mt-0.5 text-sm font-bold text-foreground">{{ user.analysisCount }}</p>
+            </div>
+          </div>
+
+          <!-- 액션 -->
+          <div class="mt-3">
+            <AppButton
+              :variant="user.suspendedAt ? 'outline' : 'destructive'"
+              size="sm"
+              :loading="actionLoading[user.id]"
+              class="w-full"
+              @click="toggleSuspend(user)"
+            >
+              {{ user.suspendedAt ? '정지 해제' : '계정 정지' }}
+            </AppButton>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <p v-if="!pending && total > 0" class="mt-3 text-xs text-muted-foreground">
-      전체 <span class="font-semibold text-foreground">{{ total }}</span>명
+      전체 <span class="font-semibold text-foreground">{{ total }}</span
+      >명
     </p>
 
     <Pagination
