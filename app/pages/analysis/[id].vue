@@ -267,8 +267,6 @@ async function toggleFaceMask() {
       return
     }
 
-    let totalFaces = 0
-
     for (const canvas of canvases) {
       let detections
       try {
@@ -282,7 +280,6 @@ async function toggleFaceMask() {
       }
 
       if (!detections.length) continue
-      totalFaces += detections.length
 
       // 오버레이 캔버스 생성
       const overlay = document.createElement('canvas')
@@ -331,14 +328,159 @@ async function toggleFaceMask() {
       }
     }
 
+    // 텍스트 PII 블러 (얼굴과 같은 오버레이 배열에 추가)
+    await applyTextPiiMask()
     faceMasked.value = true
-    toast.success(
-      totalFaces > 0 ? `얼굴 ${totalFaces}개를 마스킹했어요` : '얼굴을 감지하지 못했어요'
-    )
   } catch {
-    toast.error('얼굴 감지에 실패했어요')
+    toast.error('마스킹에 실패했어요')
   } finally {
     maskingFaces.value = false
+  }
+}
+
+async function applyTextPiiMask() {
+  if (!beforePanel.value || !analysis.value?.pdfUrl) return
+
+  const pdfjsLib = await import('pdfjs-dist')
+
+  let pdf: Awaited<ReturnType<(typeof pdfjsLib)['getDocument']>['promise']>
+  try {
+    pdf = await pdfjsLib.getDocument(analysis.value.pdfUrl).promise
+  } catch {
+    return
+  }
+
+  const canvases = Array.from(beforePanel.value.querySelectorAll('canvas'))
+
+  const PII_PATTERNS = [
+    /01\d[-.\s]?\d{3,4}[-.\s]?\d{4}/, // 전화번호
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/, // 이메일
+    /\d{4}년\s*\d{1,2}월\s*\d{1,2}일/, // 생년월일 (한국식)
+    /\d{4}[-.]\d{2}[-.]\d{2}/, // 생년월일 (숫자식)
+    /https?:\/\/\S+/, // URL
+    /github\.com/i, // GitHub
+  ]
+  const LABEL_KEYWORDS = [
+    '이름',
+    '성명',
+    '생년월일',
+    '생일',
+    '연락처',
+    '전화',
+    '휴대폰',
+    '이메일',
+    'Email',
+    'E-mail',
+    'GitHub',
+    'GitLab',
+    'Phone',
+    'Tel',
+    '주소',
+    'Address',
+  ]
+  const COMPANY_PREFIXES = ['주식회사', '(주)', '㈜', 'Inc.', 'Co.', 'Ltd.', 'Corp.']
+
+  for (let pageNum = 1; pageNum <= Math.min(pdf.numPages, canvases.length); pageNum++) {
+    const canvas = canvases[pageNum - 1]
+    if (!canvas) continue
+
+    const page = await pdf.getPage(pageNum)
+    const viewport = page.getViewport({ scale: 1 })
+    const scaleX = canvas.width / viewport.width
+    const scaleY = canvas.height / viewport.height
+
+    const textContent = await page.getTextContent()
+    type TItem = { str: string; transform: number[]; width: number; height: number }
+    const items = textContent.items.filter((it): it is TItem => 'str' in it)
+
+    // y좌표 기준으로 같은 라인 묶기 (허용 오차 ±3 PDF 단위)
+    const lines: TItem[][] = []
+    for (const item of items) {
+      const y = item.transform[5]!
+      const line = lines.find((l) => Math.abs(l[0]!.transform[5]! - y) <= 3)
+      if (line) line.push(item)
+      else lines.push([item])
+    }
+
+    const toBlur = new Set<TItem>()
+
+    for (const line of lines) {
+      // 라벨 키워드가 있는 줄 → 라벨이 아닌 항목 전부 블러
+      const hasLabel = LABEL_KEYWORDS.some((kw) => line.some((it) => it.str.includes(kw)))
+      if (hasLabel) {
+        for (const it of line) {
+          if (!LABEL_KEYWORDS.some((kw) => it.str.includes(kw)) && it.str.trim()) {
+            toBlur.add(it)
+          }
+        }
+      }
+
+      for (let i = 0; i < line.length; i++) {
+        const it = line[i]!
+        // 회사명 접두사 → 해당 항목 + 다음 항목 블러
+        if (COMPANY_PREFIXES.some((p) => it.str.includes(p))) {
+          toBlur.add(it)
+          const next = line[i + 1]
+          if (next?.str.trim()) toBlur.add(next)
+        }
+        // 정규식 패턴 직접 매칭
+        if (PII_PATTERNS.some((r) => r.test(it.str))) toBlur.add(it)
+      }
+    }
+
+    if (toBlur.size === 0) continue
+
+    const overlay = document.createElement('canvas')
+    overlay.width = canvas.width
+    overlay.height = canvas.height
+    Object.assign(overlay.style, {
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      width: `${canvas.offsetWidth}px`,
+      height: `${canvas.offsetHeight}px`,
+      pointerEvents: 'none',
+    })
+
+    const ctx = overlay.getContext('2d')!
+
+    for (const it of toBlur) {
+      const pdfX = it.transform[4]!
+      const pdfY = it.transform[5]!
+      const pdfW = it.width
+      const pdfH = it.height > 0 ? it.height : Math.abs(it.transform[3]!)
+      const pad = 2
+
+      const x = Math.max(0, pdfX * scaleX - pad)
+      const y = Math.max(0, (viewport.height - pdfY - pdfH) * scaleY - pad)
+      const w = Math.min(canvas.width - x, pdfW * scaleX + pad * 2)
+      const h = Math.min(canvas.height - y, pdfH * scaleY + pad * 2)
+
+      if (w <= 0 || h <= 0) continue
+
+      // 픽셀화 블러 (다운샘플 → 업샘플)
+      const factor = Math.max(4, Math.floor(w / 10))
+      const tmp = document.createElement('canvas')
+      tmp.width = Math.max(1, Math.round(w / factor))
+      tmp.height = Math.max(1, Math.round(h / factor))
+      try {
+        tmp.getContext('2d')!.drawImage(canvas, x, y, w, h, 0, 0, tmp.width, tmp.height)
+        ctx.imageSmoothingEnabled = false
+        ctx.drawImage(tmp, 0, 0, tmp.width, tmp.height, x, y, w, h)
+        ctx.imageSmoothingEnabled = true
+      } catch {
+        // tainted canvas는 skip
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.08)'
+      ctx.fillRect(x, y, w, h)
+    }
+
+    const parent = canvas.parentElement
+    if (parent) {
+      parent.style.position = 'relative'
+      parent.appendChild(overlay)
+      faceOverlays.push(overlay)
+    }
   }
 }
 
