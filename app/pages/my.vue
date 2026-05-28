@@ -525,7 +525,7 @@ const NuxtLink = resolveComponent('NuxtLink')
         <h2 class="hidden text-lg font-black text-foreground lg:block">
           {{ tabs.find((t) => t.key === activeTab)?.label }}
         </h2>
-        <div class="mt-4 lg:mt-4">
+        <div class="mt-4 pb-8 lg:mt-4">
           <!-- 분석 기록 -->
           <template v-if="activeTab === 'analyses'">
             <div v-if="analysesPending" class="flex justify-center py-12">

@@ -42,7 +42,7 @@ async function handleNotifClick(n: { id: string; isRead: boolean; linkUrl: strin
       <Bell class="size-5" />
       <span
         v-if="notifStore.bellUnreadCount > 0"
-        class="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white"
+        class="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
       >
         {{ notifStore.bellUnreadCount > 9 ? '9+' : notifStore.bellUnreadCount }}
       </span>
