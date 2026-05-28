@@ -525,6 +525,11 @@ const recNews = ref<RecommendArticle[]>([]) // 해외 뉴스 추천
 const recInsight = ref<PersonalInsight>({ topTag: null, topFeed: null, hasHistory: false })
 const recSheetOpen = ref(false)
 
+function clickRec(rec: RecommendArticle) {
+  markAsRead(rec)
+  recSheetOpen.value = false
+}
+
 const recTitle = computed(() => {
   const nick = authStore.profile?.nickname
   return nick ? `${nick}님을 위한 추천` : '오늘의 추천'
@@ -1161,10 +1166,7 @@ onUnmounted(() => observer?.disconnect())
                       target="_blank"
                       rel="noopener noreferrer"
                       class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
-                      @click="
-                        markAsRead(rec)
-                        recSheetOpen = false
-                      "
+                      @click="clickRec(rec)"
                     >
                       <span
                         class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
@@ -1195,10 +1197,7 @@ onUnmounted(() => observer?.disconnect())
                       target="_blank"
                       rel="noopener noreferrer"
                       class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
-                      @click="
-                        markAsRead(rec)
-                        recSheetOpen = false
-                      "
+                      @click="clickRec(rec)"
                     >
                       <span
                         class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
