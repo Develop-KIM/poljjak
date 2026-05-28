@@ -420,17 +420,17 @@ const NuxtLink = resolveComponent('NuxtLink')
       </div>
 
       <!-- 모바일 탭 -->
-      <div class="mt-4 overflow-x-auto rounded-xl border border-border scrollbar-none">
-        <div class="flex min-w-max">
+      <div class="-mx-5 mt-4 overflow-x-auto scrollbar-none md:-mx-8">
+        <div class="flex gap-2 px-5 pb-0.5 md:px-8" style="width: max-content">
           <button
             v-for="tab in tabs"
             :key="tab.key"
             type="button"
-            class="shrink-0 whitespace-nowrap border-r border-border px-4 py-3 text-xs font-semibold transition-colors outline-none last:border-r-0"
+            class="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors outline-none"
             :class="
               activeTab === tab.key
-                ? 'bg-primary/[0.07] text-primary'
-                : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground'
             "
             @click="selectTab(tab.key)"
           >
