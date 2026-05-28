@@ -741,7 +741,7 @@ onUnmounted(() => observer?.disconnect())
               <input
                 v-model="searchInput"
                 type="text"
-                placeholder="제목을 검색하세요"
+                placeholder="검색어를 입력하세요"
                 class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
               <button
@@ -807,7 +807,7 @@ onUnmounted(() => observer?.disconnect())
             <input
               v-model="searchInput"
               type="text"
-              placeholder="제목 검색..."
+              placeholder="검색어를 입력하세요"
               class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
             <button

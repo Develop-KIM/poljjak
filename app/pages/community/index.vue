@@ -19,30 +19,6 @@ const validSorts = ['latest', 'popular'] as const
 type CommunityTab = (typeof validTabs)[number]
 type SortType = (typeof validSorts)[number]
 
-const JOB_TYPE_OPTIONS = [
-  { label: '전체 직군', value: '' },
-  { label: '프론트엔드', value: 'frontend' },
-  { label: '백엔드', value: 'backend' },
-  { label: 'iOS', value: 'ios' },
-  { label: 'Android', value: 'android' },
-  { label: '풀스택', value: 'fullstack' },
-  { label: '데이터/ML', value: 'data' },
-  { label: 'AI', value: 'ai' },
-  { label: 'DevOps', value: 'devops' },
-  { label: 'UX/UI 디자인', value: 'ux_ui' },
-  { label: '브랜드/그래픽', value: 'brand' },
-  { label: '모션', value: 'motion' },
-  { label: '기획/PM', value: 'pm' },
-]
-
-const CAREER_LEVEL_OPTIONS = [
-  { label: '전체 연차', value: '' },
-  { label: '신입 (0-1년)', value: 'entry' },
-  { label: '주니어 (1-3년)', value: 'junior' },
-  { label: '미드 (3-5년)', value: 'mid' },
-  { label: '시니어 (5년+)', value: 'senior' },
-]
-
 function getQueryString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined
 }
@@ -62,9 +38,6 @@ const initialPage = Number.parseInt(getQueryString(route.query.page) ?? '1', 10)
 
 const activeTab = ref<CommunityTab>(getInitialTab())
 const activeSort = ref<SortType>(getInitialSort())
-const feedbackJobType = ref(getQueryString(route.query.jobType) ?? '')
-const feedbackCareerLevel = ref(getQueryString(route.query.careerLevel) ?? '')
-const feedbackHasAnalysis = ref(route.query.hasAnalysis === 'true')
 const showLoginModal = ref(false)
 const loginContext = ref('계속하기')
 const toast = useToastStore()
@@ -143,11 +116,6 @@ async function fetchPosts() {
       category: activeTab.value,
       page: currentPage.value,
     }
-    if (activeTab.value === 'feedback') {
-      if (feedbackJobType.value) query.jobType = feedbackJobType.value
-      if (feedbackCareerLevel.value) query.careerLevel = feedbackCareerLevel.value
-      if (feedbackHasAnalysis.value) query.hasAnalysis = 'true'
-    }
     if (keyword.value) query.keyword = keyword.value
     if (activeSort.value === 'popular') query.sort = 'popular'
 
@@ -185,21 +153,14 @@ function clearSearch() {
   resetAndFetch()
 }
 
-function resetFeedbackFilters() {
-  feedbackJobType.value = ''
-  feedbackCareerLevel.value = ''
-  feedbackHasAnalysis.value = false
-}
-
 onMounted(fetchPosts)
 watch(activeTab, () => {
-  resetFeedbackFilters()
   activeSort.value = 'latest'
   keyword.value = ''
   searchInput.value = ''
   resetAndFetch()
 })
-watch([feedbackJobType, feedbackCareerLevel, feedbackHasAnalysis, activeSort], resetAndFetch)
+watch(activeSort, resetAndFetch)
 
 function handleTabChange(value: string) {
   if (!validTabs.includes(value as CommunityTab)) return
@@ -223,7 +184,7 @@ function goPage(p: number) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1440px] px-5 py-8 md:px-8 md:py-10">
+  <div class="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
     <!-- 헤더 -->
     <div class="flex items-center justify-between">
       <div>
@@ -243,78 +204,31 @@ function goPage(p: number) {
       <AppTabs :model-value="activeTab" :tabs="tabs" @update:model-value="handleTabChange" />
     </div>
 
-    <!-- 피드백 필터 -->
-    <div v-if="activeTab === 'feedback'" class="mt-4 flex flex-wrap items-center gap-2">
-      <!-- 직군 드롭다운 -->
-      <select
-        v-model="feedbackJobType"
-        class="h-9 rounded-full border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary"
-      >
-        <option v-for="opt in JOB_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
-          {{ opt.label }}
-        </option>
-      </select>
-      <!-- 연차 드롭다운 -->
-      <select
-        v-model="feedbackCareerLevel"
-        class="h-9 rounded-full border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary"
-      >
-        <option v-for="opt in CAREER_LEVEL_OPTIONS" :key="opt.value" :value="opt.value">
-          {{ opt.label }}
-        </option>
-      </select>
-      <!-- AI 분석 첨부 토글 -->
-      <button
-        type="button"
-        class="h-9 rounded-full border px-3 text-sm font-semibold transition-colors"
-        :class="
-          feedbackHasAnalysis
-            ? 'border-primary bg-primary/5 text-primary'
-            : 'border-border text-muted-foreground hover:text-foreground'
-        "
-        @click="feedbackHasAnalysis = !feedbackHasAnalysis"
-      >
-        AI 분석 포함
-      </button>
-      <!-- 필터 초기화 -->
-      <button
-        v-if="feedbackJobType || feedbackCareerLevel || feedbackHasAnalysis"
-        type="button"
-        class="h-9 rounded-full px-3 text-sm text-muted-foreground hover:text-foreground"
-        @click="resetFeedbackFilters"
-      >
-        초기화
-      </button>
-    </div>
-
     <!-- 검색 + 정렬 -->
-    <div class="mt-5">
-      <form class="relative flex flex-col gap-2 sm:flex-row" @submit.prevent="submitSearch">
-        <div class="relative flex-1">
-          <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            v-model="searchInput"
-            type="text"
-            placeholder="제목 검색"
-            class="h-11 w-full rounded-lg border border-border bg-background pl-9 pr-9 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
-          />
-          <button
-            v-if="searchInput"
-            type="button"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            @click="clearSearch"
-          >
-            <X class="size-4" />
-          </button>
-        </div>
-        <AppButton type="submit" variant="outline" class="w-full sm:w-auto">검색</AppButton>
+    <div class="mt-5 flex flex-col gap-3">
+      <form class="relative" @submit.prevent="submitSearch">
+        <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          v-model="searchInput"
+          type="text"
+          placeholder="검색어를 입력하세요"
+          class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+        />
+        <button
+          v-if="searchInput"
+          type="button"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          @click="clearSearch"
+        >
+          <X class="size-3.5" />
+        </button>
       </form>
       <p v-if="keyword" class="mt-2 text-xs text-muted-foreground">
         "<span class="font-semibold text-foreground">{{ keyword }}</span
         >" 검색 결과 {{ totalCount }}건
       </p>
       <!-- 정렬 -->
-      <div class="mt-3 flex gap-2">
+      <div class="flex h-10 w-fit overflow-hidden rounded-xl border border-border bg-background">
         <button
           v-for="s in [
             { label: '최신순', value: 'latest' },
@@ -322,11 +236,11 @@ function goPage(p: number) {
           ]"
           :key="s.value"
           type="button"
-          class="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+          class="px-4 text-xs font-medium transition-colors"
           :class="
             activeSort === s.value
-              ? 'bg-foreground text-background'
-              : 'bg-muted text-muted-foreground hover:text-foreground'
+              ? 'bg-accent text-primary'
+              : 'text-muted-foreground hover:text-foreground'
           "
           @click="activeSort = s.value as SortType"
         >
