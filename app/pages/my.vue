@@ -469,18 +469,11 @@ const NuxtLink = resolveComponent('NuxtLink')
             </div>
           </div>
           <p class="mt-3 truncate text-xs text-muted-foreground">{{ profile?.email ?? '' }}</p>
-          <div class="mt-4 flex flex-col gap-1.5">
+          <div class="mt-4">
             <AppButton variant="outline" size="sm" class="w-full" @click="openEdit">
               <Pencil class="size-3.5" />
               프로필 수정
             </AppButton>
-            <button
-              type="button"
-              class="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-destructive hover:underline"
-              @click="showWithdrawDialog = true"
-            >
-              탈퇴하기
-            </button>
           </div>
         </div>
 
@@ -500,6 +493,15 @@ const NuxtLink = resolveComponent('NuxtLink')
           >
             {{ tab.label }}
           </button>
+          <div class="mt-2 border-t border-border pt-2">
+            <button
+              type="button"
+              class="w-full rounded-lg px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:text-destructive"
+              @click="showWithdrawDialog = true"
+            >
+              탈퇴하기
+            </button>
+          </div>
         </nav>
       </aside>
 
