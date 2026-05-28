@@ -781,18 +781,6 @@ onUnmounted(() => observer?.disconnect())
                 트렌딩
               </button>
             </div>
-            <button
-              type="button"
-              class="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-xs font-medium transition-colors"
-              :class="
-                hideRead
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-border text-muted-foreground hover:text-foreground'
-              "
-              @click="hideRead = !hideRead"
-            >
-              읽은 글 숨기기
-            </button>
             <div
               class="flex h-10 shrink-0 overflow-hidden rounded-xl border border-border bg-background"
             >
@@ -865,21 +853,35 @@ onUnmounted(() => observer?.disconnect())
             />
           </div>
 
-          <!-- 주제 태그 빠른 선택 (데스크탑 — 사이드바 스크롤 없이) -->
-          <div class="hidden lg:flex items-center gap-1.5 flex-wrap">
+          <!-- 주제 태그 빠른 선택 + 읽은 글 숨기기 (데스크탑) -->
+          <div class="hidden lg:flex items-center justify-between gap-1.5">
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                v-for="tag in TAGS"
+                :key="tag"
+                type="button"
+                class="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                :class="
+                  selectedTag === tag
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                "
+                @click="selectTag(selectedTag === tag ? null : tag)"
+              >
+                {{ tag }}
+              </button>
+            </div>
             <button
-              v-for="tag in TAGS"
-              :key="tag"
               type="button"
-              class="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+              class="flex h-8 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-xs font-medium transition-colors"
               :class="
-                selectedTag === tag
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                hideRead
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border text-muted-foreground hover:text-foreground'
               "
-              @click="selectTag(selectedTag === tag ? null : tag)"
+              @click="hideRead = !hideRead"
             >
-              {{ tag }}
+              읽은 글 숨기기
             </button>
           </div>
         </div>
