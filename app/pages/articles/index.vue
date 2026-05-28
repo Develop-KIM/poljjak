@@ -690,7 +690,7 @@ onUnmounted(() => observer?.disconnect())
               <div v-if="recBlog.length > 0">
                 <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
                 <ul class="space-y-2">
-                  <li v-for="rec in recBlog.slice(0, 3)" :key="rec.id">
+                  <li v-for="rec in recBlog.slice(0, 2)" :key="rec.id">
                     <a :href="rec.url" target="_blank" rel="noopener noreferrer"
                       class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                       @click="markAsRead(rec as Article); recSheetOpen = false"
