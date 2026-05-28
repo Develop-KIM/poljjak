@@ -19,7 +19,10 @@ async function uploadPdfToStorage(userId: string, data: Buffer): Promise<string 
     const { error } = await supabase.storage
       .from('portfolios')
       .upload(filename, data, { contentType: 'application/pdf' })
-    if (error) return null
+    if (error) {
+      console.error('[PDF 업로드 실패]', error.message)
+      return null
+    }
     const { data: urlData } = supabase.storage.from('portfolios').getPublicUrl(filename)
     return urlData.publicUrl
   } catch {

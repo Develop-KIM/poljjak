@@ -609,11 +609,15 @@ async function downloadAfterPdf() {
             <div
               ref="afterPanel"
               data-after-panel
-              class="after-html-viewer flex-1 overflow-y-auto p-6 text-sm leading-7"
+              class="flex-1 overflow-y-auto bg-muted/30 p-4"
               @scroll="onAfterScroll"
             >
               <!-- eslint-disable-next-line vue/no-v-html -->
-              <div v-if="analysis.afterHtml" v-html="analysis.afterHtml" />
+              <div
+                v-if="analysis.afterHtml"
+                class="after-html-viewer mx-auto min-h-full rounded-lg bg-white px-10 py-10 shadow-sm"
+                v-html="analysis.afterHtml"
+              />
               <div
                 v-else
                 class="flex h-full flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground"
@@ -795,25 +799,37 @@ async function downloadAfterPdf() {
 </template>
 
 <style scoped>
-/* After HTML 내용 스타일 */
-.after-html-viewer :deep(h1),
-.after-html-viewer :deep(h2),
-.after-html-viewer :deep(h3) {
-  font-weight: 800;
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
+/* After HTML — A4 문서 스타일 */
+.after-html-viewer {
+  color: #111;
+  font-size: 0.875rem;
+  line-height: 1.8;
 }
 .after-html-viewer :deep(h1) {
-  font-size: 1.25rem;
+  font-size: 1.4rem;
+  font-weight: 900;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  color: #111;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.5rem;
 }
 .after-html-viewer :deep(h2) {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-top: 1.5rem;
+  margin-bottom: 0.4rem;
+  color: #1a1a1a;
 }
 .after-html-viewer :deep(h3) {
-  font-size: 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+  color: #374151;
 }
 .after-html-viewer :deep(p) {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.6rem;
 }
 .after-html-viewer :deep(ul),
 .after-html-viewer :deep(ol) {
@@ -821,16 +837,24 @@ async function downloadAfterPdf() {
   margin-bottom: 0.75rem;
 }
 .after-html-viewer :deep(li) {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
+}
+.after-html-viewer :deep(strong) {
+  font-weight: 700;
+  color: #111;
+}
+.after-html-viewer :deep(section),
+.after-html-viewer :deep(div) {
+  margin-bottom: 1rem;
 }
 .after-html-viewer :deep([data-issue-id]) {
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: hsl(var(--primary) / 0.6);
+  background-color: rgb(99 102 241 / 0.08);
+  border-bottom: 2px solid rgb(99 102 241 / 0.5);
   cursor: pointer;
+  border-radius: 2px;
+  padding: 0 2px;
 }
 .after-html-viewer :deep([data-issue-id]:hover) {
-  background-color: hsl(var(--primary) / 0.08);
-  border-radius: 0.25rem;
+  background-color: rgb(99 102 241 / 0.15);
 }
 </style>

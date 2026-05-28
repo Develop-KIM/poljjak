@@ -109,17 +109,24 @@ JSON 이외의 텍스트는 절대 출력하지 마세요.
   ],
   "afterHtmlSections": [
     {
-      "sectionName": "섹션명 (예: 프로젝트, 기술스택, 자기소개)",
-      "html": "<section>개선된 HTML 내용. 변경된 부분에는 data-issue-id='issue_1' 속성 추가</section>",
+      "sectionName": "프로젝트",
+      "html": "<h2>프로젝트</h2><ul><li><strong>서비스명</strong> — <span data-issue-id='issue_1'>DAU 3만 명, 응답속도 40% 개선</span></li></ul>",
       "changes": [
         {
           "issueId": "issue_1",
-          "tooltip": "무엇이 왜 바뀌었는지 한 문장"
+          "tooltip": "수치를 추가해 임팩트를 구체화했어요"
         }
       ]
     }
   ]
 }
+
+[afterHtmlSections 작성 규칙 — 반드시 준수]
+- html 필드: 포트폴리오 해당 섹션의 전체 내용을 HTML 태그로 작성하세요. 변경 설명이 아니라, 실제로 브라우저에 렌더링될 완성된 HTML입니다.
+- 원문 포트폴리오의 모든 내용을 포함하되, issues에서 발견한 문제를 직접 수정하여 반영하세요.
+- 바뀐 문장·단어에만 data-issue-id='issue_X' 속성을 인라인 span 태그로 추가하세요.
+- 사용 가능한 태그: h1~h3, p, ul, ol, li, strong, em, span, section, div
+- html 필드에 변경 이유 설명을 쓰지 마세요. 개선된 본문 텍스트만 작성하세요.
 
 [우선순위 기준]
 - high: 채용 합격 여부에 직접 영향을 주는 문제
