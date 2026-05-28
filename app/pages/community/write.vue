@@ -89,10 +89,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div
-    class="mx-auto px-5 py-8 md:px-8 md:py-10"
-    :class="isFromAnalysis ? 'max-w-[1440px]' : 'max-w-2xl'"
-  >
+  <div class="mx-auto max-w-[1440px] px-5 py-8 md:px-8 md:py-10">
     <NuxtLink
       :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'"
       class="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -214,7 +211,7 @@ async function handleSubmit() {
 
     <!-- ── 커뮤니티 직접 작성: 단일 컬럼 ── -->
     <template v-else>
-      <div class="mt-6 grid gap-5">
+      <div class="mt-6 grid gap-5 max-w-2xl">
         <div>
           <label class="text-sm font-bold text-foreground">카테고리</label>
           <AppSelect

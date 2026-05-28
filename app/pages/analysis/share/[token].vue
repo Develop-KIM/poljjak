@@ -104,7 +104,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[900px] px-5 py-10 md:px-8 md:py-14">
+  <div class="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-14">
     <div v-if="pending" class="flex flex-col items-center gap-4 py-32">
       <div class="size-10 animate-spin rounded-full border-4 border-border border-t-primary" />
       <p class="text-sm text-muted-foreground">불러오는 중...</p>
