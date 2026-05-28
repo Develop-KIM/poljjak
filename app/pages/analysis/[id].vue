@@ -14,6 +14,7 @@ import {
   ScanFace,
   EyeOff,
 } from '@lucide/vue'
+import { marked } from 'marked'
 import type { AnalysisResultV2, AnalysisIssue, AnalysisActionItem } from '~~/server/utils/clova'
 
 definePageMeta({ middleware: 'auth' })
@@ -98,6 +99,16 @@ const shouldShowProgress = computed(() => {
 })
 
 const isV2 = computed(() => !!(analysis.value?.issues || analysis.value?.afterHtml))
+
+// CLOVA가 마크다운으로 반환하는 경우를 대비해 HTML로 변환
+const renderedAfterHtml = computed(() => {
+  const raw = analysis.value?.afterHtml
+  if (!raw) return null
+  // 이미 HTML 태그가 포함된 경우 그대로, 아니면 marked로 변환
+  const hasHtmlTags = /<[a-z][\s\S]*>/i.test(raw)
+  if (hasHtmlTags) return raw
+  return marked.parse(raw, { async: false }) as string
+})
 
 const issues = computed<AnalysisIssue[]>(() => {
   const raw = analysis.value?.issues ?? []
@@ -641,12 +652,12 @@ async function downloadAfterPdf() {
             >
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
-                v-if="analysis.afterHtml"
+                v-if="renderedAfterHtml"
                 class="after-html-viewer mx-auto min-h-full rounded-lg bg-white px-10 py-10 shadow-sm"
-                v-html="analysis.afterHtml"
+                v-html="renderedAfterHtml"
               />
               <div
-                v-else
+                v-if="!renderedAfterHtml"
                 class="flex h-full flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground"
               >
                 <span class="text-4xl">✨</span>
@@ -873,6 +884,23 @@ async function downloadAfterPdf() {
 .after-html-viewer :deep(section),
 .after-html-viewer :deep(div) {
   margin-bottom: 1rem;
+}
+.after-html-viewer :deep(hr) {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.25rem 0;
+}
+.after-html-viewer :deep(code) {
+  background: #f3f4f6;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 0.8em;
+}
+.after-html-viewer :deep(blockquote) {
+  border-left: 3px solid #d1d5db;
+  padding-left: 1rem;
+  color: #6b7280;
+  margin: 0.75rem 0;
 }
 .after-html-viewer :deep([data-issue-id]) {
   background-color: rgb(99 102 241 / 0.08);

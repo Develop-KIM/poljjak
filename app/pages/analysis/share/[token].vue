@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ChevronDown } from '@lucide/vue'
+import { marked } from 'marked'
 import type { AnalysisResult, AnalysisIssue, AnalysisActionItem } from '~~/server/utils/clova'
 
 const route = useRoute()
@@ -58,9 +59,13 @@ const isV2 = computed(
   () => !!(analysis.value?.issues || analysis.value?.maskedAfterHtml || analysis.value?.afterHtml)
 )
 
-const publicAfterHtml = computed(
-  () => analysis.value?.maskedAfterHtml ?? analysis.value?.afterHtml ?? null
-)
+const publicAfterHtml = computed(() => {
+  const raw = analysis.value?.maskedAfterHtml ?? analysis.value?.afterHtml ?? null
+  if (!raw) return null
+  const hasHtmlTags = /<[a-z][\s\S]*>/i.test(raw)
+  if (hasHtmlTags) return raw
+  return marked.parse(raw, { async: false }) as string
+})
 
 const issues = computed<AnalysisIssue[]>(() => {
   const raw = analysis.value?.issues ?? []
