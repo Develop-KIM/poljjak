@@ -12,6 +12,7 @@ export const articles = pgTable(
     title: text('title').notNull(),
     url: text('url').notNull(),
     summary: text('summary'),
+    imageUrl: text('image_url'),
     tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
     publishedAt: timestamp('published_at').notNull(),
     collectedAt: timestamp('collected_at').notNull().defaultNow(),

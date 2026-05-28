@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, ilike, inArray, sql, arrayContains } from 'drizzle-orm'
+import { and, count, desc, eq, gte, ilike, inArray, or, sql, arrayContains } from 'drizzle-orm'
 import { getAuthUser } from '../../utils/auth'
 import { db } from '../../db'
 import { articleBookmarks, articleClicks, articles } from '../../db/schema'
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     eq(articles.category, category),
     ...(feedNames.length === 1 ? [eq(articles.feedName, feedNames[0]!)] : []),
     ...(feedNames.length > 1 ? [inArray(articles.feedName, feedNames)] : []),
-    ...(q ? [ilike(articles.title, `%${q}%`)] : []),
+    ...(q ? [or(ilike(articles.title, `%${q}%`), ilike(articles.summary, `%${q}%`))] : []),
     ...(tag ? [arrayContains(articles.tags, [tag])] : []),
     ...(periodStart ? [gte(articles.publishedAt, periodStart)] : []),
   ]
@@ -77,6 +77,7 @@ export default defineEventHandler(async (event) => {
             title: articles.title,
             url: articles.url,
             summary: articles.summary,
+            imageUrl: articles.imageUrl,
             tags: articles.tags,
             publishedAt: articles.publishedAt,
             bookmarkCount: sql<number>`COALESCE(${bookmarkCountSq.cnt}, 0)`,
@@ -98,6 +99,7 @@ export default defineEventHandler(async (event) => {
             title: articles.title,
             url: articles.url,
             summary: articles.summary,
+            imageUrl: articles.imageUrl,
             tags: articles.tags,
             publishedAt: articles.publishedAt,
             bookmarkCount: sql<number>`0`,

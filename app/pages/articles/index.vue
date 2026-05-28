@@ -14,7 +14,7 @@ useSeoMeta({
 
 interface Article {
   id: string; feedName: string; category: 'domestic' | 'international'
-  title: string; url: string; summary: string | null; tags: string[]
+  title: string; url: string; summary: string | null; imageUrl: string | null; tags: string[]
   publishedAt: string; isBookmarked: boolean; bookmarkCount: number
 }
 
@@ -77,7 +77,8 @@ const selectedPeriod = ref<Period>(initialPeriod)
 const selectedSort = ref<Sort>(initialSort)
 const searchInput = ref(typeof route.query.q === 'string' ? route.query.q : '')
 const searchQuery = ref(typeof route.query.q === 'string' ? route.query.q : '')
-const feedNames = ref<{ domestic: string[]; international: string[] }>({ domestic: [], international: [] })
+interface FeedItem { name: string; lastPublishedAt: string | null }
+const feedNames = ref<{ domestic: FeedItem[]; international: FeedItem[] }>({ domestic: [], international: [] })
 const feedsLoading = ref(true)
 const articles = ref<Article[]>([])
 const pending = ref(false)
@@ -135,9 +136,10 @@ const tabs: Array<{ label: string; value: ArticleTab }> = [
   { label: '국내 블로그', value: 'domestic' },
   { label: '해외 뉴스', value: 'international' },
 ]
-const currentFeedNames = computed(() =>
+const currentFeeds = computed(() =>
   activeTab.value === 'domestic' ? feedNames.value.domestic : feedNames.value.international,
 )
+const currentFeedNames = computed(() => currentFeeds.value.map((f) => f.name))
 const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
 
 const selectedFeedValue = computed({
@@ -161,7 +163,7 @@ const emptyDesc = computed(() => {
 async function fetchFeeds() {
   feedsLoading.value = true
   try {
-    const res = await $fetch<{ data: { domestic: string[]; international: string[] } }>('/api/articles/feeds')
+    const res = await $fetch<{ data: { domestic: FeedItem[]; international: FeedItem[] } }>('/api/articles/feeds')
     feedNames.value = res.data
   } catch { /* ignore */ }
   finally { feedsLoading.value = false }
@@ -231,6 +233,12 @@ function clearSearch() {
 
 function goPage(page: number) { currentPage.value = page; fetchArticles(); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
+// 읽은 글 숨기기
+const hideRead = ref(false)
+const visibleArticles = computed(() =>
+  hideRead.value ? articles.value.filter((a) => !readIds.value.has(a.id)) : articles.value,
+)
+
 // 공유
 async function shareArticle(article: Article) {
   try {
@@ -239,6 +247,16 @@ async function shareArticle(article: Article) {
   } catch {
     toast.error('복사에 실패했어요')
   }
+}
+
+function shareTwitter(article: Article) {
+  const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(article.url)}&text=${encodeURIComponent(article.title)}`
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+function shareLinkedIn(article: Article) {
+  const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(article.url)}`
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 // 무한 스크롤
@@ -446,23 +464,28 @@ onUnmounted(() => observer?.disconnect())
               @click="selectFeed(null)"
             ><span class="size-2 shrink-0 rounded-full bg-muted-foreground/40" />전체</button>
           </li>
-          <li v-for="name in currentFeedNames" :key="name" class="group/item flex items-center">
+          <li v-for="feed in currentFeeds" :key="feed.name" class="group/item flex items-center">
             <button type="button"
-              class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
-              :class="selectedFeed === name ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
-              @click="selectFeed(name)"
+              class="flex min-w-0 flex-1 flex-col rounded-lg px-3 py-2 text-sm transition-colors"
+              :class="selectedFeed === feed.name ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+              @click="selectFeed(feed.name)"
             >
-              <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(name) }" />
-              <span class="truncate">{{ shortName(name) }}</span>
+              <span class="flex items-center gap-2.5">
+                <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(feed.name) }" />
+                <span class="truncate">{{ shortName(feed.name) }}</span>
+              </span>
+              <span v-if="feed.lastPublishedAt" class="mt-0.5 pl-4.5 text-[10px] text-muted-foreground/60">
+                {{ formatDate(feed.lastPublishedAt) }}
+              </span>
             </button>
             <button
               type="button"
               class="mr-1 shrink-0 rounded p-1 opacity-0 transition-opacity group-hover/item:opacity-100"
-              :class="subscribedFeeds.has(name) ? 'text-primary opacity-100' : 'text-muted-foreground hover:text-foreground'"
-              :title="subscribedFeeds.has(name) ? '구독 해제' : '새 글 알림 구독'"
-              @click.stop="toggleSubscribeFeed(name)"
+              :class="subscribedFeeds.has(feed.name) ? 'text-primary opacity-100' : 'text-muted-foreground hover:text-foreground'"
+              :title="subscribedFeeds.has(feed.name) ? '구독 해제' : '새 글 알림 구독'"
+              @click.stop="toggleSubscribeFeed(feed.name)"
             >
-              <BellOff v-if="subscribedFeeds.has(name)" class="size-3" />
+              <BellOff v-if="subscribedFeeds.has(feed.name)" class="size-3" />
               <Bell v-else class="size-3" />
             </button>
           </li>
@@ -490,6 +513,12 @@ onUnmounted(() => observer?.disconnect())
               <button type="button" class="px-4 text-xs font-medium transition-colors" :class="selectedSort === 'latest' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('latest')">최신순</button>
               <button type="button" class="px-4 text-xs font-medium transition-colors" :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('trending')">트렌딩</button>
             </div>
+            <button
+              type="button"
+              class="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-xs font-medium transition-colors"
+              :class="hideRead ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:text-foreground'"
+              @click="hideRead = !hideRead"
+            >읽은 글 숨기기</button>
             <div class="flex h-10 shrink-0 overflow-hidden rounded-xl border border-border bg-background">
               <button
                 v-for="p in periods"
@@ -545,10 +574,21 @@ onUnmounted(() => observer?.disconnect())
         <!-- 카드 그리드 -->
         <div v-else-if="articles.length > 0">
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" style="min-height: 600px; align-content: start;">
-            <div v-for="article in articles" :key="article.id"
+            <div v-for="article in visibleArticles" :key="article.id"
               class="group relative flex h-full flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
               :class="{ 'opacity-75': readIds.has(article.id) }"
             >
+              <!-- 썸네일 -->
+              <a v-if="article.imageUrl" :href="article.url" target="_blank" rel="noopener noreferrer"
+                class="block overflow-hidden rounded-t-2xl"
+                @click="markAsRead(article)"
+              >
+                <img :src="article.imageUrl" :alt="article.title"
+                  class="aspect-[2/1] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  loading="lazy"
+                  @error="($event.target as HTMLImageElement).closest('a')!.style.display='none'"
+                />
+              </a>
               <a :href="article.url" target="_blank" rel="noopener noreferrer"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
                 @click="markAsRead(article)"
@@ -574,13 +614,27 @@ onUnmounted(() => observer?.disconnect())
               <div class="flex items-center justify-between border-t border-border px-4 py-3 md:px-5">
                 <span class="text-xs text-muted-foreground">{{ formatDate(article.publishedAt) }}</span>
                 <div class="flex items-center gap-1">
-                  <!-- 공유 버튼 -->
-                  <button type="button"
-                    class="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                    @click.stop="shareArticle(article)"
-                  >
-                    <Share2 class="size-3.5" />
-                  </button>
+                  <!-- 공유 드롭다운 -->
+                  <div class="group/share relative">
+                    <button type="button"
+                      class="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    >
+                      <Share2 class="size-3.5" />
+                    </button>
+                    <div class="absolute bottom-8 right-0 hidden w-36 overflow-hidden rounded-xl border border-border bg-popover shadow-lg group-hover/share:block">
+                      <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted" @click.stop="shareArticle(article)">
+                        <Share2 class="size-3 shrink-0" /> 링크 복사
+                      </button>
+                      <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted" @click.stop="shareTwitter(article)">
+                        <svg class="size-3 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.734-8.85L1.254 2.25H8.08l4.253 5.622L18.244 2.25z"/></svg>
+                        X(트위터)
+                      </button>
+                      <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted" @click.stop="shareLinkedIn(article)">
+                        <svg class="size-3 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                        LinkedIn
+                      </button>
+                    </div>
+                  </div>
                   <!-- 북마크 버튼 -->
                   <button type="button"
                     class="flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-accent"
