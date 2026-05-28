@@ -30,16 +30,20 @@ export default defineEventHandler(async (event) => {
 
   const { imageUrls } = parsed.data
 
-  await db
-    .update(posts)
-    .set({ title: parsed.data.title, body: parsed.data.body, updatedAt: new Date() })
-    .where(eq(posts.id, id))
+  const updateData: Record<string, unknown> = {
+    title: parsed.data.title,
+    body: parsed.data.body,
+    updatedAt: new Date(),
+  }
+  if (parsed.data.recruitmentStatus !== undefined) {
+    updateData.recruitmentStatus = parsed.data.recruitmentStatus
+  }
+
+  await db.update(posts).set(updateData).where(eq(posts.id, id))
 
   await db.delete(postImages).where(eq(postImages.postId, id))
   if (imageUrls && imageUrls.length > 0) {
-    await db.insert(postImages).values(
-      imageUrls.map((url, order) => ({ postId: id, url, order })),
-    )
+    await db.insert(postImages).values(imageUrls.map((url, order) => ({ postId: id, url, order })))
   }
 
   return { data: { id } }

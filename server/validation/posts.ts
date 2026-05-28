@@ -3,6 +3,25 @@ import { z } from 'zod'
 export const postCategoryValues = ['feedback', 'project', 'study'] as const
 export type PostCategory = (typeof postCategoryValues)[number]
 
+export const feedbackJobTypes = [
+  'frontend',
+  'backend',
+  'ios',
+  'android',
+  'fullstack',
+  'data',
+  'ai',
+  'devops',
+  'ux_ui',
+  'brand',
+  'motion',
+  'pm',
+] as const
+export type FeedbackJobType = (typeof feedbackJobTypes)[number]
+
+export const careerLevels = ['entry', 'junior', 'mid', 'senior'] as const
+export type CareerLevel = (typeof careerLevels)[number]
+
 const categoryInputMap = {
   feedback: 'feedback',
   project: 'project',
@@ -32,7 +51,9 @@ export const postCreateSchema = z
       .max(100, '제목은 100자 이하로 입력해주세요'),
     body: z.string().trim().max(5000, '본문은 5000자 이하로 입력해주세요').default(''),
     analysisId: z.string().uuid('잘못된 분석 결과예요').optional().nullable(),
-    imageUrls: z.array(z.string().url()).max(1).optional().default([]),
+    imageUrls: z.array(z.string().url()).max(5).optional().default([]),
+    jobType: z.enum(feedbackJobTypes).optional().nullable(),
+    careerLevel: z.enum(careerLevels).optional().nullable(),
   })
   .superRefine((value, ctx) => {
     if (value.analysisId && value.category !== 'feedback') {
@@ -59,5 +80,6 @@ export const postUpdateSchema = z.object({
     .min(1, '제목을 입력해주세요')
     .max(100, '제목은 100자 이하로 입력해주세요'),
   body: z.string().trim().max(5000, '본문은 5000자 이하로 입력해주세요').default(''),
-  imageUrls: z.array(z.string().url()).max(1).optional().default([]),
+  imageUrls: z.array(z.string().url()).max(10).optional().default([]),
+  recruitmentStatus: z.enum(['open', 'closed']).optional(),
 })

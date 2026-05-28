@@ -1,4 +1,4 @@
-import { asc, eq, or } from 'drizzle-orm'
+import { and, asc, eq, ne } from 'drizzle-orm'
 import { requireAuth } from '../../../utils/auth'
 import { db } from '../../../db'
 import { chatRooms, messages, users } from '../../../db/schema'
@@ -9,7 +9,11 @@ export default defineEventHandler(async (event) => {
   if (!id) throw createError({ statusCode: 400, statusMessage: '잘못된 요청이에요' })
 
   const [room] = await db
-    .select({ id: chatRooms.id, initiatorId: chatRooms.initiatorId, participantId: chatRooms.participantId })
+    .select({
+      id: chatRooms.id,
+      initiatorId: chatRooms.initiatorId,
+      participantId: chatRooms.participantId,
+    })
     .from(chatRooms)
     .where(eq(chatRooms.id, id))
     .limit(1)
@@ -24,6 +28,7 @@ export default defineEventHandler(async (event) => {
       content: messages.content,
       senderId: messages.senderId,
       isDeleted: messages.isDeleted,
+      isRead: messages.isRead,
       createdAt: messages.createdAt,
       senderNickname: users.nickname,
       senderAvatarUrl: users.avatarUrl,
@@ -34,15 +39,11 @@ export default defineEventHandler(async (event) => {
     .orderBy(asc(messages.createdAt))
     .limit(200)
 
-  // 읽음 처리
+  // 상대방이 보낸 미읽음 메시지만 읽음 처리
   await db
     .update(messages)
     .set({ isRead: true })
-    .where(
-      or(
-        eq(messages.roomId, id),
-      ),
-    )
+    .where(and(eq(messages.roomId, id), ne(messages.senderId, user.id), eq(messages.isRead, false)))
 
   return {
     data: rows.map((m) => ({
@@ -50,6 +51,7 @@ export default defineEventHandler(async (event) => {
       content: m.isDeleted ? null : m.content,
       isMine: m.senderId === user.id,
       isDeleted: m.isDeleted,
+      isRead: m.isRead,
       senderNickname: m.senderNickname ?? '탈퇴한 사용자',
       senderAvatarUrl: m.senderAvatarUrl ?? null,
       createdAt: m.createdAt.toISOString(),

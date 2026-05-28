@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
         actorId: user.id,
         type: 'dm',
         referenceId: inserted.id,
-        linkUrl: `/chat`,
+        linkUrl: `/chat?roomId=${id}`,
       })
       .catch(() => {})
   }

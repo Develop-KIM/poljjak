@@ -16,7 +16,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { analysisId, category, title, body: postBody, imageUrls } = parsed.data
+  const {
+    analysisId,
+    category,
+    title,
+    body: postBody,
+    imageUrls,
+    jobType,
+    careerLevel,
+  } = parsed.data
 
   if (analysisId) {
     const [analysis] = await db
@@ -50,6 +58,8 @@ export default defineEventHandler(async (event) => {
       title,
       body: postBody,
       analysisId: analysisId ?? null,
+      jobType: category === 'feedback' ? (jobType ?? null) : null,
+      careerLevel: category === 'feedback' ? (careerLevel ?? null) : null,
     })
     .returning({ id: posts.id })
 
@@ -58,9 +68,9 @@ export default defineEventHandler(async (event) => {
   }
 
   if (imageUrls && imageUrls.length > 0) {
-    await db.insert(postImages).values(
-      imageUrls.map((url, order) => ({ postId: post.id, url, order })),
-    )
+    await db
+      .insert(postImages)
+      .values(imageUrls.map((url, order) => ({ postId: post.id, url, order })))
   }
 
   return { data: post }

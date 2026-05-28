@@ -28,6 +28,33 @@ const categoryOptions = [
 const isFromAnalysis = computed(() => !!analysisId)
 const isFeedbackCategory = computed(() => category.value === '피드백')
 
+const feedbackJobType = ref('')
+const feedbackCareerLevel = ref('')
+
+const JOB_TYPE_OPTIONS = [
+  { label: '직군 선택 (선택)', value: '' },
+  { label: '프론트엔드', value: 'frontend' },
+  { label: '백엔드', value: 'backend' },
+  { label: 'iOS', value: 'ios' },
+  { label: 'Android', value: 'android' },
+  { label: '풀스택', value: 'fullstack' },
+  { label: '데이터/ML', value: 'data' },
+  { label: 'AI', value: 'ai' },
+  { label: 'DevOps', value: 'devops' },
+  { label: 'UX/UI 디자인', value: 'ux_ui' },
+  { label: '브랜드/그래픽', value: 'brand' },
+  { label: '모션', value: 'motion' },
+  { label: '기획/PM', value: 'pm' },
+]
+
+const CAREER_LEVEL_OPTIONS = [
+  { label: '연차 선택 (선택)', value: '' },
+  { label: '신입 (0-1년)', value: 'entry' },
+  { label: '주니어 (1-3년)', value: 'junior' },
+  { label: '미드 (3-5년)', value: 'mid' },
+  { label: '시니어 (5년+)', value: 'senior' },
+]
+
 const bodyLabel = computed(() => (isFeedbackCategory.value ? '피드백 내용' : '본문'))
 const bodyPlaceholder = computed(() =>
   isFeedbackCategory.value ? '어떤 피드백이 필요한지 적어주세요.' : '내용을 입력해주세요.'
@@ -74,6 +101,9 @@ async function handleSubmit() {
         body: body.value.trim(),
         analysisId: analysisId ?? null,
         imageUrls: imageUrls.value,
+        jobType: isFeedbackCategory.value && feedbackJobType.value ? feedbackJobType.value : null,
+        careerLevel:
+          isFeedbackCategory.value && feedbackCareerLevel.value ? feedbackCareerLevel.value : null,
       },
     })
 
@@ -230,7 +260,39 @@ async function handleSubmit() {
           <AppInput v-model="title" placeholder="제목을 입력해주세요" class="mt-2" />
         </div>
 
-        <PostImageUploader v-model="imageUrls" />
+        <!-- 피드백 전용: 직군·연차 -->
+        <template v-if="isFeedbackCategory">
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="text-sm font-bold text-foreground"
+                >직군 <span class="font-normal text-muted-foreground">(선택)</span></label
+              >
+              <select
+                v-model="feedbackJobType"
+                class="mt-2 h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary"
+              >
+                <option v-for="opt in JOB_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label class="text-sm font-bold text-foreground"
+                >연차 <span class="font-normal text-muted-foreground">(선택)</span></label
+              >
+              <select
+                v-model="feedbackCareerLevel"
+                class="mt-2 h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary"
+              >
+                <option v-for="opt in CAREER_LEVEL_OPTIONS" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </template>
+
+        <PostImageUploader v-model="imageUrls" :max-images="isFeedbackCategory ? 5 : 1" />
 
         <div>
           <label class="text-sm font-bold text-foreground">{{ bodyLabel }}</label>

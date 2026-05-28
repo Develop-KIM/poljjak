@@ -12,6 +12,7 @@ import {
   Pencil,
   Trash2,
   Bookmark,
+  BookmarkCheck,
 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import type { AnalysisResult } from '~~/server/utils/clova'
@@ -46,6 +47,72 @@ const saving = ref(false)
 const deleting = ref(false)
 const showDeleteConfirm = ref(false)
 
+/** 댓글 삭제 확인 대상 */
+const commentDeleteTarget = ref<{ id: string; parentId?: string } | null>(null)
+
+/** 댓글 수정 상태 */
+const commentEditTarget = ref<{ id: string; content: string } | null>(null)
+const editingComment = ref(false)
+
+function startEditComment(commentId: string, content: string) {
+  commentEditTarget.value = { id: commentId, content }
+}
+
+async function saveEditComment(commentId: string, parentId?: string) {
+  if (!commentEditTarget.value || editingComment.value) return
+  const content = commentEditTarget.value.content.trim()
+  if (!content) return
+  editingComment.value = true
+  try {
+    await $fetch(`/api/posts/${id}/comments/${commentId}`, {
+      method: 'PATCH',
+      body: { content },
+    })
+    if (parentId) {
+      const parent = comments.value.find((c) => c.id === parentId)
+      const reply = parent?.replies.find((r) => r.id === commentId)
+      if (reply) reply.content = content
+    } else {
+      const target = comments.value.find((c) => c.id === commentId)
+      if (target) target.content = content
+    }
+    commentEditTarget.value = null
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '댓글 수정에 실패했어요')
+  } finally {
+    editingComment.value = false
+  }
+}
+
+const togglingRecruitment = ref(false)
+const isRecruitmentPost = computed(
+  () => post.value?.category === '프로젝트 모집' || post.value?.category === '스터디 모집'
+)
+
+async function toggleRecruitmentStatus() {
+  if (!post.value || togglingRecruitment.value) return
+  togglingRecruitment.value = true
+  const next = post.value.recruitmentStatus === 'open' ? 'closed' : 'open'
+  try {
+    await $fetch(`/api/posts/${id}`, {
+      method: 'PATCH',
+      body: {
+        title: post.value.title,
+        body: post.value.body,
+        imageUrls: post.value.imageUrls ?? [],
+        recruitmentStatus: next,
+      },
+    })
+    post.value.recruitmentStatus = next
+    toast.success(next === 'open' ? '모집 중으로 변경됐어요' : '모집 완료로 변경됐어요')
+  } catch {
+    toast.error('상태 변경에 실패했어요')
+  } finally {
+    togglingRecruitment.value = false
+  }
+}
+
 interface AnalysisEmbed {
   id: string
   result: AnalysisResult
@@ -70,6 +137,7 @@ interface PostDetail {
   analysisId?: string | null
   analysis?: AnalysisEmbed | null
   imageUrls?: string[]
+  recruitmentStatus?: 'open' | 'closed' | null
 }
 
 const categoryTabMap: Record<string, string> = {
@@ -320,7 +388,12 @@ async function submitReply() {
   }
 }
 
+function requestDeleteComment(commentId: string, parentId?: string) {
+  commentDeleteTarget.value = { id: commentId, parentId }
+}
+
 async function deleteComment(commentId: string, parentId?: string) {
+  commentDeleteTarget.value = null
   try {
     await $fetch(`/api/posts/${id}/comments/${commentId}`, { method: 'DELETE' })
     if (parentId) {
@@ -520,7 +593,10 @@ async function deletePost() {
               <label class="text-sm font-bold text-foreground">제목</label>
               <AppInput v-model="editTitle" placeholder="제목을 입력해주세요" class="mt-2" />
             </div>
-            <PostImageUploader v-model="editImageUrls" />
+            <PostImageUploader
+              v-model="editImageUrls"
+              :max-images="post.category === '피드백' ? 5 : 1"
+            />
             <div>
               <label class="text-sm font-bold text-foreground">{{ editBodyLabel }}</label>
               <AppTextarea
@@ -551,7 +627,32 @@ async function deletePost() {
       <template v-else>
         <!-- 헤더 -->
         <div>
-          <AppBadge variant="blue">{{ post.category }}</AppBadge>
+          <div class="flex flex-wrap items-center gap-2">
+            <AppBadge variant="blue">{{ post.category }}</AppBadge>
+            <!-- 모집 상태 배지 (project·study만) -->
+            <template v-if="isRecruitmentPost && post.recruitmentStatus">
+              <span
+                class="rounded-full px-2.5 py-0.5 text-xs font-bold"
+                :class="
+                  post.recruitmentStatus === 'open'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-muted text-muted-foreground'
+                "
+              >
+                {{ post.recruitmentStatus === 'open' ? '모집중' : '모집완료' }}
+              </span>
+              <!-- 작성자만 토글 가능 -->
+              <button
+                v-if="post.isOwner"
+                type="button"
+                class="rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-muted"
+                :disabled="togglingRecruitment"
+                @click="toggleRecruitmentStatus"
+              >
+                {{ post.recruitmentStatus === 'open' ? '모집 완료로 변경' : '모집 중으로 변경' }}
+              </button>
+            </template>
+          </div>
           <h1 class="mt-3 text-2xl font-black leading-tight text-foreground md:text-3xl">
             {{ post.title }}
           </h1>
@@ -698,15 +799,16 @@ async function deletePost() {
           <!-- 북마크 버튼 -->
           <button
             type="button"
-            class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
+            class="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors"
             :class="
               bookmarked
-                ? 'text-primary hover:bg-primary/10'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                ? 'border-primary/30 bg-primary/5 text-primary'
+                : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
             "
             @click="toggleBookmark"
           >
-            <Bookmark class="size-4" :class="{ 'fill-current': bookmarked }" />
+            <BookmarkCheck v-if="bookmarked" class="size-4" />
+            <Bookmark v-else class="size-4" />
             {{ bookmarked ? '저장됨' : '저장' }}
           </button>
 
@@ -769,16 +871,65 @@ async function deletePost() {
                         comment.author
                       }}</span>
                       <span class="text-xs text-muted-foreground">{{ comment.createdAt }}</span>
-                      <button
-                        v-if="comment.isOwner"
-                        type="button"
-                        class="ml-auto text-xs text-muted-foreground transition-colors hover:text-destructive"
-                        @click="deleteComment(comment.id)"
-                      >
-                        삭제
-                      </button>
+                      <template v-if="commentDeleteTarget?.id === comment.id">
+                        <span class="ml-auto text-xs text-muted-foreground">삭제할까요?</span>
+                        <button
+                          type="button"
+                          class="text-xs font-semibold text-destructive"
+                          @click="deleteComment(comment.id)"
+                        >
+                          확인
+                        </button>
+                        <button
+                          type="button"
+                          class="text-xs text-muted-foreground"
+                          @click="commentDeleteTarget = null"
+                        >
+                          취소
+                        </button>
+                      </template>
+                      <template v-else-if="comment.isOwner">
+                        <button
+                          type="button"
+                          class="ml-auto text-xs text-muted-foreground transition-colors hover:text-foreground"
+                          @click="startEditComment(comment.id, comment.content)"
+                        >
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          class="text-xs text-muted-foreground transition-colors hover:text-destructive"
+                          @click="requestDeleteComment(comment.id)"
+                        >
+                          삭제
+                        </button>
+                      </template>
                     </div>
-                    <p class="mt-1.5 text-sm leading-6 text-foreground">{{ comment.content }}</p>
+                    <!-- 수정 모드 -->
+                    <template v-if="commentEditTarget?.id === comment.id">
+                      <textarea
+                        v-model="commentEditTarget.content"
+                        rows="2"
+                        class="mt-1.5 w-full resize-none rounded-lg border border-primary bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/20"
+                        @keydown.enter.exact.prevent="saveEditComment(comment.id)"
+                        @keydown.esc="commentEditTarget = null"
+                      />
+                      <div class="mt-1.5 flex gap-2">
+                        <AppButton
+                          size="sm"
+                          :loading="editingComment"
+                          :disabled="!commentEditTarget.content.trim()"
+                          @click="saveEditComment(comment.id)"
+                          >저장</AppButton
+                        >
+                        <AppButton size="sm" variant="ghost" @click="commentEditTarget = null"
+                          >취소</AppButton
+                        >
+                      </div>
+                    </template>
+                    <p v-else class="mt-1.5 text-sm leading-6 text-foreground">
+                      {{ comment.content }}
+                    </p>
                   </template>
                   <button
                     type="button"
@@ -843,16 +994,63 @@ async function deletePost() {
                     <div class="flex items-center gap-2">
                       <span class="text-sm font-semibold text-foreground">{{ reply.author }}</span>
                       <span class="text-xs text-muted-foreground">{{ reply.createdAt }}</span>
-                      <button
-                        v-if="reply.isOwner"
-                        type="button"
-                        class="ml-auto text-xs text-muted-foreground transition-colors hover:text-destructive"
-                        @click="deleteComment(reply.id, comment.id)"
-                      >
-                        삭제
-                      </button>
+                      <template v-if="commentDeleteTarget?.id === reply.id">
+                        <span class="ml-auto text-xs text-muted-foreground">삭제할까요?</span>
+                        <button
+                          type="button"
+                          class="text-xs font-semibold text-destructive"
+                          @click="deleteComment(reply.id, comment.id)"
+                        >
+                          확인
+                        </button>
+                        <button
+                          type="button"
+                          class="text-xs text-muted-foreground"
+                          @click="commentDeleteTarget = null"
+                        >
+                          취소
+                        </button>
+                      </template>
+                      <template v-else-if="reply.isOwner">
+                        <button
+                          type="button"
+                          class="ml-auto text-xs text-muted-foreground transition-colors hover:text-foreground"
+                          @click="startEditComment(reply.id, reply.content)"
+                        >
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          class="text-xs text-muted-foreground transition-colors hover:text-destructive"
+                          @click="requestDeleteComment(reply.id, comment.id)"
+                        >
+                          삭제
+                        </button>
+                      </template>
                     </div>
-                    <p class="mt-1.5 text-sm leading-6 text-foreground">
+                    <!-- 수정 모드 -->
+                    <template v-if="commentEditTarget?.id === reply.id">
+                      <textarea
+                        v-model="commentEditTarget.content"
+                        rows="2"
+                        class="mt-1.5 w-full resize-none rounded-lg border border-primary bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/20"
+                        @keydown.enter.exact.prevent="saveEditComment(reply.id, comment.id)"
+                        @keydown.esc="commentEditTarget = null"
+                      />
+                      <div class="mt-1.5 flex gap-2">
+                        <AppButton
+                          size="sm"
+                          :loading="editingComment"
+                          :disabled="!commentEditTarget.content.trim()"
+                          @click="saveEditComment(reply.id, comment.id)"
+                          >저장</AppButton
+                        >
+                        <AppButton size="sm" variant="ghost" @click="commentEditTarget = null"
+                          >취소</AppButton
+                        >
+                      </div>
+                    </template>
+                    <p v-else class="mt-1.5 text-sm leading-6 text-foreground">
                       <span v-if="reply.mentionNickname" class="font-semibold text-primary"
                         >@{{ reply.mentionNickname }}</span
                       >

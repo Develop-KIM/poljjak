@@ -14,10 +14,34 @@ useSeoMeta({
 const authStore = useAuthStore()
 const route = useRoute()
 const validTabs = ['feedback', 'project', 'study'] as const
-const validFeedbackJobTypes = ['all', 'developer', 'designer'] as const
+const validSorts = ['latest', 'popular'] as const
 
 type CommunityTab = (typeof validTabs)[number]
-type FeedbackJobType = (typeof validFeedbackJobTypes)[number]
+type SortType = (typeof validSorts)[number]
+
+const JOB_TYPE_OPTIONS = [
+  { label: '전체 직군', value: '' },
+  { label: '프론트엔드', value: 'frontend' },
+  { label: '백엔드', value: 'backend' },
+  { label: 'iOS', value: 'ios' },
+  { label: 'Android', value: 'android' },
+  { label: '풀스택', value: 'fullstack' },
+  { label: '데이터/ML', value: 'data' },
+  { label: 'AI', value: 'ai' },
+  { label: 'DevOps', value: 'devops' },
+  { label: 'UX/UI 디자인', value: 'ux_ui' },
+  { label: '브랜드/그래픽', value: 'brand' },
+  { label: '모션', value: 'motion' },
+  { label: '기획/PM', value: 'pm' },
+]
+
+const CAREER_LEVEL_OPTIONS = [
+  { label: '전체 연차', value: '' },
+  { label: '신입 (0-1년)', value: 'entry' },
+  { label: '주니어 (1-3년)', value: 'junior' },
+  { label: '미드 (3-5년)', value: 'mid' },
+  { label: '시니어 (5년+)', value: 'senior' },
+]
 
 function getQueryString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined
@@ -28,18 +52,19 @@ function getInitialTab(): CommunityTab {
   return validTabs.includes(tab as CommunityTab) ? (tab as CommunityTab) : 'project'
 }
 
-function getInitialFeedbackJobType(): FeedbackJobType {
-  const jobType = getQueryString(route.query.jobType)
-  return validFeedbackJobTypes.includes(jobType as FeedbackJobType)
-    ? (jobType as FeedbackJobType)
-    : 'all'
+function getInitialSort(): SortType {
+  const sort = getQueryString(route.query.sort)
+  return validSorts.includes(sort as SortType) ? (sort as SortType) : 'latest'
 }
 
 const initialKeyword = getQueryString(route.query.keyword)?.trim() ?? ''
 const initialPage = Number.parseInt(getQueryString(route.query.page) ?? '1', 10)
 
 const activeTab = ref<CommunityTab>(getInitialTab())
-const feedbackJobType = ref<FeedbackJobType>(getInitialFeedbackJobType())
+const activeSort = ref<SortType>(getInitialSort())
+const feedbackJobType = ref(getQueryString(route.query.jobType) ?? '')
+const feedbackCareerLevel = ref(getQueryString(route.query.careerLevel) ?? '')
+const feedbackHasAnalysis = ref(route.query.hasAnalysis === 'true')
 const showLoginModal = ref(false)
 const loginContext = ref('계속하기')
 const toast = useToastStore()
@@ -55,12 +80,6 @@ const tabs: Array<{ label: string; value: CommunityTab }> = [
   { label: '피드백', value: 'feedback' },
   { label: '프로젝트 모집', value: 'project' },
   { label: '스터디 모집', value: 'study' },
-]
-
-const feedbackSubTabs: Array<{ label: string; value: FeedbackJobType }> = [
-  { label: '전체', value: 'all' },
-  { label: '개발자', value: 'developer' },
-  { label: '디자이너', value: 'designer' },
 ]
 
 type PostCategory = '피드백' | '프로젝트 모집' | '스터디 모집'
@@ -104,10 +123,9 @@ async function handleBookmarkToggle(postId: string) {
   bookmarkStates.value[postId] = !prev
 
   try {
-    const res = await $fetch<{ data: { bookmarked: boolean } }>(
-      `/api/posts/${postId}/bookmarks`,
-      { method: 'POST' }
-    )
+    const res = await $fetch<{ data: { bookmarked: boolean } }>(`/api/posts/${postId}/bookmarks`, {
+      method: 'POST',
+    })
     // 서버 응답으로 상태 확정
     bookmarkStates.value[postId] = res.data.bookmarked
   } catch {
@@ -125,10 +143,13 @@ async function fetchPosts() {
       category: activeTab.value,
       page: currentPage.value,
     }
-    if (activeTab.value === 'feedback' && feedbackJobType.value !== 'all') {
-      query.jobType = feedbackJobType.value
+    if (activeTab.value === 'feedback') {
+      if (feedbackJobType.value) query.jobType = feedbackJobType.value
+      if (feedbackCareerLevel.value) query.careerLevel = feedbackCareerLevel.value
+      if (feedbackHasAnalysis.value) query.hasAnalysis = 'true'
     }
     if (keyword.value) query.keyword = keyword.value
+    if (activeSort.value === 'popular') query.sort = 'popular'
 
     const res = await $fetch<{ data: Post[]; total: number; page: number }>('/api/posts', { query })
     posts.value = res.data
@@ -166,20 +187,19 @@ function clearSearch() {
 
 onMounted(fetchPosts)
 watch(activeTab, () => {
-  feedbackJobType.value = 'all'
+  feedbackJobType.value = ''
+  feedbackCareerLevel.value = ''
+  feedbackHasAnalysis.value = false
+  activeSort.value = 'latest'
   keyword.value = ''
   searchInput.value = ''
   resetAndFetch()
 })
-watch(feedbackJobType, resetAndFetch)
+watch([feedbackJobType, feedbackCareerLevel, feedbackHasAnalysis, activeSort], resetAndFetch)
 
 function handleTabChange(value: string) {
   if (!validTabs.includes(value as CommunityTab)) return
   activeTab.value = value as CommunityTab
-}
-
-function handleFeedbackJobTypeChange(value: FeedbackJobType) {
-  feedbackJobType.value = value
 }
 
 function handleWrite() {
@@ -219,25 +239,55 @@ function goPage(p: number) {
       <AppTabs :model-value="activeTab" :tabs="tabs" @update:model-value="handleTabChange" />
     </div>
 
-    <!-- 피드백 서브 탭 -->
-    <div v-if="activeTab === 'feedback'" class="mt-4 flex gap-2">
-      <button
-        v-for="sub in feedbackSubTabs"
-        :key="sub.value"
-        type="button"
-        class="rounded-full px-4 py-1.5 text-sm font-semibold transition-colors"
-        :class="
-          feedbackJobType === sub.value
-            ? 'bg-foreground text-background'
-            : 'bg-muted text-muted-foreground hover:text-foreground'
-        "
-        @click="handleFeedbackJobTypeChange(sub.value)"
+    <!-- 피드백 필터 -->
+    <div v-if="activeTab === 'feedback'" class="mt-4 flex flex-wrap items-center gap-2">
+      <!-- 직군 드롭다운 -->
+      <select
+        v-model="feedbackJobType"
+        class="h-9 rounded-full border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary"
       >
-        {{ sub.label }}
+        <option v-for="opt in JOB_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
+          {{ opt.label }}
+        </option>
+      </select>
+      <!-- 연차 드롭다운 -->
+      <select
+        v-model="feedbackCareerLevel"
+        class="h-9 rounded-full border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary"
+      >
+        <option v-for="opt in CAREER_LEVEL_OPTIONS" :key="opt.value" :value="opt.value">
+          {{ opt.label }}
+        </option>
+      </select>
+      <!-- AI 분석 첨부 토글 -->
+      <button
+        type="button"
+        class="h-9 rounded-full border px-3 text-sm font-semibold transition-colors"
+        :class="
+          feedbackHasAnalysis
+            ? 'border-primary bg-primary/5 text-primary'
+            : 'border-border text-muted-foreground hover:text-foreground'
+        "
+        @click="feedbackHasAnalysis = !feedbackHasAnalysis"
+      >
+        AI 분석 포함
+      </button>
+      <!-- 필터 초기화 -->
+      <button
+        v-if="feedbackJobType || feedbackCareerLevel || feedbackHasAnalysis"
+        type="button"
+        class="h-9 rounded-full px-3 text-sm text-muted-foreground hover:text-foreground"
+        @click="
+          feedbackJobType = ''
+          feedbackCareerLevel = ''
+          feedbackHasAnalysis = false
+        "
+      >
+        초기화
       </button>
     </div>
 
-    <!-- 검색 -->
+    <!-- 검색 + 정렬 -->
     <div class="mt-5">
       <form class="relative flex flex-col gap-2 sm:flex-row" @submit.prevent="submitSearch">
         <div class="relative flex-1">
@@ -263,6 +313,26 @@ function goPage(p: number) {
         "<span class="font-semibold text-foreground">{{ keyword }}</span
         >" 검색 결과 {{ totalCount }}건
       </p>
+      <!-- 정렬 -->
+      <div class="mt-3 flex gap-2">
+        <button
+          v-for="s in [
+            { label: '최신순', value: 'latest' },
+            { label: '인기순', value: 'popular' },
+          ]"
+          :key="s.value"
+          type="button"
+          class="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+          :class="
+            activeSort === s.value
+              ? 'bg-foreground text-background'
+              : 'bg-muted text-muted-foreground hover:text-foreground'
+          "
+          @click="activeSort = s.value as SortType"
+        >
+          {{ s.label }}
+        </button>
+      </div>
     </div>
 
     <!-- 게시글 목록 -->

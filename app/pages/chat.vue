@@ -29,6 +29,7 @@ interface Message {
   content: string | null
   isMine: boolean
   isDeleted: boolean
+  isRead: boolean
   senderNickname: string
   senderAvatarUrl: string | null
   createdAt: string
@@ -39,9 +40,11 @@ const messages = ref<Message[]>([])
 const selectedRoomId = ref<string | null>(null)
 const selectedRoom = computed(() => rooms.value.find((r) => r.id === selectedRoomId.value) ?? null)
 const newMessage = ref('')
+const messageInputRef = ref<HTMLTextAreaElement | null>(null)
 const messageListRef = ref<HTMLElement | null>(null)
 const sending = ref(false)
 const leaving = ref(false)
+const showLeaveConfirm = ref(false)
 const roomsPending = ref(true)
 const messagesPending = ref(false)
 
@@ -53,6 +56,39 @@ function formatTime(iso: string) {
   const d = new Date(iso)
   return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 }
+
+function formatDateLabel(iso: string): string {
+  const d = new Date(iso)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const toDateStr = (dt: Date) =>
+    dt.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+  if (toDateStr(d) === toDateStr(today)) return '오늘'
+  if (toDateStr(d) === toDateStr(yesterday)) return '어제'
+  return toDateStr(d)
+}
+
+function getDateKey(iso: string): string {
+  return new Date(iso).toLocaleDateString('ko-KR')
+}
+
+/** 날짜 구분선 포함된 메시지 목록 */
+type MessageItem = Message | { type: 'date-divider'; label: string; key: string }
+
+const messagesWithDividers = computed<MessageItem[]>(() => {
+  const result: MessageItem[] = []
+  let lastDate = ''
+  for (const msg of messages.value) {
+    const date = getDateKey(msg.createdAt)
+    if (date !== lastDate) {
+      result.push({ type: 'date-divider', label: formatDateLabel(msg.createdAt), key: date })
+      lastDate = date
+    }
+    result.push(msg)
+  }
+  return result
+})
 
 async function fetchRooms() {
   try {
@@ -112,6 +148,16 @@ async function selectRoom(id: string) {
     })
     .catch(() => {})
 
+  // 읽음 처리 API 호출
+  $fetch(`/api/chats/${id}/read`, { method: 'PATCH' })
+    .then(() => {
+      // 읽음 broadcast로 상대방 화면 업데이트
+      if (messageChannel) {
+        messageChannel.send({ type: 'broadcast', event: 'read', payload: {} }).catch(() => {})
+      }
+    })
+    .catch(() => {})
+
   // Broadcast 방식 — postgres_changes 대신 사용
   await new Promise<void>((resolve) => {
     messageChannel = client
@@ -124,10 +170,16 @@ async function selectRoom(id: string) {
           content: msg.content,
           isMine: false,
           isDeleted: msg.isDeleted,
+          isRead: false,
           senderNickname: msg.senderNickname,
           senderAvatarUrl: msg.senderAvatarUrl,
           createdAt: msg.createdAt,
         })
+        // 새 메시지 수신 시 즉시 읽음 처리
+        $fetch(`/api/chats/${id}/read`, { method: 'PATCH' }).catch(() => {})
+        if (messageChannel) {
+          messageChannel.send({ type: 'broadcast', event: 'read', payload: {} }).catch(() => {})
+        }
         moveRoomToTop(id, msg.content ?? '')
         await nextTick()
         scrollToBottom()
@@ -140,10 +192,23 @@ async function selectRoom(id: string) {
         target.isDeleted = true
         moveRoomToTop(id, '삭제된 메시지예요')
       })
+      .on('broadcast', { event: 'read' }, () => {
+        // 상대방이 읽음 → 내가 보낸 메시지 isRead = true
+        messages.value.forEach((m) => {
+          if (m.isMine) m.isRead = true
+        })
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') resolve()
       })
   })
+}
+
+function resizeTextarea() {
+  const el = messageInputRef.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 96) + 'px'
 }
 
 async function sendMessage() {
@@ -151,6 +216,8 @@ async function sendMessage() {
 
   const content = newMessage.value.trim()
   newMessage.value = ''
+  await nextTick()
+  resizeTextarea()
   sending.value = true
 
   try {
@@ -158,7 +225,7 @@ async function sendMessage() {
       method: 'POST',
       body: { content },
     })
-    messages.value.push(res.data)
+    messages.value.push({ ...res.data, isRead: false })
 
     // 구독 중인 채널로 브로드캐스트
     if (messageChannel) {
@@ -205,6 +272,7 @@ async function deleteMessage(messageId: string) {
 
 async function leaveRoom() {
   if (!selectedRoomId.value || leaving.value) return
+  showLeaveConfirm.value = false
   const roomId = selectedRoomId.value
   leaving.value = true
   try {
@@ -340,7 +408,7 @@ onUnmounted(() => {
             class="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
             :disabled="leaving"
             aria-label="채팅방 나가기"
-            @click="leaveRoom"
+            @click="showLeaveConfirm = true"
           >
             <LogOut class="size-4" />
           </button>
@@ -352,33 +420,53 @@ onUnmounted(() => {
             <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
           </div>
           <div v-else class="grid gap-4">
-            <ChatMessageBubble
-              v-for="msg in messages"
-              :key="msg.id"
-              :content="msg.content ?? ''"
-              :is-mine="msg.isMine"
-              :time="formatTime(msg.createdAt)"
-              :sender-initial="selectedRoom.otherInitial"
-              :sender-name="selectedRoom.otherNickname"
-              :sender-avatar-url="msg.senderAvatarUrl ?? selectedRoom.otherAvatarUrl"
-              :is-deleted="msg.isDeleted"
-              @delete="deleteMessage(msg.id)"
-            />
+            <template
+              v-for="item in messagesWithDividers"
+              :key="'type' in item ? item.key : item.id"
+            >
+              <!-- 날짜 구분선 -->
+              <div v-if="'type' in item" class="flex items-center gap-3">
+                <div class="h-px flex-1 bg-border" />
+                <span class="text-xs text-muted-foreground">{{ item.label }}</span>
+                <div class="h-px flex-1 bg-border" />
+              </div>
+              <!-- 메시지 -->
+              <template v-else>
+                <ChatMessageBubble
+                  :content="item.content ?? ''"
+                  :is-mine="item.isMine"
+                  :time="formatTime(item.createdAt)"
+                  :sender-initial="selectedRoom.otherInitial"
+                  :sender-name="selectedRoom.otherNickname"
+                  :sender-avatar-url="item.senderAvatarUrl ?? selectedRoom.otherAvatarUrl"
+                  :is-deleted="item.isDeleted"
+                  @delete="deleteMessage(item.id)"
+                />
+                <!-- 읽음 표시 (내가 보낸 메시지만) -->
+                <div v-if="item.isMine && !item.isDeleted" class="flex justify-end">
+                  <span class="text-[10px] text-muted-foreground">{{
+                    item.isRead ? '읽음' : ''
+                  }}</span>
+                </div>
+              </template>
+            </template>
           </div>
         </div>
 
         <!-- 입력창 -->
         <div class="border-t border-border px-4 py-3">
-          <div class="flex gap-2">
+          <div class="flex items-end gap-2">
             <div
-              class="flex flex-1 items-center rounded-xl border border-input bg-background px-3.5 py-2.5 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/20"
+              class="flex flex-1 items-end rounded-xl border border-input bg-background px-3.5 py-2.5 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/20"
             >
-              <input
+              <textarea
+                ref="messageInputRef"
                 v-model="newMessage"
-                type="text"
+                rows="1"
                 placeholder="메시지를 입력해주세요."
-                class="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                @keydown.enter.prevent="(e: KeyboardEvent) => !e.isComposing && sendMessage()"
+                class="max-h-24 flex-1 resize-none bg-transparent text-sm leading-5 outline-none placeholder:text-muted-foreground"
+                @input="resizeTextarea"
+                @keydown.enter.exact.prevent="(e: KeyboardEvent) => !e.isComposing && sendMessage()"
               />
             </div>
             <AppButton size="icon" :disabled="!newMessage.trim() || sending" @click="sendMessage">
@@ -399,4 +487,41 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- 채팅방 나가기 확인 모달 -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-150 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-100 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showLeaveConfirm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+        @click.self="showLeaveConfirm = false"
+      >
+        <div class="w-full max-w-sm rounded-2xl bg-popover p-6 text-popover-foreground shadow-xl">
+          <h3 class="text-lg font-black text-foreground">채팅방을 나갈까요?</h3>
+          <p class="mt-2 text-sm text-muted-foreground">
+            나가면 이 채팅방이 목록에서 사라지고 대화 내용을 다시 볼 수 없어요.
+          </p>
+          <div class="mt-6 flex gap-3">
+            <AppButton variant="outline" class="flex-1" @click="showLeaveConfirm = false">
+              취소
+            </AppButton>
+            <AppButton
+              class="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              :loading="leaving"
+              @click="leaveRoom"
+            >
+              나가기
+            </AppButton>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>

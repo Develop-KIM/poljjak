@@ -2,7 +2,12 @@ import { and, asc, count, eq, isNull } from 'drizzle-orm'
 import { getAuthUser } from '../../../utils/auth'
 import { db } from '../../../db'
 import { analyses, bookmarks, comments, likes, postImages, posts, users } from '../../../db/schema'
-import { formatCommunityDate, getAuthorInitial, getAvatarUrl, postCategoryLabels } from '../../../utils/community'
+import {
+  formatCommunityDate,
+  getAuthorInitial,
+  getAvatarUrl,
+  postCategoryLabels,
+} from '../../../utils/community'
 import type { AnalysisResult } from '../../../utils/clova'
 
 export default defineEventHandler(async (event) => {
@@ -21,6 +26,7 @@ export default defineEventHandler(async (event) => {
         body: posts.body,
         analysisId: posts.analysisId,
         viewCount: posts.viewCount,
+        recruitmentStatus: posts.recruitmentStatus,
         createdAt: posts.createdAt,
         author: users.nickname,
         authorAvatarUrl: users.avatarUrl,
@@ -114,6 +120,7 @@ export default defineEventHandler(async (event) => {
       analysisId: post.analysisId,
       analysis,
       imageUrls: imageRows.map((r) => r.url),
+      recruitmentStatus: post.recruitmentStatus ?? null,
     },
   }
 })

@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, inArray, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, ilike, inArray, isNotNull, isNull } from 'drizzle-orm'
 import { getAuthUser } from '../../utils/auth'
 import { db } from '../../db'
 import { bookmarks, comments, likes, posts, users } from '../../db/schema'
@@ -10,10 +10,13 @@ const PAGE_SIZE = 15
 export default defineEventHandler(async (event) => {
   const [query, user] = [getQuery(event), await getAuthUser(event)]
   const category = parsePostCategory(query.category) ?? 'project'
-  const jobTypeParam = query.jobType as string | undefined
-  const jobType = jobTypeParam === 'developer' || jobTypeParam === 'designer' ? jobTypeParam : null
+  const jobTypeParam = typeof query.jobType === 'string' ? query.jobType : null
+  const careerLevelParam = typeof query.careerLevel === 'string' ? query.careerLevel : null
+  const hasAnalysisParam = query.hasAnalysis === 'true'
   const keyword = typeof query.keyword === 'string' ? query.keyword.trim() : ''
   const page = Math.max(1, parseInt(String(query.page ?? '1'), 10))
+  const sortParam = query.sort as string | undefined
+  const sort = sortParam === 'popular' ? 'popular' : 'latest'
 
   // 비로그인 + 피드백 외 카테고리에만 캐시 적용 (로그인 사용자는 isBookmarked가 개인화됨)
   if (category !== 'feedback' && !user) {
@@ -23,7 +26,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const whereConditions = [eq(posts.category, category), isNull(posts.deletedAt)]
-  if (jobType) whereConditions.push(eq(users.jobType, jobType))
+  if (category === 'feedback' && jobTypeParam) whereConditions.push(eq(posts.jobType, jobTypeParam))
+  if (category === 'feedback' && careerLevelParam) {
+    const validLevels = ['entry', 'junior', 'mid', 'senior']
+    if (validLevels.includes(careerLevelParam)) {
+      whereConditions.push(
+        eq(posts.careerLevel, careerLevelParam as 'entry' | 'junior' | 'mid' | 'senior')
+      )
+    }
+  }
+  if (category === 'feedback' && hasAnalysisParam) whereConditions.push(isNotNull(posts.analysisId))
   if (keyword) whereConditions.push(ilike(posts.title, `%${keyword}%`))
 
   const offset = (page - 1) * PAGE_SIZE
@@ -60,7 +72,11 @@ export default defineEventHandler(async (event) => {
         posts.recruitmentStatus,
         users.nickname
       )
-      .orderBy(desc(posts.createdAt))
+      .orderBy(
+        sort === 'popular'
+          ? sql`${sql`COUNT(DISTINCT ${likes.id})`} DESC, ${posts.viewCount} DESC, ${posts.createdAt} DESC`
+          : desc(posts.createdAt)
+      )
       .limit(PAGE_SIZE)
       .offset(offset),
 

@@ -106,6 +106,17 @@ async function handleNotifClick(n: { id: string; isRead: boolean; linkUrl: strin
         <div v-else class="py-12 text-center text-sm text-muted-foreground">
           새로운 알림이 없어요
         </div>
+
+        <!-- 전체 보기 링크 -->
+        <div class="border-t border-border px-4 py-2.5">
+          <NuxtLink
+            to="/notifications"
+            class="block text-center text-xs font-semibold text-primary hover:underline"
+            @click="open = false"
+          >
+            전체 알림 보기
+          </NuxtLink>
+        </div>
       </div>
     </Transition>
   </div>

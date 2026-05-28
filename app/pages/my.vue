@@ -241,8 +241,24 @@ const bookmarkedArticles = ref<BookmarkedArticle[]>([])
 const bookmarkedArticlesPending = ref(false)
 const recentArticles = ref<RecentArticle[]>([])
 
-const activeTab = ref<'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks' | 'article-bookmarks' | 'recent-articles'>('analyses')
-const pages = ref({ analyses: 1, posts: 1, comments: 1, likes: 1, bookmarks: 1, 'article-bookmarks': 1, 'recent-articles': 1 })
+const activeTab = ref<
+  | 'analyses'
+  | 'posts'
+  | 'comments'
+  | 'likes'
+  | 'bookmarks'
+  | 'article-bookmarks'
+  | 'recent-articles'
+>('analyses')
+const pages = ref({
+  analyses: 1,
+  posts: 1,
+  comments: 1,
+  likes: 1,
+  bookmarks: 1,
+  'article-bookmarks': 1,
+  'recent-articles': 1,
+})
 const PAGE_SIZE = 10
 
 function paged<T>(list: T[], tab: keyof typeof pages.value) {
@@ -287,7 +303,8 @@ onMounted(async () => {
   likedPending.value = false
   if (bookmarksRes.status === 'fulfilled') bookmarkedPosts.value = bookmarksRes.value.data
   bookmarkedPending.value = false
-  if (articleBookmarksRes.status === 'fulfilled') bookmarkedArticles.value = articleBookmarksRes.value.data
+  if (articleBookmarksRes.status === 'fulfilled')
+    bookmarkedArticles.value = articleBookmarksRes.value.data
   bookmarkedArticlesPending.value = false
 
   // 최근 본 아티클 localStorage에서 로드
@@ -339,7 +356,16 @@ const tabs = [
   { key: 'recent-articles' as const, label: '최근 본 아티클', shortLabel: '최근 본' },
 ]
 
-function selectTab(key: 'analyses' | 'posts' | 'comments' | 'likes' | 'bookmarks' | 'article-bookmarks' | 'recent-articles') {
+function selectTab(
+  key:
+    | 'analyses'
+    | 'posts'
+    | 'comments'
+    | 'likes'
+    | 'bookmarks'
+    | 'article-bookmarks'
+    | 'recent-articles'
+) {
   activeTab.value = key
   pages.value[key] = 1
 }
@@ -350,14 +376,13 @@ const NuxtLink = resolveComponent('NuxtLink')
 
 <template>
   <div class="mx-auto max-w-[1440px] px-5 py-8 md:px-8 md:py-10">
-    <!-- ── 프로필 카드 ── -->
-    <div class="rounded-2xl border border-border bg-card p-6 md:p-8">
-      <div class="flex items-start justify-between gap-3">
-        <div class="flex min-w-0 items-center gap-4 md:gap-5">
-          <!-- 아바타 -->
+    <!-- 모바일: 프로필 카드 풀너비 -->
+    <div class="lg:hidden">
+      <div class="rounded-2xl border border-border bg-card p-5">
+        <div class="flex items-center gap-4">
           <button
             type="button"
-            class="size-16 shrink-0 overflow-hidden rounded-full bg-primary text-left sm:size-18 md:size-20"
+            class="size-14 shrink-0 overflow-hidden rounded-full bg-primary"
             @click="openEdit"
           >
             <img
@@ -365,449 +390,511 @@ const NuxtLink = resolveComponent('NuxtLink')
               :src="profile.avatarUrl"
               alt="프로필"
               class="h-full w-full object-cover"
-            >
+            />
             <div
               v-else
-              class="flex h-full w-full items-center justify-center text-lg font-bold text-primary-foreground sm:text-xl"
+              class="flex h-full w-full items-center justify-center text-lg font-bold text-primary-foreground"
             >
               {{ userInitial }}
             </div>
           </button>
-
-          <div class="min-w-0 overflow-hidden">
+          <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-1.5">
-              <p class="text-xl font-black text-foreground sm:text-2xl">
-                {{ profile?.nickname ?? '사용자' }}
-              </p>
+              <p class="font-black text-foreground">{{ profile?.nickname ?? '사용자' }}</p>
               <span
                 v-if="jobTypeLabel"
-                class="rounded-full px-2 py-0.5 text-xs font-semibold"
-                :class="
-                  profile?.jobType === 'developer'
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-200'
-                    : 'bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-200'
-                "
+                class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-200"
+                >{{ jobTypeLabel }}</span
               >
-                {{ jobTypeLabel }}
-              </span>
             </div>
-            <p class="mt-2 truncate text-sm text-muted-foreground">
-              {{ profile?.email ?? '' }}
-            </p>
+            <p class="mt-0.5 truncate text-xs text-muted-foreground">{{ profile?.email ?? '' }}</p>
           </div>
-        </div>
-
-        <!-- 우상단 버튼: 모바일은 아이콘만, 데스크탑은 텍스트+아이콘 -->
-        <div class="flex shrink-0 flex-col items-end gap-3.5">
-          <!-- 모바일: 아이콘 버튼 -->
           <button
             type="button"
-            class="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground sm:hidden"
+            class="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground"
             @click="openEdit"
           >
             <Pencil class="size-3.5" />
           </button>
-          <!-- 데스크탑: 텍스트 버튼 -->
-          <AppButton variant="outline" size="sm" class="hidden sm:inline-flex" @click="openEdit">
-            <Pencil class="size-3.5" />
-            프로필 수정
-          </AppButton>
+        </div>
+      </div>
+
+      <!-- 모바일 탭 -->
+      <div class="mt-4 overflow-x-auto rounded-xl border border-border scrollbar-none">
+        <div class="flex min-w-max">
           <button
+            v-for="tab in tabs"
+            :key="tab.key"
             type="button"
-            class="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-destructive hover:underline"
-            @click="showWithdrawDialog = true"
+            class="shrink-0 whitespace-nowrap border-r border-border px-4 py-3 text-xs font-semibold transition-colors outline-none last:border-r-0"
+            :class="
+              activeTab === tab.key
+                ? 'bg-primary/[0.07] text-primary'
+                : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+            "
+            @click="selectTab(tab.key)"
           >
-            탈퇴하기
+            {{ tab.shortLabel }}
           </button>
         </div>
       </div>
     </div>
 
-    <!-- ── 탭 ── -->
-    <div class="mt-5 overflow-x-auto rounded-xl border border-border scrollbar-none">
-      <div class="flex min-w-max">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          type="button"
-          class="shrink-0 whitespace-nowrap border-r border-border px-4 py-3 text-xs font-semibold transition-colors outline-none last:border-r-0 sm:px-5 sm:text-sm"
-          :class="
-            activeTab === tab.key
-              ? 'bg-primary/[0.07] text-primary'
-              : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
-          "
-          @click="selectTab(tab.key)"
-        >
-          <!-- 모바일: 짧은 라벨, 데스크탑: 전체 라벨 -->
-          <span class="sm:hidden">{{ tab.shortLabel }}</span>
-          <span class="hidden sm:inline">{{ tab.label }}</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- ── 탭 콘텐츠 ── -->
-    <div class="mt-4">
-      <!-- 분석 기록 -->
-      <template v-if="activeTab === 'analyses'">
-        <div v-if="analysesPending" class="flex justify-center py-12">
-          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-        </div>
-
-        <div v-else-if="analyses.length > 0" class="grid gap-2">
-          <NuxtLink
-            v-for="item in paged(analyses, 'analyses')"
-            :key="item.id"
-            :to="`/analysis/${item.id}`"
-            class="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
+    <!-- 데스크탑: 사이드바 + 콘텐츠 -->
+    <div class="flex gap-8">
+      <!-- 사이드바 (lg+) -->
+      <aside class="hidden w-56 shrink-0 lg:block">
+        <!-- 프로필 카드 -->
+        <div class="rounded-2xl border border-border bg-card p-5">
+          <button
+            type="button"
+            class="mx-auto block size-16 overflow-hidden rounded-full bg-primary"
+            @click="openEdit"
           >
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-semibold text-foreground">{{ item.title }}</p>
-              <p class="mt-0.5 text-xs text-muted-foreground">{{ formatDate(item.createdAt) }}</p>
-            </div>
-            <div class="flex shrink-0 items-center gap-2">
-              <AppBadge :variant="item.isPublic ? 'green' : 'gray'">
-                <Unlock v-if="item.isPublic" class="mr-1 size-3" />
-                <Lock v-else class="mr-1 size-3" />
-                {{ item.isPublic ? '공개' : '비공개' }}
-              </AppBadge>
-              <ArrowUpRight class="size-4 text-muted-foreground" />
-            </div>
-          </NuxtLink>
-
-          <Pagination
-            v-if="totalPages(analyses, 'analyses') > 1"
-            :current="pages.analyses"
-            :total="totalPages(analyses, 'analyses')"
-            @change="goPage('analyses', $event)"
-          />
-        </div>
-
-        <AppEmptyState
-          v-else
-          title="아직 분석한 포트폴리오가 없어요"
-          description="PDF 포트폴리오를 올리면 AI가 항목별로 분석해드려요."
-        >
-          <template #action>
-            <NuxtLink to="/analyze"><AppButton>포트폴리오 분석하기</AppButton></NuxtLink>
-          </template>
-        </AppEmptyState>
-      </template>
-
-      <!-- 내가 쓴 글 -->
-      <template v-else-if="activeTab === 'posts'">
-        <div v-if="myPostsPending" class="flex justify-center py-12">
-          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-        </div>
-
-        <div v-else-if="myPosts.length > 0" class="grid gap-2">
-          <NuxtLink
-            v-for="post in paged(myPosts, 'posts')"
-            :key="post.id"
-            :to="`/community/${post.id}`"
-            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
-          >
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <AppBadge variant="blue" class="shrink-0">{{ post.category }}</AppBadge>
-                <p class="truncate text-sm font-semibold text-foreground">{{ post.title }}</p>
-              </div>
-              <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
-                <span>{{ post.createdAt }}</span>
-                <span class="flex items-center gap-1"
-                  ><Heart class="size-3" />{{ post.likeCount }}</span
-                >
-                <span class="flex items-center gap-1"
-                  ><MessageSquare class="size-3" />{{ post.commentCount }}</span
-                >
-              </div>
-            </div>
-            <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          </NuxtLink>
-
-          <Pagination
-            v-if="totalPages(myPosts, 'posts') > 1"
-            :current="pages.posts"
-            :total="totalPages(myPosts, 'posts')"
-            @change="goPage('posts', $event)"
-          />
-        </div>
-
-        <AppEmptyState
-          v-else
-          title="아직 작성한 글이 없어요"
-          description="커뮤니티에서 첫 번째 글을 써보세요."
-        >
-          <template #action>
-            <NuxtLink to="/community?tab=feedback"><AppButton>글 쓰러 가기</AppButton></NuxtLink>
-          </template>
-        </AppEmptyState>
-      </template>
-
-      <!-- 내 댓글 -->
-      <template v-else-if="activeTab === 'comments'">
-        <div v-if="myCommentsPending" class="flex justify-center py-12">
-          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-        </div>
-
-        <div v-else-if="myComments.length > 0" class="grid gap-2">
-          <NuxtLink
-            v-for="comment in paged(myComments, 'comments')"
-            :key="comment.id"
-            :to="comment.postTitle ? `/community/${comment.postId}` : '#'"
-            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors"
-            :class="comment.postTitle ? 'hover:bg-muted' : 'cursor-default opacity-60'"
-          >
-            <div class="min-w-0 flex-1">
-              <p class="text-sm text-foreground line-clamp-2">{{ comment.content }}</p>
-              <div class="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{{ comment.createdAt }}</span>
-                <span>·</span>
-                <span class="truncate">{{ comment.postTitle ?? '삭제된 게시글' }}</span>
-              </div>
-            </div>
-            <ArrowUpRight
-              v-if="comment.postTitle"
-              class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+            <img
+              v-if="profile?.avatarUrl"
+              :src="profile.avatarUrl"
+              alt="프로필"
+              class="h-full w-full object-cover"
             />
-          </NuxtLink>
-
-          <Pagination
-            v-if="totalPages(myComments, 'comments') > 1"
-            :current="pages.comments"
-            :total="totalPages(myComments, 'comments')"
-            @change="goPage('comments', $event)"
-          />
-        </div>
-
-        <AppEmptyState
-          v-else
-          title="아직 작성한 댓글이 없어요"
-          description="게시글에 댓글을 달아보세요."
-        />
-      </template>
-
-      <!-- 좋아요한 글 -->
-      <template v-else-if="activeTab === 'likes'">
-        <div v-if="likedPending" class="flex justify-center py-12">
-          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-        </div>
-
-        <div v-else-if="likedPosts.length > 0" class="grid gap-2">
-          <NuxtLink
-            v-for="post in paged(likedPosts, 'likes')"
-            :key="post.id"
-            :to="`/community/${post.id}`"
-            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
-          >
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <AppBadge variant="blue" class="shrink-0">{{ post.category }}</AppBadge>
-                <p class="truncate text-sm font-semibold text-foreground">{{ post.title }}</p>
-              </div>
-              <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
-                <span>{{ post.createdAt }}</span>
-                <span class="flex items-center gap-1"
-                  ><Heart class="size-3 text-rose-400" />{{ post.likeCount }}</span
-                >
-                <span class="flex items-center gap-1"
-                  ><MessageSquare class="size-3" />{{ post.commentCount }}</span
-                >
-              </div>
-            </div>
-            <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          </NuxtLink>
-
-          <Pagination
-            v-if="totalPages(likedPosts, 'likes') > 1"
-            :current="pages.likes"
-            :total="totalPages(likedPosts, 'likes')"
-            @change="goPage('likes', $event)"
-          />
-        </div>
-
-        <AppEmptyState
-          v-else
-          title="아직 좋아요한 글이 없어요"
-          description="마음에 드는 게시글에 좋아요를 눌러보세요."
-        >
-          <template #action>
-            <NuxtLink to="/community?tab=feedback"
-              ><AppButton>커뮤니티 보러 가기</AppButton></NuxtLink
+            <div
+              v-else
+              class="flex h-full w-full items-center justify-center text-xl font-bold text-primary-foreground"
             >
-          </template>
-        </AppEmptyState>
-      </template>
-
-      <!-- 저장한 글 -->
-      <template v-else-if="activeTab === 'bookmarks'">
-        <div v-if="bookmarkedPending" class="flex justify-center py-12">
-          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-        </div>
-
-        <div v-else-if="bookmarkedPosts.length > 0" class="grid gap-2">
-          <component
-            :is="post.isDeleted ? 'div' : NuxtLink"
-            v-for="post in paged(bookmarkedPosts, 'bookmarks')"
-            :key="post.bookmarkId"
-            v-bind="post.isDeleted ? {} : { to: `/community/${post.postId}` }"
-            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors"
-            :class="
-              post.isDeleted
-                ? 'cursor-default opacity-50'
-                : 'hover:bg-muted'
-            "
-          >
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <AppBadge :variant="post.isDeleted ? 'gray' : 'blue'" class="shrink-0">
-                  {{ post.isDeleted ? '삭제됨' : post.category }}
-                </AppBadge>
-                <p
-                  class="truncate text-sm font-semibold"
-                  :class="post.isDeleted ? 'text-muted-foreground' : 'text-foreground'"
-                >
-                  {{ post.isDeleted ? '삭제된 게시글' : post.title }}
-                </p>
-              </div>
-              <p class="mt-1.5 text-xs text-muted-foreground">
-                {{ post.bookmarkedAt }} 저장
-              </p>
+              {{ userInitial }}
             </div>
-            <ArrowUpRight
-              v-if="!post.isDeleted"
-              class="mt-0.5 size-4 shrink-0 text-muted-foreground"
-            />
-          </component>
-
-          <Pagination
-            v-if="totalPages(bookmarkedPosts, 'bookmarks') > 1"
-            :current="pages.bookmarks"
-            :total="totalPages(bookmarkedPosts, 'bookmarks')"
-            @change="goPage('bookmarks', $event)"
-          />
-        </div>
-
-        <AppEmptyState
-          v-else
-          title="아직 저장한 글이 없어요"
-          description="게시글의 북마크 아이콘을 눌러 저장해보세요."
-        >
-          <template #action>
-            <NuxtLink to="/community?tab=feedback"
-              ><AppButton>커뮤니티 보러 가기</AppButton></NuxtLink
+          </button>
+          <div class="mt-3 text-center">
+            <p class="font-black text-foreground">{{ profile?.nickname ?? '사용자' }}</p>
+            <span
+              v-if="jobTypeLabel"
+              class="mt-1 inline-block rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-200"
+              >{{ jobTypeLabel }}</span
             >
-          </template>
-        </AppEmptyState>
-      </template>
-
-      <!-- 저장한 아티클 -->
-      <template v-else-if="activeTab === 'article-bookmarks'">
-        <div v-if="bookmarkedArticlesPending" class="flex justify-center py-12">
-          <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-        </div>
-
-        <div v-else-if="bookmarkedArticles.length > 0" class="grid gap-2">
-          <NuxtLink
-            v-for="article in paged(bookmarkedArticles, 'article-bookmarks')"
-            :key="article.id"
-            :to="`/articles/${article.id}`"
-            class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
-          >
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <AppBadge variant="blue" class="shrink-0">{{ article.feedName }}</AppBadge>
-                <p class="truncate text-sm font-semibold text-foreground">{{ article.title }}</p>
-              </div>
-              <p class="mt-1.5 text-xs text-muted-foreground">
-                {{ formatDate(article.bookmarkedAt) }} 저장
-              </p>
-            </div>
-            <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          </NuxtLink>
-
-          <Pagination
-            v-if="totalPages(bookmarkedArticles, 'article-bookmarks') > 1"
-            :current="pages['article-bookmarks']"
-            :total="totalPages(bookmarkedArticles, 'article-bookmarks')"
-            @change="goPage('article-bookmarks', $event)"
-          />
-        </div>
-
-        <AppEmptyState
-          v-else
-          title="아직 저장한 아티클이 없어요"
-          description="아티클의 북마크 아이콘을 눌러 저장해보세요."
-        >
-          <template #action>
-            <NuxtLink to="/articles"><AppButton>아티클 보러 가기</AppButton></NuxtLink>
-          </template>
-        </AppEmptyState>
-      </template>
-
-      <!-- 최근 본 아티클 -->
-      <template v-else-if="activeTab === 'recent-articles'">
-        <div v-if="recentArticles.length > 0">
-          <div class="mb-3 flex items-center justify-between">
-            <p class="text-sm text-muted-foreground">최근 본 아티클 {{ recentArticles.length }}개</p>
+            <p class="mt-1 truncate text-xs text-muted-foreground">{{ profile?.email ?? '' }}</p>
+          </div>
+          <div class="mt-4 flex flex-col gap-1.5">
+            <AppButton variant="outline" size="sm" class="w-full" @click="openEdit">
+              <Pencil class="size-3.5" />
+              프로필 수정
+            </AppButton>
             <button
               type="button"
-              class="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-destructive"
-              @click="clearRecentArticles"
+              class="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-destructive hover:underline"
+              @click="showWithdrawDialog = true"
             >
-              <Trash2 class="size-3" />
-              전체 삭제
+              탈퇴하기
             </button>
           </div>
-
-          <div class="grid gap-2">
-            <div
-              v-for="article in paged(recentArticles, 'recent-articles')"
-              :key="article.id"
-              class="group flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
-            >
-              <NuxtLink :to="`/articles/${article.id}`" class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <AppBadge variant="blue" class="shrink-0">{{ article.feedName }}</AppBadge>
-                  <p class="truncate text-sm font-semibold text-foreground">{{ article.title }}</p>
-                </div>
-                <div class="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock class="size-3 shrink-0" />
-                  {{ timeAgo(article.visitedAt) }} 읽음
-                </div>
-              </NuxtLink>
-              <div class="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  class="flex size-7 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                  title="목록에서 삭제"
-                  @click="removeRecentArticle(article.id)"
-                >
-                  <X class="size-3.5" />
-                </button>
-                <ArrowUpRight class="size-4 text-muted-foreground" />
-              </div>
-            </div>
-          </div>
-
-          <Pagination
-            v-if="totalPages(recentArticles, 'recent-articles') > 1"
-            :current="pages['recent-articles']"
-            :total="totalPages(recentArticles, 'recent-articles')"
-            @change="goPage('recent-articles', $event)"
-          />
         </div>
 
-        <AppEmptyState
-          v-else
-          title="최근 본 아티클이 없어요"
-          description="아티클을 읽으면 여기에 기록돼요."
-        >
-          <template #action>
-            <NuxtLink to="/articles"><AppButton>아티클 보러 가기</AppButton></NuxtLink>
+        <!-- 사이드 네비 -->
+        <nav class="mt-4 grid gap-0.5">
+          <button
+            v-for="tab in tabs"
+            :key="tab.key"
+            type="button"
+            class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
+            :class="
+              activeTab === tab.key
+                ? 'bg-primary/[0.07] text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            "
+            @click="selectTab(tab.key)"
+          >
+            {{ tab.label }}
+          </button>
+        </nav>
+      </aside>
+
+      <!-- 콘텐츠 -->
+      <div class="min-w-0 flex-1">
+        <!-- lg+ 탭 제목 -->
+        <h2 class="hidden text-lg font-black text-foreground lg:block">
+          {{ tabs.find((t) => t.key === activeTab)?.label }}
+        </h2>
+        <div class="mt-4 lg:mt-4">
+          <!-- 분석 기록 -->
+          <template v-if="activeTab === 'analyses'">
+            <div v-if="analysesPending" class="flex justify-center py-12">
+              <div
+                class="size-6 animate-spin rounded-full border-2 border-border border-t-primary"
+              />
+            </div>
+
+            <div v-else-if="analyses.length > 0" class="grid gap-2">
+              <NuxtLink
+                v-for="item in paged(analyses, 'analyses')"
+                :key="item.id"
+                :to="`/analysis/${item.id}`"
+                class="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
+              >
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-semibold text-foreground">{{ item.title }}</p>
+                  <p class="mt-0.5 text-xs text-muted-foreground">
+                    {{ formatDate(item.createdAt) }}
+                  </p>
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                  <AppBadge :variant="item.isPublic ? 'green' : 'gray'">
+                    <Unlock v-if="item.isPublic" class="mr-1 size-3" />
+                    <Lock v-else class="mr-1 size-3" />
+                    {{ item.isPublic ? '공개' : '비공개' }}
+                  </AppBadge>
+                  <ArrowUpRight class="size-4 text-muted-foreground" />
+                </div>
+              </NuxtLink>
+
+              <Pagination
+                v-if="totalPages(analyses, 'analyses') > 1"
+                :current="pages.analyses"
+                :total="totalPages(analyses, 'analyses')"
+                @change="goPage('analyses', $event)"
+              />
+            </div>
+
+            <AppEmptyState
+              v-else
+              title="아직 분석한 포트폴리오가 없어요"
+              description="PDF 포트폴리오를 올리면 AI가 항목별로 분석해드려요."
+            >
+              <template #action>
+                <NuxtLink to="/analyze"><AppButton>포트폴리오 분석하기</AppButton></NuxtLink>
+              </template>
+            </AppEmptyState>
           </template>
-        </AppEmptyState>
-      </template>
+
+          <!-- 내가 쓴 글 -->
+          <template v-else-if="activeTab === 'posts'">
+            <div v-if="myPostsPending" class="flex justify-center py-12">
+              <div
+                class="size-6 animate-spin rounded-full border-2 border-border border-t-primary"
+              />
+            </div>
+
+            <div v-else-if="myPosts.length > 0" class="grid gap-2">
+              <NuxtLink
+                v-for="post in paged(myPosts, 'posts')"
+                :key="post.id"
+                :to="`/community/${post.id}`"
+                class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <AppBadge variant="blue" class="shrink-0">{{ post.category }}</AppBadge>
+                    <p class="truncate text-sm font-semibold text-foreground">{{ post.title }}</p>
+                  </div>
+                  <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{{ post.createdAt }}</span>
+                    <span class="flex items-center gap-1"
+                      ><Heart class="size-3" />{{ post.likeCount }}</span
+                    >
+                    <span class="flex items-center gap-1"
+                      ><MessageSquare class="size-3" />{{ post.commentCount }}</span
+                    >
+                  </div>
+                </div>
+                <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              </NuxtLink>
+
+              <Pagination
+                v-if="totalPages(myPosts, 'posts') > 1"
+                :current="pages.posts"
+                :total="totalPages(myPosts, 'posts')"
+                @change="goPage('posts', $event)"
+              />
+            </div>
+
+            <AppEmptyState
+              v-else
+              title="아직 작성한 글이 없어요"
+              description="커뮤니티에서 첫 번째 글을 써보세요."
+            >
+              <template #action>
+                <NuxtLink to="/community?tab=feedback"
+                  ><AppButton>글 쓰러 가기</AppButton></NuxtLink
+                >
+              </template>
+            </AppEmptyState>
+          </template>
+
+          <!-- 내 댓글 -->
+          <template v-else-if="activeTab === 'comments'">
+            <div v-if="myCommentsPending" class="flex justify-center py-12">
+              <div
+                class="size-6 animate-spin rounded-full border-2 border-border border-t-primary"
+              />
+            </div>
+
+            <div v-else-if="myComments.length > 0" class="grid gap-2">
+              <NuxtLink
+                v-for="comment in paged(myComments, 'comments')"
+                :key="comment.id"
+                :to="comment.postTitle ? `/community/${comment.postId}` : '#'"
+                class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors"
+                :class="comment.postTitle ? 'hover:bg-muted' : 'cursor-default opacity-60'"
+              >
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm text-foreground line-clamp-2">{{ comment.content }}</p>
+                  <div class="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{{ comment.createdAt }}</span>
+                    <span>·</span>
+                    <span class="truncate">{{ comment.postTitle ?? '삭제된 게시글' }}</span>
+                  </div>
+                </div>
+                <ArrowUpRight
+                  v-if="comment.postTitle"
+                  class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                />
+              </NuxtLink>
+
+              <Pagination
+                v-if="totalPages(myComments, 'comments') > 1"
+                :current="pages.comments"
+                :total="totalPages(myComments, 'comments')"
+                @change="goPage('comments', $event)"
+              />
+            </div>
+
+            <AppEmptyState
+              v-else
+              title="아직 작성한 댓글이 없어요"
+              description="게시글에 댓글을 달아보세요."
+            />
+          </template>
+
+          <!-- 좋아요한 글 -->
+          <template v-else-if="activeTab === 'likes'">
+            <div v-if="likedPending" class="flex justify-center py-12">
+              <div
+                class="size-6 animate-spin rounded-full border-2 border-border border-t-primary"
+              />
+            </div>
+
+            <div v-else-if="likedPosts.length > 0" class="grid gap-2">
+              <NuxtLink
+                v-for="post in paged(likedPosts, 'likes')"
+                :key="post.id"
+                :to="`/community/${post.id}`"
+                class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <AppBadge variant="blue" class="shrink-0">{{ post.category }}</AppBadge>
+                    <p class="truncate text-sm font-semibold text-foreground">{{ post.title }}</p>
+                  </div>
+                  <div class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{{ post.createdAt }}</span>
+                    <span class="flex items-center gap-1"
+                      ><Heart class="size-3 text-rose-400" />{{ post.likeCount }}</span
+                    >
+                    <span class="flex items-center gap-1"
+                      ><MessageSquare class="size-3" />{{ post.commentCount }}</span
+                    >
+                  </div>
+                </div>
+                <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              </NuxtLink>
+
+              <Pagination
+                v-if="totalPages(likedPosts, 'likes') > 1"
+                :current="pages.likes"
+                :total="totalPages(likedPosts, 'likes')"
+                @change="goPage('likes', $event)"
+              />
+            </div>
+
+            <AppEmptyState
+              v-else
+              title="아직 좋아요한 글이 없어요"
+              description="마음에 드는 게시글에 좋아요를 눌러보세요."
+            >
+              <template #action>
+                <NuxtLink to="/community?tab=feedback"
+                  ><AppButton>커뮤니티 보러 가기</AppButton></NuxtLink
+                >
+              </template>
+            </AppEmptyState>
+          </template>
+
+          <!-- 저장한 글 -->
+          <template v-else-if="activeTab === 'bookmarks'">
+            <div v-if="bookmarkedPending" class="flex justify-center py-12">
+              <div
+                class="size-6 animate-spin rounded-full border-2 border-border border-t-primary"
+              />
+            </div>
+
+            <div v-else-if="bookmarkedPosts.length > 0" class="grid gap-2">
+              <component
+                :is="post.isDeleted ? 'div' : NuxtLink"
+                v-for="post in paged(bookmarkedPosts, 'bookmarks')"
+                :key="post.bookmarkId"
+                v-bind="post.isDeleted ? {} : { to: `/community/${post.postId}` }"
+                class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors"
+                :class="post.isDeleted ? 'cursor-default opacity-50' : 'hover:bg-muted'"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <AppBadge :variant="post.isDeleted ? 'gray' : 'blue'" class="shrink-0">
+                      {{ post.isDeleted ? '삭제됨' : post.category }}
+                    </AppBadge>
+                    <p
+                      class="truncate text-sm font-semibold"
+                      :class="post.isDeleted ? 'text-muted-foreground' : 'text-foreground'"
+                    >
+                      {{ post.isDeleted ? '삭제된 게시글' : post.title }}
+                    </p>
+                  </div>
+                  <p class="mt-1.5 text-xs text-muted-foreground">{{ post.bookmarkedAt }} 저장</p>
+                </div>
+                <ArrowUpRight
+                  v-if="!post.isDeleted"
+                  class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                />
+              </component>
+
+              <Pagination
+                v-if="totalPages(bookmarkedPosts, 'bookmarks') > 1"
+                :current="pages.bookmarks"
+                :total="totalPages(bookmarkedPosts, 'bookmarks')"
+                @change="goPage('bookmarks', $event)"
+              />
+            </div>
+
+            <AppEmptyState
+              v-else
+              title="아직 저장한 글이 없어요"
+              description="게시글의 북마크 아이콘을 눌러 저장해보세요."
+            >
+              <template #action>
+                <NuxtLink to="/community?tab=feedback"
+                  ><AppButton>커뮤니티 보러 가기</AppButton></NuxtLink
+                >
+              </template>
+            </AppEmptyState>
+          </template>
+
+          <!-- 저장한 아티클 -->
+          <template v-else-if="activeTab === 'article-bookmarks'">
+            <div v-if="bookmarkedArticlesPending" class="flex justify-center py-12">
+              <div
+                class="size-6 animate-spin rounded-full border-2 border-border border-t-primary"
+              />
+            </div>
+
+            <div v-else-if="bookmarkedArticles.length > 0" class="grid gap-2">
+              <NuxtLink
+                v-for="article in paged(bookmarkedArticles, 'article-bookmarks')"
+                :key="article.id"
+                :to="`/articles/${article.id}`"
+                class="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <AppBadge variant="blue" class="shrink-0">{{ article.feedName }}</AppBadge>
+                    <p class="truncate text-sm font-semibold text-foreground">
+                      {{ article.title }}
+                    </p>
+                  </div>
+                  <p class="mt-1.5 text-xs text-muted-foreground">
+                    {{ formatDate(article.bookmarkedAt) }} 저장
+                  </p>
+                </div>
+                <ArrowUpRight class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              </NuxtLink>
+
+              <Pagination
+                v-if="totalPages(bookmarkedArticles, 'article-bookmarks') > 1"
+                :current="pages['article-bookmarks']"
+                :total="totalPages(bookmarkedArticles, 'article-bookmarks')"
+                @change="goPage('article-bookmarks', $event)"
+              />
+            </div>
+
+            <AppEmptyState
+              v-else
+              title="아직 저장한 아티클이 없어요"
+              description="아티클의 북마크 아이콘을 눌러 저장해보세요."
+            >
+              <template #action>
+                <NuxtLink to="/articles"><AppButton>아티클 보러 가기</AppButton></NuxtLink>
+              </template>
+            </AppEmptyState>
+          </template>
+
+          <!-- 최근 본 아티클 -->
+          <template v-else-if="activeTab === 'recent-articles'">
+            <div v-if="recentArticles.length > 0">
+              <div class="mb-3 flex items-center justify-between">
+                <p class="text-sm text-muted-foreground">
+                  최근 본 아티클 {{ recentArticles.length }}개
+                </p>
+                <button
+                  type="button"
+                  class="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-destructive"
+                  @click="clearRecentArticles"
+                >
+                  <Trash2 class="size-3" />
+                  전체 삭제
+                </button>
+              </div>
+
+              <div class="grid gap-2">
+                <div
+                  v-for="article in paged(recentArticles, 'recent-articles')"
+                  :key="article.id"
+                  class="group flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted"
+                >
+                  <NuxtLink :to="`/articles/${article.id}`" class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <AppBadge variant="blue" class="shrink-0">{{ article.feedName }}</AppBadge>
+                      <p class="truncate text-sm font-semibold text-foreground">
+                        {{ article.title }}
+                      </p>
+                    </div>
+                    <div class="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Clock class="size-3 shrink-0" />
+                      {{ timeAgo(article.visitedAt) }} 읽음
+                    </div>
+                  </NuxtLink>
+                  <div class="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      class="flex size-7 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                      title="목록에서 삭제"
+                      @click="removeRecentArticle(article.id)"
+                    >
+                      <X class="size-3.5" />
+                    </button>
+                    <ArrowUpRight class="size-4 text-muted-foreground" />
+                  </div>
+                </div>
+              </div>
+
+              <Pagination
+                v-if="totalPages(recentArticles, 'recent-articles') > 1"
+                :current="pages['recent-articles']"
+                :total="totalPages(recentArticles, 'recent-articles')"
+                @change="goPage('recent-articles', $event)"
+              />
+            </div>
+
+            <AppEmptyState
+              v-else
+              title="최근 본 아티클이 없어요"
+              description="아티클을 읽으면 여기에 기록돼요."
+            >
+              <template #action>
+                <NuxtLink to="/articles"><AppButton>아티클 보러 가기</AppButton></NuxtLink>
+              </template>
+            </AppEmptyState>
+          </template>
+        </div>
+      </div>
+      <!-- /콘텐츠 -->
     </div>
+    <!-- /데스크탑 flex -->
   </div>
 
   <!-- 프로필 수정 모달 -->
@@ -850,7 +937,7 @@ const NuxtLink = resolveComponent('NuxtLink')
                     :src="editAvatarPreview ?? profile?.avatarUrl ?? ''"
                     alt="프로필"
                     class="h-full w-full object-cover"
-                  >
+                  />
                   <div
                     v-else
                     class="flex h-full w-full items-center justify-center text-2xl font-bold text-primary-foreground"
@@ -869,7 +956,7 @@ const NuxtLink = resolveComponent('NuxtLink')
                   accept="image/jpeg,image/png,image/webp"
                   class="sr-only"
                   @change="onAvatarChange"
-                >
+                />
               </label>
               <p class="text-xs text-muted-foreground">클릭해서 변경</p>
             </div>
@@ -888,7 +975,7 @@ const NuxtLink = resolveComponent('NuxtLink')
                     maxlength="15"
                     placeholder="2~15자"
                     class="h-10 w-full rounded-lg border border-border bg-background px-3 pr-9 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
-                  >
+                  />
                   <div class="absolute right-3 top-1/2 -translate-y-1/2">
                     <Loader2
                       v-if="nicknameCheckState === 'checking'"
@@ -980,8 +1067,8 @@ const NuxtLink = resolveComponent('NuxtLink')
           <h2 class="text-xl font-black text-foreground">정말 탈퇴하시겠어요?</h2>
           <p class="mt-3 text-sm leading-6 text-muted-foreground">
             탈퇴하면 이메일과 프로필 정보가 익명화되고 로그아웃돼요. 같은 OAuth 계정으로 다시
-            로그인하면 30일 이내에는 기존 활동 기록과 연결된 계정을 복구할 수 있어요. 30일이
-            지나면 계정 정보와 분석 PDF, 프로필 이미지는 영구 삭제돼요.
+            로그인하면 30일 이내에는 기존 활동 기록과 연결된 계정을 복구할 수 있어요. 30일이 지나면
+            계정 정보와 분석 PDF, 프로필 이미지는 영구 삭제돼요.
           </p>
           <div class="mt-6 flex gap-3">
             <AppButton variant="outline" class="flex-1" @click="showWithdrawDialog = false"

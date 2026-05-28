@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{ urls: string[] }>()
 
@@ -12,12 +12,21 @@ const gridClass = computed(() => {
   if (len === 2) return 'grid-cols-2'
   return 'grid-cols-3'
 })
+
+const lightboxIndex = ref<number | null>(null)
+function openLightbox(i: number) {
+  lightboxIndex.value = i
+}
 </script>
 
 <template>
   <div v-if="displayed.length > 0">
     <div v-if="displayed.length === 1" class="flex justify-center">
-      <div class="inline-flex max-w-full overflow-hidden rounded-xl border border-border bg-muted">
+      <button
+        type="button"
+        class="inline-flex max-w-full overflow-hidden rounded-xl border border-border bg-muted"
+        @click="openLightbox(0)"
+      >
         <img
           :src="displayed[0]"
           alt="첨부 이미지"
@@ -26,14 +35,16 @@ const gridClass = computed(() => {
           decoding="async"
           @error="($event.target as HTMLImageElement).style.display = 'none'"
         />
-      </div>
+      </button>
     </div>
 
     <div v-else :class="['grid gap-2', gridClass]">
-      <div
+      <button
         v-for="(url, i) in displayed"
         :key="i"
+        type="button"
         class="relative aspect-square overflow-hidden rounded-lg bg-muted"
+        @click="openLightbox(i)"
       >
         <img
           :src="url"
@@ -49,7 +60,15 @@ const gridClass = computed(() => {
         >
           +{{ remaining }}
         </div>
-      </div>
+      </button>
     </div>
   </div>
+
+  <!-- 라이트박스 -->
+  <ImageLightbox
+    v-if="lightboxIndex !== null"
+    :urls="normalizedUrls"
+    :initial-index="lightboxIndex"
+    @close="lightboxIndex = null"
+  />
 </template>
