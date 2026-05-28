@@ -100,79 +100,87 @@ async function handleSubmit() {
 
 <template>
   <div class="mx-auto max-w-[1440px] px-5 py-8 md:px-8 md:py-10">
-    <NuxtLink
-      :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'"
-      class="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-    >
-      <ArrowLeft class="size-4" />
-      {{ isFromAnalysis ? '분석 결과로 돌아가기' : '커뮤니티' }}
-    </NuxtLink>
+    <!-- 헤더 -->
+    <div class="flex items-center justify-between">
+      <NuxtLink
+        :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'"
+        class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft class="size-4" />
+        {{ isFromAnalysis ? '분석 결과로 돌아가기' : '커뮤니티' }}
+      </NuxtLink>
+      <div class="flex items-center gap-2">
+        <NuxtLink :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'">
+          <AppButton variant="outline" size="sm">취소</AppButton>
+        </NuxtLink>
+        <AppButton size="sm" :disabled="!canSubmit" :loading="submitting" @click="handleSubmit">
+          게시하기
+        </AppButton>
+      </div>
+    </div>
 
-    <h1 class="text-2xl font-black text-foreground">
-      {{ isFromAnalysis ? '피드백 요청 글 작성' : '글 작성' }}
-    </h1>
+    <!-- 폼 -->
+    <div class="mx-auto mt-8 max-w-2xl">
+      <h1 class="text-2xl font-black text-foreground">
+        {{ isFromAnalysis ? '피드백 요청 글 작성' : '글 작성' }}
+      </h1>
 
-    <!-- ── 분석에서 진입: 2열 레이아웃 ── -->
-    <template v-if="isFromAnalysis">
-      <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
-        <!-- 좌: 분석 결과 -->
-        <div>
-          <div v-if="analysisPending" class="flex justify-center py-8">
+      <!-- ── 분석에서 진입 ── -->
+      <template v-if="isFromAnalysis">
+        <!-- 분석 결과 요약 -->
+        <template v-if="analysisPending">
+          <div class="mt-6 flex justify-center py-8">
             <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary" />
           </div>
-
-          <template v-else-if="analysisData?.result">
-            <div class="rounded-xl border border-primary/20 bg-accent/30 p-5">
-              <div class="flex items-center gap-2 mb-4">
-                <AppBadge variant="green">분석 완료</AppBadge>
-                <span class="text-xs text-muted-foreground">AI 분석 결과</span>
-              </div>
-
-              <AppCard>
-                <h3 class="text-sm font-black text-foreground">종합 피드백</h3>
-                <p class="mt-2 text-sm leading-7 text-muted-foreground">
-                  {{ analysisData.result.summary }}
-                </p>
-              </AppCard>
-
-              <div class="mt-4 grid gap-3">
-                <BeforeAfterBlock
-                  v-for="(s, i) in analysisData.result.suggestions"
-                  :key="i"
-                  :category="s.category"
-                  :context="s.context"
-                  :before="s.before"
-                  :after="s.after"
-                />
-              </div>
-
-              <button
-                type="button"
-                class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground transition-colors hover:bg-muted"
-                @click="showScores = !showScores"
-              >
-                항목별 점수 보기
-                <ChevronDown
-                  class="size-4 text-muted-foreground transition-transform"
-                  :class="{ 'rotate-180': showScores }"
-                />
-              </button>
-              <div v-if="showScores" class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2">
-                <AnalysisScoreCard
-                  v-for="score in analysisData.result.scores"
-                  :key="score.title"
-                  :title="score.title"
-                  :score="score.score"
-                  :comment="score.comment"
-                  :improvement="score.improvement"
-                />
-              </div>
+        </template>
+        <template v-else-if="analysisData?.result">
+          <div class="mt-6 rounded-xl border border-primary/20 bg-accent/30 p-5">
+            <div class="mb-4 flex items-center gap-2">
+              <AppBadge variant="green">분석 완료</AppBadge>
+              <span class="text-xs text-muted-foreground">AI 분석 결과</span>
             </div>
-          </template>
-        </div>
+            <AppCard>
+              <h3 class="text-sm font-black text-foreground">종합 피드백</h3>
+              <p class="mt-2 text-sm leading-7 text-muted-foreground">
+                {{ analysisData.result.summary }}
+              </p>
+            </AppCard>
+            <div class="mt-4 grid gap-3">
+              <BeforeAfterBlock
+                v-for="(s, i) in analysisData.result.suggestions"
+                :key="i"
+                :category="s.category"
+                :context="s.context"
+                :before="s.before"
+                :after="s.after"
+              />
+            </div>
+            <button
+              type="button"
+              class="mt-4 flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-bold text-foreground transition-colors hover:bg-muted"
+              @click="showScores = !showScores"
+            >
+              항목별 점수 보기
+              <ChevronDown
+                class="size-4 text-muted-foreground transition-transform"
+                :class="{ 'rotate-180': showScores }"
+              />
+            </button>
+            <div v-if="showScores" class="mt-3 grid gap-3 md:grid-cols-2">
+              <AnalysisScoreCard
+                v-for="score in analysisData.result.scores"
+                :key="score.title"
+                :title="score.title"
+                :score="score.score"
+                :comment="score.comment"
+                :improvement="score.improvement"
+              />
+            </div>
+          </div>
+        </template>
 
-        <!-- 우: 폼 -->
-        <div class="grid gap-5">
+        <!-- 폼 필드 -->
+        <div class="mt-6 grid gap-5">
           <div>
             <label class="text-sm font-bold text-foreground">카테고리</label>
             <div
@@ -181,12 +189,10 @@ async function handleSubmit() {
               피드백
             </div>
           </div>
-
           <div>
             <label class="text-sm font-bold text-foreground">제목</label>
             <AppInput v-model="title" placeholder="제목을 입력해주세요" class="mt-2" />
           </div>
-
           <div>
             <label class="text-sm font-bold text-foreground">
               추가로 하고 싶은 말
@@ -201,99 +207,56 @@ async function handleSubmit() {
               class="mt-2"
             />
           </div>
-
-          <div class="flex gap-3">
-            <NuxtLink :to="`/analysis/${analysisId}`" class="flex-1">
-              <AppButton variant="outline" class="w-full">취소</AppButton>
-            </NuxtLink>
-            <AppButton
-              class="flex-1"
-              :disabled="!canSubmit"
-              :loading="submitting"
-              @click="handleSubmit"
-            >
-              게시하기
-            </AppButton>
-          </div>
         </div>
-      </div>
-    </template>
+      </template>
 
-    <!-- ── 커뮤니티 직접 작성: 2열 레이아웃 (xl 이상) ── -->
-    <template v-else>
-      <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_260px] xl:items-start">
-        <!-- 본문: xl+에서 왼쪽 열 -->
-        <div class="grid gap-5">
+      <!-- ── 커뮤니티 직접 작성 ── -->
+      <template v-else>
+        <div class="mt-6 grid gap-6">
+          <!-- 카테고리 칩 -->
           <div>
-            <label class="text-sm font-bold text-foreground">카테고리</label>
-            <AppSelect
-              v-model="category"
-              :options="categoryOptions"
-              placeholder="카테고리를 선택해주세요"
-              class="mt-2 xl:hidden"
-            />
+            <p class="text-sm font-bold text-foreground">카테고리</p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <button
+                v-for="opt in categoryOptions"
+                :key="opt.value"
+                type="button"
+                class="rounded-full px-4 py-1.5 text-sm font-semibold transition-colors"
+                :class="
+                  category === opt.value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:text-foreground'
+                "
+                @click="category = opt.value"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
           </div>
 
+          <!-- 제목 -->
           <div>
             <label class="text-sm font-bold text-foreground">제목</label>
             <AppInput v-model="title" placeholder="제목을 입력해주세요" class="mt-2" />
           </div>
 
+          <!-- 이미지 -->
           <PostImageUploader v-model="imageUrls" :max-images="isFeedbackCategory ? 5 : 1" />
 
+          <!-- 본문 -->
           <div>
             <label class="text-sm font-bold text-foreground">{{ bodyLabel }}</label>
             <AppTextarea
               v-model="body"
               :placeholder="bodyPlaceholder"
-              :rows="16"
+              :rows="14"
               :maxlength="MAX_BODY"
               :show-count="true"
               class="mt-2"
             />
           </div>
-
-          <!-- 모바일 버튼 -->
-          <div class="grid grid-cols-2 gap-3 xl:hidden">
-            <NuxtLink to="/community">
-              <AppButton variant="outline" class="w-full">취소</AppButton>
-            </NuxtLink>
-            <AppButton
-              class="w-full"
-              :disabled="!canSubmit"
-              :loading="submitting"
-              @click="handleSubmit"
-            >
-              게시하기
-            </AppButton>
-          </div>
         </div>
-
-        <!-- 사이드바: xl+에서만 표시 (오른쪽 열) -->
-        <div class="hidden xl:grid xl:gap-3 xl:sticky xl:top-6">
-          <div class="rounded-xl border border-border bg-card p-4">
-            <p class="text-sm font-bold text-foreground">카테고리</p>
-            <AppSelect
-              v-model="category"
-              :options="categoryOptions"
-              placeholder="카테고리를 선택해주세요"
-              class="mt-2"
-            />
-          </div>
-
-          <AppButton
-            class="w-full"
-            :disabled="!canSubmit"
-            :loading="submitting"
-            @click="handleSubmit"
-          >
-            게시하기
-          </AppButton>
-          <NuxtLink to="/community">
-            <AppButton variant="outline" class="w-full">취소</AppButton>
-          </NuxtLink>
-        </div>
-      </div>
-    </template>
+      </template>
+    </div>
   </div>
 </template>
