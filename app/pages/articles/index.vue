@@ -248,7 +248,7 @@ function setupInfiniteScroll() {
   if (!import.meta.client) return
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries[0]?.isIntersecting && hasMore.value && !loadingMore.value && !pending.value && window.innerWidth < 1024) {
+      if (entries[0]?.isIntersecting && hasMore.value && !loadingMore.value && !pending.value && window.innerWidth < 1700) {
         currentPage.value++
         fetchArticles(true)
       }
@@ -595,11 +595,12 @@ onUnmounted(() => observer?.disconnect())
             </div>
           </div>
 
-          <div v-if="totalPages > 1" class="mt-6 hidden lg:block">
+          <!-- 1700px 이상에서만 페이지네이션, 그 미만은 무한 스크롤 -->
+          <div v-if="totalPages > 1" class="mt-6 hidden min-[1700px]:block">
             <Pagination :current="currentPage" :total="totalPages" @change="goPage" />
           </div>
 
-          <div ref="sentinelRef" class="flex justify-center py-4 lg:hidden">
+          <div ref="sentinelRef" class="flex justify-center py-4 min-[1700px]:hidden">
             <Loader2 v-if="loadingMore" class="size-5 animate-spin text-muted-foreground" />
             <span v-else-if="!hasMore" class="text-xs text-muted-foreground">모든 아티클을 불러왔어요</span>
           </div>
@@ -607,65 +608,66 @@ onUnmounted(() => observer?.disconnect())
 
         <AppEmptyState v-else :title="emptyTitle" :description="emptyDesc" />
       </div>
-
-      <!-- 오른쪽 추천 사이드바 (xl 이상, sticky) -->
-      <aside v-if="hasRec" class="hidden w-64 shrink-0 xl:block">
-        <div class="sticky top-20 max-h-[calc(100vh-88px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-lg scrollbar-none">
-          <!-- 헤더 -->
-          <div class="bg-primary/5 px-4 py-3.5">
-            <div class="flex items-center gap-2">
-              <Sparkles class="size-4 text-primary" />
-              <p class="text-sm font-bold text-foreground">{{ recTitle }}</p>
-            </div>
-          </div>
-
-          <div class="space-y-5 p-4">
-            <!-- 블로그 섹션 -->
-            <div v-if="recBlog.length > 0">
-              <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
-              <ul class="space-y-2">
-                <li v-for="rec in recBlog" :key="rec.id">
-                  <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                    class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
-                    @click="markAsRead(rec as Article)"
-                  >
-                    <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
-                      {{ shortName(rec.feedName) }}
-                    </span>
-                    <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <!-- 뉴스 섹션 -->
-            <div v-if="recNews.length > 0">
-              <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
-              <ul class="space-y-2">
-                <li v-for="rec in recNews" :key="rec.id">
-                  <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                    class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
-                    @click="markAsRead(rec as Article)"
-                  >
-                    <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
-                      {{ shortName(rec.feedName) }}
-                    </span>
-                    <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </aside>
     </div>
   </div>
 
-  <!-- 모바일/태블릿 추천 플로팅 버튼 (xl 미만에서만, 원형 FAB) -->
+  <!-- 데스크탑 추천 패널: 1440px 컨테이너 밖 오른쪽 고정 (1700px+ 뷰포트) -->
   <Teleport to="body">
-    <div v-if="hasRec" class="fixed bottom-6 right-6 z-30 xl:hidden">
+    <div
+      v-if="hasRec"
+      class="fixed bottom-6 z-20 hidden w-64 min-[1700px]:block"
+      style="left: calc(50% + 730px)"
+    >
+      <div class="max-h-[calc(100vh-120px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-xl scrollbar-none">
+        <div class="bg-primary/5 px-4 py-3.5">
+          <div class="flex items-center gap-2">
+            <Sparkles class="size-4 text-primary" />
+            <p class="text-sm font-bold text-foreground">{{ recTitle }}</p>
+          </div>
+        </div>
+        <div class="space-y-5 p-4">
+          <div v-if="recBlog.length > 0">
+            <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
+            <ul class="space-y-2">
+              <li v-for="rec in recBlog" :key="rec.id">
+                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                  class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
+                  @click="markAsRead(rec as Article)"
+                >
+                  <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                    {{ shortName(rec.feedName) }}
+                  </span>
+                  <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div v-if="recNews.length > 0">
+            <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
+            <ul class="space-y-2">
+              <li v-for="rec in recNews" :key="rec.id">
+                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                  class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
+                  @click="markAsRead(rec as Article)"
+                >
+                  <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                    {{ shortName(rec.feedName) }}
+                  </span>
+                  <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
+  <!-- 모바일/태블릿 추천 플로팅 버튼 (1700px 미만, 원형 FAB) -->
+  <Teleport to="body">
+    <div v-if="hasRec" class="fixed bottom-6 right-6 z-30 min-[1700px]:hidden">
       <!-- 말풍선 시트 -->
       <Transition
         enter-active-class="transition duration-150 ease-out"
