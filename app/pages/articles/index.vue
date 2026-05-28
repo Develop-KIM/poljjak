@@ -480,23 +480,23 @@ onUnmounted(() => observer?.disconnect())
           <div class="hidden items-center gap-2 lg:flex">
             <form class="relative flex-1" @submit.prevent="submitSearch">
               <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input v-model="searchInput" type="text" placeholder="제목 검색..."
+              <input v-model="searchInput" type="text" placeholder="제목을 검색하세요"
                 class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
               <button v-if="searchInput" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="clearSearch">
                 <X class="size-3.5" />
               </button>
             </form>
-            <div class="flex shrink-0 overflow-hidden rounded-xl border border-border bg-background">
-              <button type="button" class="px-4 py-2 text-xs font-medium transition-colors" :class="selectedSort === 'latest' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('latest')">최신순</button>
-              <button type="button" class="px-4 py-2 text-xs font-medium transition-colors" :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('trending')">트렌딩</button>
+            <div class="flex h-10 shrink-0 overflow-hidden rounded-xl border border-border bg-background">
+              <button type="button" class="px-4 text-xs font-medium transition-colors" :class="selectedSort === 'latest' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('latest')">최신순</button>
+              <button type="button" class="px-4 text-xs font-medium transition-colors" :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('trending')">트렌딩</button>
             </div>
-            <div class="flex shrink-0 overflow-hidden rounded-xl border border-border bg-background">
+            <div class="flex h-10 shrink-0 overflow-hidden rounded-xl border border-border bg-background">
               <button
                 v-for="p in periods"
                 :key="p.value"
                 type="button"
-                class="min-w-14 px-3 py-2 text-xs font-medium transition-colors"
+                class="min-w-14 px-3 text-xs font-medium transition-colors"
                 :class="selectedPeriod === p.value ? 'bg-accent text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
                 @click="selectPeriod(p.value)"
               >
@@ -608,159 +608,61 @@ onUnmounted(() => observer?.disconnect())
 
         <AppEmptyState v-else :title="emptyTitle" :description="emptyDesc" />
       </div>
-    </div>
-  </div>
 
-  <!-- 1440px 컨테이너 밖, 오른쪽 여백에 고정 추천 패널 (뷰포트 1980px+ 전용) -->
-  <Teleport to="body">
-    <div
-      v-if="hasRec"
-      class="fixed bottom-6 z-20 hidden w-64 min-[1980px]:block"
-      style="left: calc(50% + 730px)"
-    >
-      <div class="max-h-[calc(100vh-120px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-xl scrollbar-none">
-        <!-- 헤더 -->
-        <div class="bg-primary/5 px-4 py-3.5">
-          <div class="flex items-center gap-2">
-            <Sparkles class="size-4 text-primary" />
-            <div>
+      <!-- 오른쪽 추천 사이드바 (xl 이상, sticky) -->
+      <aside v-if="hasRec" class="hidden w-64 shrink-0 xl:block">
+        <div class="sticky top-20 max-h-[calc(100vh-88px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-lg scrollbar-none">
+          <!-- 헤더 -->
+          <div class="bg-primary/5 px-4 py-3.5">
+            <div class="flex items-center gap-2">
+              <Sparkles class="size-4 text-primary" />
               <p class="text-sm font-bold text-foreground">{{ recTitle }}</p>
-              <p class="mt-0.5 text-[11px] font-medium text-muted-foreground">{{ recSubtitle }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="space-y-5 p-4">
-          <!-- 블로그 섹션 -->
-          <div v-if="recBlog.length > 0">
-            <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
-            <ul class="space-y-2">
-              <li v-for="rec in recBlog" :key="rec.id">
-                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                  class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
-                  @click="markAsRead(rec as Article)"
-                >
-                  <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground">
-                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
-                    {{ shortName(rec.feedName) }}
-                  </span>
-                  <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <!-- 뉴스 섹션 -->
-          <div v-if="recNews.length > 0">
-            <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
-            <ul class="space-y-2">
-              <li v-for="rec in recNews" :key="rec.id">
-                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
-                  class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
-                  @click="markAsRead(rec as Article)"
-                >
-                  <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground">
-                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
-                    {{ shortName(rec.feedName) }}
-                  </span>
-                  <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  </Teleport>
-
-  <!-- 오른쪽 패널이 잘리는 폭에서는 버튼에 붙은 말풍선으로 추천 표시 -->
-  <Teleport to="body">
-    <div class="fixed bottom-5 right-5 z-30 flex flex-col items-end gap-4 min-[1980px]:hidden">
-      <div v-if="recSheetOpen" class="relative w-[min(calc(100vw-2rem),42rem)]">
-        <span class="absolute -bottom-2 right-12 z-20 size-4 rotate-45 border-b border-r border-border bg-card" />
-
-        <div class="relative z-10 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-          <div class="border-b border-border bg-card/95 px-4 py-3 backdrop-blur">
-            <div class="flex items-center justify-between gap-3">
-              <div class="flex min-w-0 items-start gap-2">
-                <Sparkles class="size-4 shrink-0 text-primary" />
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-bold text-foreground">{{ recTitle }}</p>
-                  <p class="mt-0.5 text-[11px] font-medium text-muted-foreground">{{ recSubtitle }}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                class="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="추천 닫기"
-                @click="recSheetOpen = false"
-              >
-                <X class="size-4" />
-              </button>
             </div>
           </div>
 
-          <div class="grid max-h-[60vh] gap-4 overflow-y-auto p-4 scrollbar-none md:grid-cols-2">
-            <div v-if="!hasRec" class="py-8 text-center text-sm text-muted-foreground md:col-span-2">
-              추천할 아티클을 불러오는 중이에요
-            </div>
-
+          <div class="space-y-5 p-4">
+            <!-- 블로그 섹션 -->
             <div v-if="recBlog.length > 0">
               <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
-              <ul class="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+              <ul class="space-y-2">
                 <li v-for="rec in recBlog" :key="rec.id">
-                  <a
-                    :href="rec.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <a :href="rec.url" target="_blank" rel="noopener noreferrer"
                     class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                     @click="markAsRead(rec as Article)"
                   >
-                    <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground">
+                    <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
                       <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
                       {{ shortName(rec.feedName) }}
                     </span>
-                    <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                    <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
                   </a>
                 </li>
               </ul>
             </div>
 
+            <!-- 뉴스 섹션 -->
             <div v-if="recNews.length > 0">
               <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
-              <ul class="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+              <ul class="space-y-2">
                 <li v-for="rec in recNews" :key="rec.id">
-                  <a
-                    :href="rec.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <a :href="rec.url" target="_blank" rel="noopener noreferrer"
                     class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                     @click="markAsRead(rec as Article)"
                   >
-                    <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground">
+                    <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
                       <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
                       {{ shortName(rec.feedName) }}
                     </span>
-                    <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                    <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
                   </a>
                 </li>
               </ul>
             </div>
           </div>
         </div>
-      </div>
-
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-3 text-sm font-bold text-foreground shadow-xl transition-all hover:border-primary/30 hover:bg-muted"
-        :aria-expanded="recSheetOpen"
-        @click="toggleRecommendationBubble"
-      >
-        <Sparkles class="size-4 text-primary" />
-        추천
-      </button>
+      </aside>
     </div>
-  </Teleport>
+  </div>
 
   <LoginModal :open="showLoginModal" context="아티클 북마크" @close="showLoginModal = false" />
 </template>
