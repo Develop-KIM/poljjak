@@ -248,7 +248,7 @@ function setupInfiniteScroll() {
   if (!import.meta.client) return
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries[0]?.isIntersecting && hasMore.value && !loadingMore.value && !pending.value && window.innerWidth < 1700) {
+      if (entries[0]?.isIntersecting && hasMore.value && !loadingMore.value && !pending.value && window.innerWidth < 2000) {
         currentPage.value++
         fetchArticles(true)
       }
@@ -596,11 +596,11 @@ onUnmounted(() => observer?.disconnect())
           </div>
 
           <!-- 1700px 이상에서만 페이지네이션, 그 미만은 무한 스크롤 -->
-          <div v-if="totalPages > 1" class="mt-6 hidden min-[1700px]:block">
+          <div v-if="totalPages > 1" class="mt-6 hidden min-[2000px]:block">
             <Pagination :current="currentPage" :total="totalPages" @change="goPage" />
           </div>
 
-          <div ref="sentinelRef" class="flex justify-center py-4 min-[1700px]:hidden">
+          <div ref="sentinelRef" class="flex justify-center py-4 min-[2000px]:hidden">
             <Loader2 v-if="loadingMore" class="size-5 animate-spin text-muted-foreground" />
             <span v-else-if="!hasMore" class="text-xs text-muted-foreground">모든 아티클을 불러왔어요</span>
           </div>
@@ -615,7 +615,7 @@ onUnmounted(() => observer?.disconnect())
   <Teleport to="body">
     <div
       v-if="hasRec"
-      class="fixed bottom-6 z-20 hidden w-64 min-[1700px]:block"
+      class="fixed bottom-6 z-20 hidden w-64 min-[2000px]:block"
       style="left: calc(50% + 730px)"
     >
       <div class="max-h-[calc(100vh-120px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-xl scrollbar-none">
@@ -667,7 +667,7 @@ onUnmounted(() => observer?.disconnect())
 
   <!-- 모바일/태블릿 추천 플로팅 버튼 (1700px 미만, 원형 FAB) -->
   <Teleport to="body">
-    <div v-if="hasRec" class="fixed bottom-6 right-6 z-30 min-[1700px]:hidden">
+    <div v-if="hasRec" class="fixed bottom-6 right-6 z-30 min-[2000px]:hidden">
       <!-- 말풍선 시트 -->
       <Transition
         enter-active-class="transition duration-150 ease-out"
