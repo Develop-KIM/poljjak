@@ -382,7 +382,7 @@ const NuxtLink = resolveComponent('NuxtLink')
         <div class="flex items-center gap-4">
           <button
             type="button"
-            class="size-14 shrink-0 overflow-hidden rounded-full bg-primary"
+            class="group relative size-14 shrink-0 overflow-hidden rounded-full bg-primary"
             @click="openEdit"
           >
             <img
@@ -397,17 +397,21 @@ const NuxtLink = resolveComponent('NuxtLink')
             >
               {{ userInitial }}
             </div>
+            <div
+              class="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <Camera class="size-4 text-white" />
+            </div>
           </button>
           <div class="min-w-0 flex-1">
             <p class="truncate font-black text-foreground">{{ profile?.nickname ?? '사용자' }}</p>
             <p v-if="jobTypeLabel" class="mt-1 text-xs font-semibold text-primary">
               {{ jobTypeLabel }}
             </p>
-            <p class="mt-0.5 truncate text-xs text-muted-foreground">{{ profile?.email ?? '' }}</p>
           </div>
           <button
             type="button"
-            class="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground"
+            class="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
             @click="openEdit"
           >
             <Pencil class="size-3.5" />
@@ -445,7 +449,7 @@ const NuxtLink = resolveComponent('NuxtLink')
           <div class="flex items-center gap-3">
             <button
               type="button"
-              class="size-14 shrink-0 overflow-hidden rounded-full bg-primary"
+              class="group relative size-14 shrink-0 overflow-hidden rounded-full bg-primary"
               @click="openEdit"
             >
               <img
@@ -460,20 +464,28 @@ const NuxtLink = resolveComponent('NuxtLink')
               >
                 {{ userInitial }}
               </div>
+              <div
+                class="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                <Camera class="size-4 text-white" />
+              </div>
             </button>
             <div class="min-w-0 flex-1">
               <p class="truncate font-black text-foreground">{{ profile?.nickname ?? '사용자' }}</p>
-              <p v-if="jobTypeLabel" class="mt-1 text-xs font-semibold text-primary">
+              <p
+                v-if="jobTypeLabel"
+                class="mt-1.5 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"
+              >
                 {{ jobTypeLabel }}
               </p>
             </div>
-          </div>
-          <p class="mt-3 truncate text-xs text-muted-foreground">{{ profile?.email ?? '' }}</p>
-          <div class="mt-4">
-            <AppButton variant="outline" size="sm" class="w-full" @click="openEdit">
+            <button
+              type="button"
+              class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+              @click="openEdit"
+            >
               <Pencil class="size-3.5" />
-              프로필 수정
-            </AppButton>
+            </button>
           </div>
         </div>
 
@@ -493,16 +505,18 @@ const NuxtLink = resolveComponent('NuxtLink')
           >
             {{ tab.label }}
           </button>
-          <div class="mt-2 border-t border-border pt-2">
-            <button
-              type="button"
-              class="w-full rounded-lg px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:text-destructive"
-              @click="showWithdrawDialog = true"
-            >
-              탈퇴하기
-            </button>
-          </div>
         </nav>
+
+        <!-- 계정 관리 -->
+        <div class="mt-6 border-t border-border pt-4">
+          <button
+            type="button"
+            class="w-full rounded-lg px-3 py-2 text-left text-xs text-muted-foreground/60 transition-colors hover:text-destructive"
+            @click="showWithdrawDialog = true"
+          >
+            회원탈퇴
+          </button>
+        </div>
       </aside>
 
       <!-- 콘텐츠 -->
