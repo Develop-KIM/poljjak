@@ -128,8 +128,6 @@ const createdAtLabel = computed(() => {
   })
 })
 
-const totalScore = computed(() => analysis.value?.result?.totalScore ?? null)
-
 async function fetchAnalysis() {
   try {
     const res = await $fetch<{ data: Analysis }>(`/api/analyses/${id}`)
@@ -609,7 +607,6 @@ async function downloadAfterPdf() {
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div class="flex flex-wrap items-center gap-2">
-            <AppBadge variant="green">분석 완료</AppBadge>
             <span
               v-if="analysis.jobRole"
               class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-semibold text-foreground"
@@ -621,12 +618,6 @@ async function downloadAfterPdf() {
               class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-semibold text-foreground"
             >
               {{ SENIORITY_LABELS[analysis.seniority] ?? analysis.seniority }}
-            </span>
-            <span
-              v-if="totalScore !== null"
-              class="rounded-full border border-primary/30 bg-primary/5 px-2.5 py-0.5 text-xs font-bold text-primary"
-            >
-              {{ totalScore }}점
             </span>
           </div>
           <h1 class="mt-3 text-2xl font-black leading-tight text-foreground md:text-3xl">
@@ -833,7 +824,6 @@ async function downloadAfterPdf() {
     <template v-else-if="analysis?.result">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <AppBadge variant="green">분석 완료</AppBadge>
           <h1 class="mt-3 text-2xl font-black">{{ analysis.title }}</h1>
           <p class="mt-1 text-sm text-muted-foreground">{{ createdAtLabel }}</p>
         </div>
