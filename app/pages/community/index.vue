@@ -180,9 +180,9 @@ function handleWrite() {
     return
   }
   const category = TAB_CATEGORY_MAP[activeTab.value]
-  navigateTo(
-    category ? `/community/write?category=${encodeURIComponent(category)}` : '/community/write'
-  )
+  const params = new URLSearchParams({ tab: activeTab.value })
+  if (category) params.set('category', category)
+  navigateTo(`/community/write?${params.toString()}`)
 }
 
 function goPage(p: number) {

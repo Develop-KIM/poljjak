@@ -12,14 +12,24 @@ const analysisId = Array.isArray(route.query.analysisId)
   : route.query.analysisId
 
 const VALID_CATEGORIES = ['피드백', '프로젝트 모집', '스터디 모집']
+const VALID_TABS = ['feedback', 'project', 'study']
+
 const categoryQuery = Array.isArray(route.query.category)
   ? route.query.category[0]
   : route.query.category
+const tabQuery = Array.isArray(route.query.tab) ? route.query.tab[0] : route.query.tab
+
 const initialCategory = analysisId
   ? '피드백'
   : categoryQuery && VALID_CATEGORIES.includes(categoryQuery)
     ? categoryQuery
     : ''
+
+const backTo = computed(() => {
+  if (analysisId) return `/analysis/${analysisId}`
+  if (tabQuery && VALID_TABS.includes(tabQuery)) return `/community?tab=${tabQuery}`
+  return '/community'
+})
 
 const category = ref(initialCategory)
 const title = ref('')
@@ -103,14 +113,14 @@ async function handleSubmit() {
     <!-- 헤더 -->
     <div class="flex items-center justify-between">
       <NuxtLink
-        :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'"
+        :to="backTo"
         class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft class="size-4" />
-        {{ isFromAnalysis ? '분석 결과로 돌아가기' : '커뮤니티' }}
+        {{ isFromAnalysis ? '분석 결과로 돌아가기' : '목록으로' }}
       </NuxtLink>
       <div class="flex items-center gap-2">
-        <NuxtLink :to="isFromAnalysis ? `/analysis/${analysisId}` : '/community'">
+        <NuxtLink :to="backTo">
           <AppButton variant="outline" size="sm">취소</AppButton>
         </NuxtLink>
         <AppButton size="sm" :disabled="!canSubmit" :loading="submitting" @click="handleSubmit">

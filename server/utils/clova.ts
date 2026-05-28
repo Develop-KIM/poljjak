@@ -195,10 +195,17 @@ ${text}`
     })
   } catch (e: unknown) {
     const err = e as { message?: string; statusCode?: number; data?: unknown }
-    console.error('[CLOVA ERROR]', err.message, err.statusCode, JSON.stringify(err.data))
+    console.error(
+      '[CLOVA ERROR] message:',
+      err.message,
+      '/ statusCode:',
+      err.statusCode,
+      '/ data:',
+      JSON.stringify(err.data)
+    )
     throw createError({
       statusCode: 502,
-      statusMessage: 'AI 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.',
+      statusMessage: `AI 서버 오류: ${err.message ?? '연결 실패'} (HTTP ${err.statusCode ?? 'unknown'})`,
     })
   }
 
