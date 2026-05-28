@@ -26,7 +26,7 @@ ChartJS.register(
   PointElement,
   CategoryScale,
   LinearScale,
-  Filler,
+  Filler
 )
 
 // 어드민 레이아웃 + 미들웨어 적용
@@ -41,8 +41,13 @@ async function triggerCollect() {
   if (collecting.value) return
   collecting.value = true
   try {
-    const res = await $fetch<{ data: { inserted: number; skipped: number; cleaned: number } }>('/api/admin/articles/collect', { method: 'POST' })
-    toast.success(`수집 완료 — 신규 ${res.data.inserted}개, 중복 ${res.data.skipped}개, 정리 ${res.data.cleaned}개`)
+    const res = await $fetch<{ data: { inserted: number; skipped: number; cleaned: number } }>(
+      '/api/admin/articles/collect',
+      { method: 'POST' }
+    )
+    toast.success(
+      `수집 완료 — 신규 ${res.data.inserted}개, 중복 ${res.data.skipped}개, 정리 ${res.data.cleaned}개`
+    )
     await Promise.all([fetchStats(), fetchFeedStatuses()])
   } catch {
     toast.error('아티클 수집에 실패했어요')
@@ -371,7 +376,11 @@ function formatDateTime(iso: string | null): string {
     <section>
       <h2 class="mb-4 text-base font-bold text-foreground">아티클 현황</h2>
       <div v-if="statsPending" class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div v-for="i in 3" :key="i" class="animate-pulse rounded-xl border border-border bg-card p-5">
+        <div
+          v-for="i in 3"
+          :key="i"
+          class="animate-pulse rounded-xl border border-border bg-card p-5"
+        >
           <div class="mb-3 h-3 w-16 rounded bg-muted" />
           <div class="h-7 w-12 rounded bg-muted" />
         </div>
@@ -379,15 +388,21 @@ function formatDateTime(iso: string | null): string {
       <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">누적 아티클</p>
-          <p class="mt-2 text-2xl font-black text-foreground">{{ formatNumber(stats?.totalArticles ?? 0) }}</p>
+          <p class="mt-2 text-2xl font-black text-foreground">
+            {{ formatNumber(stats?.totalArticles ?? 0) }}
+          </p>
         </div>
         <div class="rounded-xl border border-border bg-card p-5">
           <p class="text-sm text-muted-foreground">오늘 수집</p>
-          <p class="mt-2 text-2xl font-black text-foreground">{{ formatNumber(stats?.todayArticles ?? 0) }}</p>
+          <p class="mt-2 text-2xl font-black text-foreground">
+            {{ formatNumber(stats?.todayArticles ?? 0) }}
+          </p>
         </div>
         <div class="rounded-xl border border-border bg-card p-5 col-span-2 sm:col-span-1">
           <p class="text-sm text-muted-foreground">구독자 수</p>
-          <p class="mt-2 text-2xl font-black text-foreground">{{ formatNumber(stats?.totalSubscriptions ?? 0) }}</p>
+          <p class="mt-2 text-2xl font-black text-foreground">
+            {{ formatNumber(stats?.totalSubscriptions ?? 0) }}
+          </p>
           <p class="mt-1 text-xs text-muted-foreground">출처·태그 구독 합계</p>
         </div>
       </div>
@@ -414,7 +429,10 @@ function formatDateTime(iso: string | null): string {
         <div v-if="feedStatusPending" class="p-4">
           <div class="h-24 animate-pulse rounded-lg bg-muted" />
         </div>
-        <div v-else-if="feedStatuses.length === 0" class="px-4 py-8 text-center text-sm text-muted-foreground">
+        <div
+          v-else-if="feedStatuses.length === 0"
+          class="px-4 py-8 text-center text-sm text-muted-foreground"
+        >
           아직 수집 상태가 없어요
         </div>
         <div v-else class="max-h-80 overflow-y-auto">
@@ -431,15 +449,21 @@ function formatDateTime(iso: string | null): string {
                 />
                 <p class="truncate text-sm font-semibold text-foreground">{{ feed.feedName }}</p>
               </div>
-              <p class="mt-1 truncate text-xs text-muted-foreground">{{ feed.sourceLabel }} · {{ feed.category === 'domestic' ? '국내' : '해외' }}</p>
+              <p class="mt-1 truncate text-xs text-muted-foreground">
+                {{ feed.sourceLabel }} · {{ feed.category === 'domestic' ? '국내' : '해외' }}
+              </p>
             </div>
             <div>
               <p class="text-xs text-muted-foreground">최근 확인</p>
-              <p class="mt-1 text-xs font-medium text-foreground">{{ formatDateTime(feed.lastCheckedAt) }}</p>
+              <p class="mt-1 text-xs font-medium text-foreground">
+                {{ formatDateTime(feed.lastCheckedAt) }}
+              </p>
             </div>
             <div>
               <p class="text-xs text-muted-foreground">성공</p>
-              <p class="mt-1 text-xs font-medium text-foreground">{{ formatDateTime(feed.lastSuccessAt) }}</p>
+              <p class="mt-1 text-xs font-medium text-foreground">
+                {{ formatDateTime(feed.lastSuccessAt) }}
+              </p>
             </div>
             <div class="min-w-0">
               <p class="text-xs text-muted-foreground">결과</p>
@@ -464,11 +488,18 @@ function formatDateTime(iso: string | null): string {
         <div class="rounded-xl border border-border bg-card p-5">
           <p class="mb-4 text-sm font-semibold text-foreground">오늘 시간대별 분석 요청</p>
           <div v-if="chartPending" class="flex h-56 items-center justify-center">
-            <div class="size-7 animate-spin rounded-full border-4 border-border border-t-blue-500" />
+            <div
+              class="size-7 animate-spin rounded-full border-4 border-border border-t-blue-500"
+            />
           </div>
           <ClientOnly v-else>
             <div class="h-56">
-              <Bar :data="barChartData" :options="barChartOptions" />
+              <template v-if="!chartData?.hourlyRequests.some((r) => r.count > 0)">
+                <div class="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  오늘 분석 요청이 없어요
+                </div>
+              </template>
+              <Bar v-else :data="barChartData" :options="barChartOptions" />
             </div>
           </ClientOnly>
         </div>
@@ -477,7 +508,9 @@ function formatDateTime(iso: string | null): string {
         <div class="rounded-xl border border-border bg-card p-5">
           <p class="mb-4 text-sm font-semibold text-foreground">최근 7일 평균 응답시간</p>
           <div v-if="chartPending" class="flex h-56 items-center justify-center">
-            <div class="size-7 animate-spin rounded-full border-4 border-border border-t-violet-500" />
+            <div
+              class="size-7 animate-spin rounded-full border-4 border-border border-t-violet-500"
+            />
           </div>
           <ClientOnly v-else>
             <div class="h-56">
@@ -492,6 +525,5 @@ function formatDateTime(iso: string | null): string {
         </div>
       </div>
     </section>
-
   </div>
 </template>
