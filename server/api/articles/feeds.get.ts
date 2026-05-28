@@ -1,4 +1,4 @@
-import { eq, max, sql } from 'drizzle-orm'
+import { max } from 'drizzle-orm'
 import { db } from '../../db'
 import { articles } from '../../db/schema'
 import { FEED_SOURCES } from '../../utils/rss'
@@ -17,13 +17,17 @@ export default defineEventHandler(async () => {
 
   const feedMap = new Map(rows.map((r) => [r.feedName, r.lastPublishedAt?.toISOString() ?? null]))
   const domesticInDb = new Set(rows.filter((r) => r.category === 'domestic').map((r) => r.feedName))
-  const internationalInDb = new Set(rows.filter((r) => r.category === 'international').map((r) => r.feedName))
+  const internationalInDb = new Set(
+    rows.filter((r) => r.category === 'international').map((r) => r.feedName)
+  )
 
   type FeedItem = { name: string; lastPublishedAt: string | null }
 
   const seen = new Set<string>()
   const domestic: FeedItem[] = []
-  for (const f of FEED_SOURCES.filter((f) => f.category === 'domestic' && domesticInDb.has(f.name))) {
+  for (const f of FEED_SOURCES.filter(
+    (f) => f.category === 'domestic' && domesticInDb.has(f.name)
+  )) {
     const label = getArticleSourceLabel(f.name)
     if (seen.has(label)) continue
     seen.add(label)
@@ -32,7 +36,9 @@ export default defineEventHandler(async () => {
 
   seen.clear()
   const international: FeedItem[] = []
-  for (const f of FEED_SOURCES.filter((f) => f.category === 'international' && internationalInDb.has(f.name))) {
+  for (const f of FEED_SOURCES.filter(
+    (f) => f.category === 'international' && internationalInDb.has(f.name)
+  )) {
     const label = getArticleSourceLabel(f.name)
     if (seen.has(label)) continue
     seen.add(label)

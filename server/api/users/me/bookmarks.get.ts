@@ -1,4 +1,4 @@
-import { desc, eq, isNull, sql } from 'drizzle-orm'
+import { desc, eq, sql } from 'drizzle-orm'
 import { requireAuth } from '../../../utils/auth'
 import { db } from '../../../db'
 import { bookmarks, comments, likes, posts } from '../../../db/schema'
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
       posts.category,
       posts.title,
       posts.createdAt,
-      posts.deletedAt,
+      posts.deletedAt
     )
     .orderBy(desc(bookmarks.createdAt))
 

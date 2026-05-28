@@ -36,8 +36,16 @@ export const useAuthStore = defineStore('auth', () => {
       const res = await $fetch<{ data: SelectUser }>('/api/auth/me')
       profile.value = res.data
       cacheProfile(res.data)
-    } catch {
+    } catch (e: unknown) {
+      const err = e as { data?: { statusCode?: number; statusMessage?: string } }
       profile.value = null
+      if (import.meta.client && err.data?.statusCode === 403) {
+        const toast = useToastStore()
+        const supabase = useSupabaseClient()
+        toast.error(err.data.statusMessage ?? '이 계정은 이용이 제한됐어요.')
+        await supabase.auth.signOut()
+        clear()
+      }
     } finally {
       profilePending.value = false
       profileLoaded.value = true

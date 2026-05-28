@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ArrowLeft, ChevronDown } from '@lucide/vue'
+import { ArrowLeft, ChevronDown, PenLine } from '@lucide/vue'
 import type { AnalysisResult } from '~~/server/utils/clova'
 
 definePageMeta({ middleware: 'auth' })
@@ -109,32 +109,41 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1440px] px-5 py-8 md:px-8 md:py-10">
+  <div class="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
     <!-- 헤더 -->
-    <div class="flex items-center justify-between">
-      <NuxtLink
-        :to="backTo"
-        class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft class="size-4" />
-        {{ isFromAnalysis ? '분석 결과로 돌아가기' : '목록으로' }}
-      </NuxtLink>
-      <div class="flex items-center gap-2">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <NuxtLink
+          :to="backTo"
+          class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft class="size-4" />
+          {{ isFromAnalysis ? '분석 결과로 돌아가기' : '목록으로' }}
+        </NuxtLink>
+        <h1 class="mt-4 text-2xl font-black text-foreground">
+          {{ isFromAnalysis ? '피드백 요청 글 작성' : '글 작성' }}
+        </h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          {{
+            isFromAnalysis
+              ? 'AI 분석 결과를 공유하고 커뮤니티 피드백을 받아보세요.'
+              : '카테고리에 맞는 제목과 내용을 작성해주세요.'
+          }}
+        </p>
+      </div>
+      <div class="flex items-center gap-2 sm:pt-7">
         <NuxtLink :to="backTo">
           <AppButton variant="outline" size="sm">취소</AppButton>
         </NuxtLink>
         <AppButton size="sm" :disabled="!canSubmit" :loading="submitting" @click="handleSubmit">
+          <PenLine class="size-4" />
           게시하기
         </AppButton>
       </div>
     </div>
 
     <!-- 폼 -->
-    <div class="mx-auto mt-8 max-w-2xl">
-      <h1 class="text-2xl font-black text-foreground">
-        {{ isFromAnalysis ? '피드백 요청 글 작성' : '글 작성' }}
-      </h1>
-
+    <div class="mx-auto mt-8 max-w-3xl">
       <!-- ── 분석에서 진입 ── -->
       <template v-if="isFromAnalysis">
         <!-- 분석 결과 요약 -->
@@ -144,7 +153,7 @@ async function handleSubmit() {
           </div>
         </template>
         <template v-else-if="analysisData?.result">
-          <div class="mt-6 rounded-xl border border-primary/20 bg-accent/30 p-5">
+          <div class="mt-6 rounded-lg border border-primary/20 bg-accent/30 p-5">
             <div class="mb-4 flex items-center gap-2">
               <AppBadge variant="green">분석 완료</AppBadge>
               <span class="text-xs text-muted-foreground">AI 분석 결과</span>
@@ -190,7 +199,7 @@ async function handleSubmit() {
         </template>
 
         <!-- 폼 필드 -->
-        <div class="mt-6 grid gap-5">
+        <div class="mt-6 grid gap-5 rounded-lg border border-border bg-card p-5">
           <div>
             <label class="text-sm font-bold text-foreground">카테고리</label>
             <div
@@ -222,20 +231,22 @@ async function handleSubmit() {
 
       <!-- ── 커뮤니티 직접 작성 ── -->
       <template v-else>
-        <div class="mt-6 grid gap-6">
+        <div class="grid gap-6 rounded-lg border border-border bg-card p-5">
           <!-- 카테고리 칩 -->
           <div>
             <p class="text-sm font-bold text-foreground">카테고리</p>
-            <div class="mt-2 flex flex-wrap gap-2">
+            <div
+              class="mt-2 flex w-fit flex-wrap overflow-hidden rounded-xl border border-border bg-background"
+            >
               <button
                 v-for="opt in categoryOptions"
                 :key="opt.value"
                 type="button"
-                class="rounded-full px-4 py-1.5 text-sm font-semibold transition-colors"
+                class="h-10 px-4 text-sm font-semibold transition-colors"
                 :class="
                   category === opt.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
+                    ? 'bg-accent text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
                 "
                 @click="category = opt.value"
               >

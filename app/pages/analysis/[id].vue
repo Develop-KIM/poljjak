@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
+  Check,
   Link,
   Lock,
   Unlock,
@@ -389,7 +390,28 @@ async function applyTextPiiMask() {
 
     const textContent = await page.getTextContent()
     type TItem = { str: string; transform: number[]; width: number; height: number }
-    const items = textContent.items.filter((it): it is TItem => 'str' in it)
+    const items: TItem[] = []
+    for (const rawItem of textContent.items) {
+      const item = rawItem as {
+        str?: unknown
+        transform?: unknown
+        width?: unknown
+        height?: unknown
+      }
+      if (
+        typeof item.str === 'string' &&
+        Array.isArray(item.transform) &&
+        typeof item.width === 'number' &&
+        typeof item.height === 'number'
+      ) {
+        items.push({
+          str: item.str,
+          transform: item.transform.filter((v): v is number => typeof v === 'number'),
+          width: item.width,
+          height: item.height,
+        })
+      }
+    }
 
     // y좌표 기준으로 같은 라인 묶기 (허용 오차 ±8 PDF 단위 — 폰트 크기 차이 대응)
     const lines: TItem[][] = []
@@ -632,7 +654,7 @@ async function downloadAfterPdf() {
       </div>
 
       <!-- PII 마스킹 모달 -->
-      <AnalysisPiiMaskingModal
+      <PiiMaskingModal
         :open="piiModalOpen"
         :after-html="analysis.afterHtml ?? ''"
         @confirm="onPiiConfirm"
