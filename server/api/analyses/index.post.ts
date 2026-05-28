@@ -114,7 +114,10 @@ async function runAnalysis(
     const { result, tokenUsage } = await analyzePortfolio(text, jobRole, seniority, additionalNote)
 
     const v2 = result as AnalysisResultV2
-    const afterHtml = v2.afterHtmlSections?.map((s) => s.html).join('\n') ?? null
+    // Array.isArray 체크: CLOVA가 배열이 아닌 형태를 반환해도 TypeError 방지
+    const afterHtml = Array.isArray(v2.afterHtmlSections)
+      ? v2.afterHtmlSections.map((s) => s.html).join('\n')
+      : null
 
     await db
       .update(analyses)
@@ -122,24 +125,29 @@ async function runAnalysis(
         status: 'completed',
         result,
         tokenUsage,
-        issues: v2.issues ?? null,
-        actionPlan: v2.actionPlan ?? null,
+        issues: Array.isArray(v2.issues) ? v2.issues : null,
+        actionPlan: Array.isArray(v2.actionPlan) ? v2.actionPlan : null,
         afterHtml,
         updatedAt: new Date(),
       })
       .where(eq(analyses.id, analysisId))
+  } catch (e) {
+    console.error('[runAnalysis 실패]', e)
+    await db
+      .update(analyses)
+      .set({ status: 'failed', updatedAt: new Date() })
+      .where(eq(analyses.id, analysisId))
+    return
+  }
 
-    await db.insert(notifications).values({
+  // 알림은 분석 완료 후 별도 처리 — 실패해도 분석 결과에 영향 없음
+  db.insert(notifications)
+    .values({
       userId,
       actorId: userId,
       type: 'analysis',
       referenceId: analysisId,
       linkUrl: `/analysis/${analysisId}`,
     })
-  } catch {
-    await db
-      .update(analyses)
-      .set({ status: 'failed', updatedAt: new Date() })
-      .where(eq(analyses.id, analysisId))
-  }
+    .catch((e) => console.error('[알림 삽입 실패]', e))
 }

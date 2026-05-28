@@ -213,11 +213,23 @@ ${text}`
     (response.result.inputLength ?? 0) + (response.result.outputLength ?? 0)
 
   try {
-    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) ?? content.match(/({[\s\S]*})/)
-    const jsonStr = jsonMatch ? (jsonMatch[1] ?? jsonMatch[0]) : content
+    // 1순위: 마크다운 코드 블록
+    const codeMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+    // 2순위: 가장 바깥쪽 { } 범위 추출
+    const start = content.indexOf('{')
+    const end = content.lastIndexOf('}')
+    const jsonStr =
+      codeMatch?.[1] ?? (start !== -1 && end > start ? content.slice(start, end + 1) : content)
     const result = JSON.parse(jsonStr) as AnalysisResultV2
+    console.log(
+      '[CLOVA] 파싱 성공 — issues:',
+      result.issues?.length,
+      '/ afterHtmlSections:',
+      result.afterHtmlSections?.length
+    )
     return { result, tokenUsage }
   } catch {
+    console.error('[CLOVA] JSON 파싱 실패 — 앞 500자:', content.slice(0, 500))
     throw createError({ statusCode: 502, statusMessage: 'AI 응답을 파싱할 수 없어요' })
   }
 }
