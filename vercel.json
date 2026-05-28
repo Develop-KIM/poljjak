@@ -1,8 +1,5 @@
 {
   "regions": ["syd1"],
-  "functions": {
-    "**": { "maxDuration": 300 }
-  },
   "crons": [
     {
       "path": "/api/cron/cleanup-notifications",

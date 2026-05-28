@@ -63,11 +63,8 @@ export default defineNuxtConfig({
   nitro: {
     vercel: {
       config: {
-        functions: {
-          // 포트폴리오 분석: CLOVA 호출이 최대 120s 소요되므로 여유 있게 설정
-          'api/analyses': { maxDuration: 300 },
-          'api/cron/articles': { maxDuration: 60 },
-        },
+        // Nuxt on Vercel은 단일 핸들러로 빌드됨 — 전체에 300초 적용
+        maxDuration: 300,
       },
     },
   },
