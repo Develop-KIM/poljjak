@@ -634,7 +634,7 @@ onUnmounted(() => observer?.disconnect())
                   class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                   @click="markAsRead(rec as Article)"
                 >
-                  <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
                     <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
                     {{ shortName(rec.feedName) }}
                   </span>
@@ -651,7 +651,7 @@ onUnmounted(() => observer?.disconnect())
                   class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                   @click="markAsRead(rec as Article)"
                 >
-                  <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
                     <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
                     {{ shortName(rec.feedName) }}
                   </span>
