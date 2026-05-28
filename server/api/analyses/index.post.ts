@@ -132,10 +132,16 @@ async function runAnalysis(
       })
       .where(eq(analyses.id, analysisId))
   } catch (e) {
-    console.error('[runAnalysis 실패]', e)
+    const err = e as { statusMessage?: string; message?: string; statusCode?: number }
+    const errorMessage = err.statusMessage ?? err.message ?? String(e)
+    console.error('[runAnalysis 실패] statusCode:', err.statusCode, '/ message:', errorMessage)
     await db
       .update(analyses)
-      .set({ status: 'failed', updatedAt: new Date() })
+      .set({
+        status: 'failed',
+        result: { _error: errorMessage } as unknown as AnalysisResultV2,
+        updatedAt: new Date(),
+      })
       .where(eq(analyses.id, analysisId))
     return
   }
