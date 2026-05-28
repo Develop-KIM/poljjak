@@ -143,7 +143,7 @@ async function handleSubmit() {
     </div>
 
     <!-- 폼 -->
-    <div class="mx-auto mt-8 max-w-3xl">
+    <div class="mt-8">
       <!-- ── 분석에서 진입 ── -->
       <template v-if="isFromAnalysis">
         <!-- 분석 결과 요약 -->
