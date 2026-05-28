@@ -62,8 +62,7 @@ export default defineNuxtConfig({
 
   nitro: {
     vercel: {
-      config: {
-        // Nuxt on Vercel은 단일 핸들러로 빌드됨 — 전체에 300초 적용
+      functions: {
         maxDuration: 300,
       },
     },
