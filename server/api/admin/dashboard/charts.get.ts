@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   // 오늘 시간대별 분석 요청 수 (KST 기준 시간 추출)
   const hourlyRaw = await db
     .select({
-      hour: sql<number>`EXTRACT(HOUR FROM ${analyses.createdAt} AT TIME ZONE 'Asia/Seoul')::int`,
+      hour: sql<number>`EXTRACT(HOUR FROM ${analyses.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::int`,
       count: sql<number>`COUNT(*)::int`,
     })
     .from(analyses)
