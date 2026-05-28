@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ArrowRight, CheckCircle2, Loader2 } from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 
@@ -84,8 +84,40 @@ const canAnalyze = computed(
     !analyzing.value
 )
 
+const PREFS_KEY = 'poljjak_analyze_prefs'
+
+function loadPrefs() {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY)
+    if (!raw) return
+    const prefs = JSON.parse(raw) as { jobRole?: string; seniority?: string }
+    const validRoles: JobRole[] = ['frontend', 'backend', 'fullstack', 'devops', 'ml']
+    const validSeniorities: Seniority[] = ['junior', 'mid', 'senior']
+    if (prefs.jobRole && validRoles.includes(prefs.jobRole as JobRole))
+      selectedRole.value = prefs.jobRole as JobRole
+    if (prefs.seniority && validSeniorities.includes(prefs.seniority as Seniority))
+      selectedSeniority.value = prefs.seniority as Seniority
+  } catch {
+    /* ignore */
+  }
+}
+
+function savePrefs() {
+  try {
+    localStorage.setItem(
+      PREFS_KEY,
+      JSON.stringify({ jobRole: selectedRole.value, seniority: selectedSeniority.value })
+    )
+  } catch {
+    /* ignore */
+  }
+}
+
+watch([selectedRole, selectedSeniority], savePrefs)
+
 onMounted(() => {
   if (!authStore.isLoggedIn) showLoginModal.value = true
+  loadPrefs()
 })
 
 async function handleStartAnalysis() {
