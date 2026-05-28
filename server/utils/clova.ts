@@ -93,6 +93,7 @@ export async function summarizeArticle(title: string, content: string): Promise<
     status: { code: string; message: string }
     result: {
       message: { role: string; content: string }
+      usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number }
       inputLength?: number
       outputLength?: number
     }
@@ -158,6 +159,7 @@ ${text}`
     status: { code: string; message: string }
     result: {
       message: { role: string; content: string }
+      usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number }
       inputLength?: number
       outputLength?: number
     }
@@ -206,7 +208,9 @@ ${text}`
 
   const content = response.result.message.content.trim()
   console.log('[CLOVA] 응답 수신 — 길이:', content.length, '/ 앞 200자:', content.slice(0, 200))
-  const tokenUsage = (response.result.inputLength ?? 0) + (response.result.outputLength ?? 0)
+  const tokenUsage =
+    response.result.usage?.totalTokens ??
+    (response.result.inputLength ?? 0) + (response.result.outputLength ?? 0)
 
   try {
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) ?? content.match(/({[\s\S]*})/)
