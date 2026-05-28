@@ -905,7 +905,6 @@ onUnmounted(() => observer?.disconnect())
             >
               <!-- 썸네일 -->
               <a
-                v-if="article.imageUrl"
                 :href="article.url"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -913,12 +912,30 @@ onUnmounted(() => observer?.disconnect())
                 @click="markAsRead(article)"
               >
                 <img
+                  v-if="article.imageUrl"
                   :src="article.imageUrl"
                   :alt="article.title"
                   class="aspect-[2/1] w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   loading="lazy"
-                  @error="($event.target as HTMLImageElement).closest('a')!.style.display = 'none'"
+                  @error="
+                    (
+                      ($event.target as HTMLImageElement).parentElement as HTMLElement | null
+                    )?.style.setProperty('display', 'none')
+                  "
                 />
+                <div
+                  v-else
+                  class="aspect-[2/1] w-full flex items-center justify-center"
+                  :style="{
+                    background: `linear-gradient(135deg, ${getBrandColor(article.feedName)}18 0%, ${getBrandColor(article.feedName)}38 100%)`,
+                  }"
+                >
+                  <span
+                    class="text-4xl font-black select-none opacity-30"
+                    :style="{ color: getBrandColor(article.feedName) }"
+                    >{{ shortName(article.feedName).charAt(0) }}</span
+                  >
+                </div>
               </a>
               <a
                 :href="article.url"
@@ -942,14 +959,11 @@ onUnmounted(() => observer?.disconnect())
                 >
                   {{ article.title }}
                 </p>
-                <p
-                  v-if="article.summary"
-                  class="line-clamp-2 text-xs leading-relaxed text-muted-foreground"
-                >
-                  {{ article.summary }}
+                <p class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                  {{ article.summary || '요약 정보가 없어요' }}
                 </p>
                 <!-- 태그 배지 -->
-                <div v-if="article.tags?.length" class="mt-1.5 flex flex-wrap gap-1">
+                <div class="mt-auto pt-1.5 flex flex-wrap gap-1 min-h-[1.25rem]">
                   <button
                     v-for="tag in article.tags.slice(0, 3)"
                     :key="tag"
