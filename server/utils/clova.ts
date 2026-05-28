@@ -108,7 +108,7 @@ export async function summarizeArticle(title: string, content: string): Promise<
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
         ],
-        maxTokens: 1024,
+        maxCompletionTokens: 1024,
         temperature: 0.3,
         topP: 0.8,
         stream: false,
@@ -186,7 +186,7 @@ ${text}`
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
         ],
-        maxTokens: 8192,
+        maxCompletionTokens: 8192,
         temperature: 0.3,
         topP: 0.8,
         stream: false,
@@ -194,7 +194,17 @@ ${text}`
       timeout: 120000,
     })
   } catch (e: unknown) {
-    const err = e as { message?: string; statusCode?: number; data?: unknown }
+    const err = e as {
+      message?: string
+      statusCode?: number
+      data?: { status?: { code?: string; message?: string }; message?: string; error?: string }
+    }
+    const clovaMessage =
+      err.data?.status?.message ??
+      err.data?.message ??
+      err.data?.error ??
+      err.message ??
+      '연결 실패'
     console.error(
       '[CLOVA ERROR] message:',
       err.message,
@@ -205,7 +215,7 @@ ${text}`
     )
     throw createError({
       statusCode: 502,
-      statusMessage: `AI 서버 오류: ${err.message ?? '연결 실패'} (HTTP ${err.statusCode ?? 'unknown'})`,
+      statusMessage: `AI 서버 오류: ${clovaMessage} (HTTP ${err.statusCode ?? 'unknown'})`,
     })
   }
 
