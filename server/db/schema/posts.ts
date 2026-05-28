@@ -34,7 +34,9 @@ export const postImages = pgTable(
   'post_images',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    postId: uuid('post_id').notNull(),
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
     url: text('url').notNull(),
     order: integer('order').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
