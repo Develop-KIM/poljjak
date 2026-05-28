@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { Bell, BellOff, Bookmark, BookmarkCheck, Loader2, Search, Sparkles, X, Share2 } from '@lucide/vue'
+import {
+  Bell,
+  BellOff,
+  Bookmark,
+  BookmarkCheck,
+  Loader2,
+  Search,
+  Sparkles,
+  X,
+  Share2,
+} from '@lucide/vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 
@@ -13,40 +23,74 @@ useSeoMeta({
 })
 
 interface Article {
-  id: string; feedName: string; category: 'domestic' | 'international'
-  title: string; url: string; summary: string | null; imageUrl: string | null; tags: string[]
-  publishedAt: string; isBookmarked: boolean; bookmarkCount: number
+  id: string
+  feedName: string
+  category: 'domestic' | 'international'
+  title: string
+  url: string
+  summary: string | null
+  imageUrl: string | null
+  tags: string[]
+  publishedAt: string
+  isBookmarked: boolean
+  bookmarkCount: number
 }
 
 const BRAND_COLORS: Record<string, string> = {
-  '네이버': '#03C75A', '카카오': '#FFCD00',
-  '네이버 D2': '#03C75A', '네이버 클라우드': '#03C75A',
-  '카카오 기술 블로그': '#FFCD00', '카카오페이 기술 블로그': '#E8341C',
-  '카카오엔터 기술 블로그': '#FFCD00', '라인 기술 블로그': '#00B900',
-  '쿠팡 기술 블로그': '#FF6000', '우아한형제들 기술 블로그': '#2AC1BC',
-  '당근 기술 블로그': '#FF6F0F', '토스 기술 블로그': '#0064FF',
-  '직방 기술 블로그': '#FF6A00', '야놀자 기술 블로그': '#FF5F00',
-  '쏘카 기술 블로그': '#00BAB3', 'NHN 기술 블로그': '#00B0F0',
-  '무신사 기술 블로그': '#555555', '왓챠 기술 블로그': '#FF2F6E',
-  '인프런 기술 블로그': '#00C471', '리디 기술 블로그': '#1E9EFF',
-  '하이퍼커넥트 기술 블로그': '#E31D1C', '올리브영 기술 블로그': '#3DAA6D',
-  'Hacker News': '#FF6600', 'dev.to': '#6366F1',
-  'Smashing Magazine': '#E85A4F', 'CSS-Tricks': '#FF453A',
-  'Engineering at Meta': '#0866FF', 'Google Developers': '#4285F4',
-  'Netflix Tech Blog': '#E50914', 'Uber Engineering': '#9CA3AF',
-  'Airbnb Engineering': '#FF5A5F', 'Shopify Engineering': '#96BF48',
-  'GitHub Blog': '#6B7280', 'Stripe Blog': '#635BFF',
-  'Cloudflare Blog': '#F48120', 'Vercel Blog': '#6B7280',
-  'Discord Blog': '#5865F2', 'Figma Blog': '#F24E1E',
-  'Notion Blog': '#6B7280', 'Slack Engineering': '#E01E5A',
+  네이버: '#03C75A',
+  카카오: '#FFCD00',
+  '네이버 D2': '#03C75A',
+  '네이버 클라우드': '#03C75A',
+  '카카오 기술 블로그': '#FFCD00',
+  '카카오페이 기술 블로그': '#E8341C',
+  '카카오엔터 기술 블로그': '#FFCD00',
+  '라인 기술 블로그': '#00B900',
+  '쿠팡 기술 블로그': '#FF6000',
+  '우아한형제들 기술 블로그': '#2AC1BC',
+  '당근 기술 블로그': '#FF6F0F',
+  '토스 기술 블로그': '#0064FF',
+  '직방 기술 블로그': '#FF6A00',
+  '야놀자 기술 블로그': '#FF5F00',
+  '쏘카 기술 블로그': '#00BAB3',
+  'NHN 기술 블로그': '#00B0F0',
+  '무신사 기술 블로그': '#555555',
+  '왓챠 기술 블로그': '#FF2F6E',
+  '인프런 기술 블로그': '#00C471',
+  '리디 기술 블로그': '#1E9EFF',
+  '하이퍼커넥트 기술 블로그': '#E31D1C',
+  '올리브영 기술 블로그': '#3DAA6D',
+  'Hacker News': '#FF6600',
+  'dev.to': '#6366F1',
+  'Smashing Magazine': '#E85A4F',
+  'CSS-Tricks': '#FF453A',
+  'Engineering at Meta': '#0866FF',
+  'Google Developers': '#4285F4',
+  'Netflix Tech Blog': '#E50914',
+  'Uber Engineering': '#9CA3AF',
+  'Airbnb Engineering': '#FF5A5F',
+  'Shopify Engineering': '#96BF48',
+  'GitHub Blog': '#6B7280',
+  'Stripe Blog': '#635BFF',
+  'Cloudflare Blog': '#F48120',
+  'Vercel Blog': '#6B7280',
+  'Discord Blog': '#5865F2',
+  'Figma Blog': '#F24E1E',
+  'Notion Blog': '#6B7280',
+  'Slack Engineering': '#E01E5A',
   'Spotify Engineering': '#1DB954',
 }
-function getBrandColor(feedName: string) { return BRAND_COLORS[feedName] ?? '#6B7280' }
+function getBrandColor(feedName: string) {
+  return BRAND_COLORS[feedName] ?? '#6B7280'
+}
 function shortName(feedName: string) {
   if (feedName.startsWith('네이버')) return '네이버'
   if (feedName.startsWith('카카오')) return '카카오'
-  return feedName.replace(' 기술 블로그', '').replace(' Tech Blog', '')
-    .replace(' Engineering', '').replace(' Developers', '').replace(' Blog', '')
+  return feedName
+    .replace(' 기술 블로그', '')
+    .replace(' Tech Blog', '')
+    .replace(' Engineering', '')
+    .replace(' Developers', '')
+    .replace(' Blog', '')
 }
 
 const authStore = useAuthStore()
@@ -58,27 +102,50 @@ type ArticleTab = 'domestic' | 'international'
 type Period = 'all' | 'today' | 'week' | 'month'
 type Sort = 'latest' | 'trending'
 
-const TAGS = ['Frontend', 'Backend', 'DevOps', 'AI/ML', 'Database', 'Architecture', 'Mobile', 'Security', 'Performance', 'Data']
+const TAGS = [
+  'Frontend',
+  'Backend',
+  'DevOps',
+  'AI/ML',
+  'Database',
+  'Architecture',
+  'Mobile',
+  'Security',
+  'Performance',
+  'Data',
+]
 const READ_KEY = 'poljjak_read_articles'
 const RECENT_KEY = 'poljjak_recent_articles'
 const CLIENT_ID_KEY = 'poljjak_article_client_id'
 const MAX_RECENT = 20
 const periods: Array<{ label: string; value: Period }> = [
-  { label: '전체', value: 'all' }, { label: '오늘', value: 'today' },
-  { label: '이번 주', value: 'week' }, { label: '이번 달', value: 'month' },
+  { label: '전체', value: 'all' },
+  { label: '오늘', value: 'today' },
+  { label: '이번 주', value: 'week' },
+  { label: '이번 달', value: 'month' },
 ]
 const initialPeriod = periods.find((p) => p.value === route.query.period)?.value ?? 'all'
 const initialSort: Sort = route.query.sort === 'trending' ? 'trending' : 'latest'
 
-const activeTab = ref<ArticleTab>(route.query.category === 'international' ? 'international' : 'domestic')
-const selectedFeed = ref<string | null>(typeof route.query.feedName === 'string' ? route.query.feedName : null)
+const activeTab = ref<ArticleTab>(
+  route.query.category === 'international' ? 'international' : 'domestic'
+)
+const selectedFeed = ref<string | null>(
+  typeof route.query.feedName === 'string' ? route.query.feedName : null
+)
 const selectedTag = ref<string | null>(typeof route.query.tag === 'string' ? route.query.tag : null)
 const selectedPeriod = ref<Period>(initialPeriod)
 const selectedSort = ref<Sort>(initialSort)
 const searchInput = ref(typeof route.query.q === 'string' ? route.query.q : '')
 const searchQuery = ref(typeof route.query.q === 'string' ? route.query.q : '')
-interface FeedItem { name: string; lastPublishedAt: string | null }
-const feedNames = ref<{ domestic: FeedItem[]; international: FeedItem[] }>({ domestic: [], international: [] })
+interface FeedItem {
+  name: string
+  lastPublishedAt: string | null
+}
+const feedNames = ref<{ domestic: FeedItem[]; international: FeedItem[] }>({
+  domestic: [],
+  international: [],
+})
 const feedsLoading = ref(true)
 const articles = ref<Article[]>([])
 const pending = ref(false)
@@ -94,7 +161,11 @@ const PAGE_SIZE = 21
 const readIds = ref<Set<string>>(new Set())
 function loadReadIds() {
   if (!import.meta.client) return
-  try { readIds.value = new Set(JSON.parse(localStorage.getItem(READ_KEY) ?? '[]')) } catch { /* ignore */ }
+  try {
+    readIds.value = new Set(JSON.parse(localStorage.getItem(READ_KEY) ?? '[]'))
+  } catch {
+    /* ignore */
+  }
 }
 function getArticleClientId() {
   if (!import.meta.client) return null
@@ -119,35 +190,63 @@ function markAsRead(article: Article) {
   // 최근 본 아티클 저장
   try {
     const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Array<{
-      id: string; title: string; url: string; feedName: string; publishedAt: string; visitedAt: string; tags?: string[]
+      id: string
+      title: string
+      url: string
+      feedName: string
+      publishedAt: string
+      visitedAt: string
+      tags?: string[]
     }>
     const filtered = raw.filter((r) => r.id !== article.id)
     filtered.unshift({
-      id: article.id, title: article.title, url: article.url,
-      feedName: article.feedName, publishedAt: article.publishedAt,
-      visitedAt: new Date().toISOString(), tags: article.tags ?? [],
+      id: article.id,
+      title: article.title,
+      url: article.url,
+      feedName: article.feedName,
+      publishedAt: article.publishedAt,
+      visitedAt: new Date().toISOString(),
+      tags: article.tags ?? [],
     })
     localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, MAX_RECENT)))
     localStorage.setItem(READ_KEY, JSON.stringify([...readIds.value]))
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 const tabs: Array<{ label: string; value: ArticleTab }> = [
   { label: '국내 블로그', value: 'domestic' },
   { label: '해외 뉴스', value: 'international' },
 ]
-const currentFeeds = computed(() =>
-  activeTab.value === 'domestic' ? feedNames.value.domestic : feedNames.value.international,
-)
+const currentFeeds = computed(() => {
+  const feeds =
+    activeTab.value === 'domestic' ? feedNames.value.domestic : feedNames.value.international
+  return [...feeds].sort((a, b) => {
+    if (!a.lastPublishedAt && !b.lastPublishedAt) return 0
+    if (!a.lastPublishedAt) return 1
+    if (!b.lastPublishedAt) return -1
+    return new Date(b.lastPublishedAt).getTime() - new Date(a.lastPublishedAt).getTime()
+  })
+})
 const currentFeedNames = computed(() => currentFeeds.value.map((f) => f.name))
 const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
 
 const selectedFeedValue = computed({
   get: () => selectedFeed.value ?? '',
-  set: (v: string) => { selectedFeed.value = v || null },
+  set: (v: string) => {
+    selectedFeed.value = v || null
+  },
 })
 
-const hasActiveFilter = computed(() => !!selectedFeed.value || !!selectedTag.value || selectedPeriod.value !== 'all' || selectedSort.value !== 'latest' || !!searchQuery.value)
+const hasActiveFilter = computed(
+  () =>
+    !!selectedFeed.value ||
+    !!selectedTag.value ||
+    selectedPeriod.value !== 'all' ||
+    selectedSort.value !== 'latest' ||
+    !!searchQuery.value
+)
 
 // 빈 상태 메시지
 const emptyTitle = computed(() => {
@@ -163,10 +262,15 @@ const emptyDesc = computed(() => {
 async function fetchFeeds() {
   feedsLoading.value = true
   try {
-    const res = await $fetch<{ data: { domestic: FeedItem[]; international: FeedItem[] } }>('/api/articles/feeds')
+    const res = await $fetch<{ data: { domestic: FeedItem[]; international: FeedItem[] } }>(
+      '/api/articles/feeds'
+    )
     feedNames.value = res.data
-  } catch { /* ignore */ }
-  finally { feedsLoading.value = false }
+  } catch {
+    /* ignore */
+  } finally {
+    feedsLoading.value = false
+  }
 }
 
 async function fetchArticles(append = false) {
@@ -175,7 +279,9 @@ async function fetchArticles(append = false) {
   try {
     const res = await $fetch<{ data: Article[]; total: number }>('/api/articles', {
       query: {
-        category: activeTab.value, page: currentPage.value, limit: PAGE_SIZE,
+        category: activeTab.value,
+        page: currentPage.value,
+        limit: PAGE_SIZE,
         sort: selectedSort.value,
         ...(selectedFeed.value ? { feedName: selectedFeed.value } : {}),
         ...(selectedTag.value ? { tag: selectedTag.value } : {}),
@@ -215,11 +321,22 @@ function resetAndFetch() {
   fetchArticles()
 }
 
-function selectTab(tab: ArticleTab) { activeTab.value = tab; selectedFeed.value = null }
-function selectFeed(name: string | null) { selectedFeed.value = name }
-function selectTag(tag: string | null) { selectedTag.value = tag }
-function selectSort(s: Sort) { selectedSort.value = s }
-function selectPeriod(p: Period) { selectedPeriod.value = p }
+function selectTab(tab: ArticleTab) {
+  activeTab.value = tab
+  selectedFeed.value = null
+}
+function selectFeed(name: string | null) {
+  selectedFeed.value = name
+}
+function selectTag(tag: string | null) {
+  selectedTag.value = tag
+}
+function selectSort(s: Sort) {
+  selectedSort.value = s
+}
+function selectPeriod(p: Period) {
+  selectedPeriod.value = p
+}
 function submitSearch() {
   const next = searchInput.value.trim()
   if (searchQuery.value === next) resetAndFetch()
@@ -231,12 +348,16 @@ function clearSearch() {
   else resetAndFetch()
 }
 
-function goPage(page: number) { currentPage.value = page; fetchArticles(); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+function goPage(page: number) {
+  currentPage.value = page
+  fetchArticles()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 // 읽은 글 숨기기
 const hideRead = ref(false)
 const visibleArticles = computed(() =>
-  hideRead.value ? articles.value.filter((a) => !readIds.value.has(a.id)) : articles.value,
+  hideRead.value ? articles.value.filter((a) => !readIds.value.has(a.id)) : articles.value
 )
 
 // 공유
@@ -266,16 +387,24 @@ function setupInfiniteScroll() {
   if (!import.meta.client) return
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries[0]?.isIntersecting && hasMore.value && !loadingMore.value && !pending.value && window.innerWidth < 2000) {
+      if (
+        entries[0]?.isIntersecting &&
+        hasMore.value &&
+        !loadingMore.value &&
+        !pending.value &&
+        window.innerWidth < 2000
+      ) {
         currentPage.value++
         fetchArticles(true)
       }
     },
-    { rootMargin: '200px' },
+    { rootMargin: '200px' }
   )
   if (sentinelRef.value) observer.observe(sentinelRef.value)
 }
-watch(sentinelRef, () => { if (sentinelRef.value) setupInfiniteScroll() })
+watch(sentinelRef, () => {
+  if (sentinelRef.value) setupInfiniteScroll()
+})
 
 // ── 구독 관리 ──────────────────────────────────────
 const subscribedFeeds = ref<Set<string>>(new Set())
@@ -284,40 +413,78 @@ const subPending = ref(false)
 async function fetchSubscriptions() {
   if (!authStore.isLoggedIn) return
   try {
-    const res = await $fetch<{ data: { feedNames: string[]; tags: string[] } }>('/api/articles/subscriptions')
+    const res = await $fetch<{ data: { feedNames: string[]; tags: string[] } }>(
+      '/api/articles/subscriptions'
+    )
     subscribedFeeds.value = new Set(res.data.feedNames)
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 async function toggleSubscribeFeed(name: string) {
-  if (!authStore.isLoggedIn) { showLoginModal.value = true; return }
+  if (!authStore.isLoggedIn) {
+    showLoginModal.value = true
+    return
+  }
   if (subPending.value) return
   subPending.value = true
   const prev = subscribedFeeds.value.has(name)
-  if (prev) { const s = new Set(subscribedFeeds.value); s.delete(name); subscribedFeeds.value = s }
-  else subscribedFeeds.value = new Set([...subscribedFeeds.value, name])
+  if (prev) {
+    const s = new Set(subscribedFeeds.value)
+    s.delete(name)
+    subscribedFeeds.value = s
+  } else subscribedFeeds.value = new Set([...subscribedFeeds.value, name])
   try {
     const res = await $fetch<{ data: { subscribed: boolean } }>('/api/articles/subscriptions', {
-      method: 'POST', body: { feedName: name },
+      method: 'POST',
+      body: { feedName: name },
     })
-    if (res.data.subscribed) { subscribedFeeds.value = new Set([...subscribedFeeds.value, name]) }
-    else { const s = new Set(subscribedFeeds.value); s.delete(name); subscribedFeeds.value = s }
+    if (res.data.subscribed) {
+      subscribedFeeds.value = new Set([...subscribedFeeds.value, name])
+    } else {
+      const s = new Set(subscribedFeeds.value)
+      s.delete(name)
+      subscribedFeeds.value = s
+    }
     toast.success(res.data.subscribed ? '구독했어요' : '구독 해제했어요')
-  } catch { if (prev) subscribedFeeds.value = new Set([...subscribedFeeds.value, name]); else { const s = new Set(subscribedFeeds.value); s.delete(name); subscribedFeeds.value = s }; toast.error('구독 처리에 실패했어요') }
-  finally { subPending.value = false }
+  } catch {
+    if (prev) subscribedFeeds.value = new Set([...subscribedFeeds.value, name])
+    else {
+      const s = new Set(subscribedFeeds.value)
+      s.delete(name)
+      subscribedFeeds.value = s
+    }
+    toast.error('구독 처리에 실패했어요')
+  } finally {
+    subPending.value = false
+  }
 }
 
 const bookmarkPending = ref<Set<string>>(new Set())
 async function toggleBookmark(article: Article) {
-  if (!authStore.isLoggedIn) { showLoginModal.value = true; return }
+  if (!authStore.isLoggedIn) {
+    showLoginModal.value = true
+    return
+  }
   if (bookmarkPending.value.has(article.id)) return
   bookmarkPending.value = new Set([...bookmarkPending.value, article.id])
-  const prev = article.isBookmarked; article.isBookmarked = !prev
+  const prev = article.isBookmarked
+  article.isBookmarked = !prev
   try {
-    const res = await $fetch<{ data: { isBookmarked: boolean } }>(`/api/articles/${article.id}/bookmarks`, { method: 'POST' })
+    const res = await $fetch<{ data: { isBookmarked: boolean } }>(
+      `/api/articles/${article.id}/bookmarks`,
+      { method: 'POST' }
+    )
     article.isBookmarked = res.data.isBookmarked
-  } catch { article.isBookmarked = prev; toast.error('북마크 처리에 실패했어요') }
-  finally { const next = new Set(bookmarkPending.value); next.delete(article.id); bookmarkPending.value = next }
+  } catch {
+    article.isBookmarked = prev
+    toast.error('북마크 처리에 실패했어요')
+  } finally {
+    const next = new Set(bookmarkPending.value)
+    next.delete(article.id)
+    bookmarkPending.value = next
+  }
 }
 
 function formatDate(iso: string) {
@@ -330,12 +497,21 @@ function formatDate(iso: string) {
   if (d < 7) return `${d}일 전`
   if (d < 30) return `${Math.floor(d / 7)}주 전`
   if (d < 365) return `${Math.floor(d / 30)}개월 전`
-  return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(iso).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 // ── 개인화 추천 ──────────────────────────────────────
 interface RecommendArticle {
-  id: string; feedName: string; title: string; url: string; tags: string[]; publishedAt: string
+  id: string
+  feedName: string
+  title: string
+  url: string
+  tags: string[]
+  publishedAt: string
 }
 
 interface PersonalInsight {
@@ -344,8 +520,8 @@ interface PersonalInsight {
   hasHistory: boolean
 }
 
-const recBlog = ref<RecommendArticle[]>([])    // 국내 블로그 추천
-const recNews = ref<RecommendArticle[]>([])    // 해외 뉴스 추천
+const recBlog = ref<RecommendArticle[]>([]) // 국내 블로그 추천
+const recNews = ref<RecommendArticle[]>([]) // 해외 뉴스 추천
 const recInsight = ref<PersonalInsight>({ topTag: null, topFeed: null, hasHistory: false })
 const recSheetOpen = ref(false)
 
@@ -368,13 +544,18 @@ function toggleRecommendationBubble() {
 function analyzeHistory(): PersonalInsight {
   if (!import.meta.client) return { topTag: null, topFeed: null, hasHistory: false }
   try {
-    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Array<{ tags?: string[]; feedName?: string }>
+    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as Array<{
+      tags?: string[]
+      feedName?: string
+    }>
     if (raw.length === 0) return { topTag: null, topFeed: null, hasHistory: false }
 
     const tagCount: Record<string, number> = {}
     raw.slice(0, 20).forEach((a, i) => {
       const weight = Math.max(1, 10 - i)
-      ;(a.tags ?? []).forEach((t) => { tagCount[t] = (tagCount[t] ?? 0) + weight })
+      ;(a.tags ?? []).forEach((t) => {
+        tagCount[t] = (tagCount[t] ?? 0) + weight
+      })
     })
     const feedCount: Record<string, number> = {}
     raw.slice(0, 20).forEach((a) => {
@@ -386,7 +567,9 @@ function analyzeHistory(): PersonalInsight {
       topFeed: Object.entries(feedCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
       hasHistory: true,
     }
-  } catch { return { topTag: null, topFeed: null, hasHistory: false } }
+  } catch {
+    return { topTag: null, topFeed: null, hasHistory: false }
+  }
 }
 
 async function fetchRecommended() {
@@ -396,42 +579,60 @@ async function fetchRecommended() {
   const tag = insight.topTag
   const feed = insight.topFeed
 
-  const [blogPersonalRes, blogFallbackRes, newsPersonalRes, newsFallbackRes] = await Promise.allSettled([
-    // 국내 블로그 — 개인화 (tag 또는 feed 기반, 최신순)
-    (tag || feed)
-      ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
-          query: { category: 'domestic', sort: 'latest', limit: 6, ...(tag ? { tag } : { feedName: feed }) },
-        })
-      : Promise.resolve(null),
-    // 국내 블로그 — fallback (이번 주 트렌딩)
-    $fetch<{ data: RecommendArticle[] }>('/api/articles', {
-      query: { category: 'domestic', sort: 'trending', period: 'week', limit: 6 },
-    }),
-    // 해외 뉴스 — 개인화
-    tag
-      ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
-          query: { category: 'international', sort: 'latest', limit: 5, tag },
-        })
-      : Promise.resolve(null),
-    // 해외 뉴스 — fallback
-    $fetch<{ data: RecommendArticle[] }>('/api/articles', {
-      query: { category: 'international', sort: 'trending', period: 'week', limit: 5 },
-    }),
-  ])
+  const [blogPersonalRes, blogFallbackRes, newsPersonalRes, newsFallbackRes] =
+    await Promise.allSettled([
+      // 국내 블로그 — 개인화 (tag 또는 feed 기반, 최신순)
+      tag || feed
+        ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+            query: {
+              category: 'domestic',
+              sort: 'latest',
+              limit: 6,
+              ...(tag ? { tag } : { feedName: feed }),
+            },
+          })
+        : Promise.resolve(null),
+      // 국내 블로그 — fallback (이번 주 트렌딩)
+      $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+        query: { category: 'domestic', sort: 'trending', period: 'week', limit: 6 },
+      }),
+      // 해외 뉴스 — 개인화
+      tag
+        ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+            query: { category: 'international', sort: 'latest', limit: 5, tag },
+          })
+        : Promise.resolve(null),
+      // 해외 뉴스 — fallback
+      $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+        query: { category: 'international', sort: 'trending', period: 'week', limit: 5 },
+      }),
+    ])
 
   // 국내: 개인화 결과 우선, 없으면 fallback
-  const blogPersonal = blogPersonalRes.status === 'fulfilled' ? blogPersonalRes.value?.data ?? [] : []
+  const blogPersonal =
+    blogPersonalRes.status === 'fulfilled' ? (blogPersonalRes.value?.data ?? []) : []
   const blogFallback = blogFallbackRes.status === 'fulfilled' ? blogFallbackRes.value.data : []
   recBlog.value = (blogPersonal.length >= 3 ? blogPersonal : blogFallback).slice(0, 4)
 
   // 해외: 개인화 결과 우선, 없으면 fallback
-  const newsPersonal = newsPersonalRes.status === 'fulfilled' ? newsPersonalRes.value?.data ?? [] : []
+  const newsPersonal =
+    newsPersonalRes.status === 'fulfilled' ? (newsPersonalRes.value?.data ?? []) : []
   const newsFallback = newsFallbackRes.status === 'fulfilled' ? newsFallbackRes.value.data : []
   recNews.value = (newsPersonal.length >= 2 ? newsPersonal : newsFallback).slice(0, 3)
 }
 
-watch([activeTab, selectedFeed, selectedTag, selectedPeriod, selectedSort, searchQuery], resetAndFetch)
-onMounted(() => { loadReadIds(); fetchFeeds(); fetchArticles(); fetchSubscriptions(); fetchRecommended(); nextTick(setupInfiniteScroll) })
+watch(
+  [activeTab, selectedFeed, selectedTag, selectedPeriod, selectedSort, searchQuery],
+  resetAndFetch
+)
+onMounted(() => {
+  loadReadIds()
+  fetchFeeds()
+  fetchArticles()
+  fetchSubscriptions()
+  fetchRecommended()
+  nextTick(setupInfiniteScroll)
+})
 onUnmounted(() => observer?.disconnect())
 </script>
 
@@ -442,46 +643,76 @@ onUnmounted(() => observer?.disconnect())
     <!-- 탭 -->
     <div class="mb-5 flex gap-1 border-b border-border">
       <button
-        v-for="tab in tabs" :key="tab.value" type="button"
+        v-for="tab in tabs"
+        :key="tab.value"
+        type="button"
         class="px-4 pb-3 text-sm font-semibold transition-colors"
-        :class="activeTab === tab.value ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'"
+        :class="
+          activeTab === tab.value
+            ? 'border-b-2 border-primary text-primary'
+            : 'text-muted-foreground hover:text-foreground'
+        "
         @click="selectTab(tab.value)"
-      >{{ tab.label }}</button>
+      >
+        {{ tab.label }}
+      </button>
     </div>
 
     <div class="flex gap-6">
       <!-- 사이드바 -->
-      <aside class="hidden w-44 shrink-0 lg:block">
-        <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">출처</p>
+      <aside class="hidden w-48 shrink-0 lg:block">
+        <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          출처
+        </p>
         <ul v-if="feedsLoading" class="space-y-1">
           <li v-for="i in 8" :key="i" class="h-9 animate-pulse rounded-lg bg-muted" />
         </ul>
         <ul v-else class="max-h-[calc(100vh-220px)] space-y-0.5 overflow-y-auto scrollbar-none">
           <li>
-            <button type="button"
-              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
-              :class="selectedFeed === null ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors"
+              :class="
+                selectedFeed === null
+                  ? 'bg-accent font-semibold text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              "
               @click="selectFeed(null)"
-            ><span class="size-2 shrink-0 rounded-full bg-muted-foreground/40" />전체</button>
+            >
+              <span class="size-2 shrink-0 rounded-full bg-muted-foreground/40" />전체
+            </button>
           </li>
           <li v-for="feed in currentFeeds" :key="feed.name" class="group/item flex items-center">
-            <button type="button"
-              class="flex min-w-0 flex-1 flex-col rounded-lg px-3 py-2 text-sm transition-colors"
-              :class="selectedFeed === feed.name ? 'bg-accent font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+            <button
+              type="button"
+              class="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors"
+              :class="
+                selectedFeed === feed.name
+                  ? 'bg-accent font-semibold text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              "
               @click="selectFeed(feed.name)"
             >
-              <span class="flex items-center gap-2.5">
-                <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(feed.name) }" />
-                <span class="truncate">{{ shortName(feed.name) }}</span>
-              </span>
-              <span v-if="feed.lastPublishedAt" class="mt-0.5 pl-4.5 text-[10px] text-muted-foreground/60">
+              <span
+                class="size-2 shrink-0 rounded-full"
+                :style="{ backgroundColor: getBrandColor(feed.name) }"
+              />
+              <span class="min-w-0 flex-1 truncate">{{ shortName(feed.name) }}</span>
+              <span
+                v-if="feed.lastPublishedAt"
+                class="shrink-0 text-[10px] text-muted-foreground/50"
+              >
                 {{ formatDate(feed.lastPublishedAt) }}
               </span>
             </button>
             <button
               type="button"
               class="mr-1 shrink-0 rounded p-1 opacity-0 transition-opacity group-hover/item:opacity-100"
-              :class="subscribedFeeds.has(feed.name) ? 'text-primary opacity-100' : 'text-muted-foreground hover:text-foreground'"
+              :class="
+                subscribedFeeds.has(feed.name)
+                  ? 'text-primary opacity-100'
+                  : 'text-muted-foreground hover:text-foreground'
+              "
               :title="subscribedFeeds.has(feed.name) ? '구독 해제' : '새 글 알림 구독'"
               @click.stop="toggleSubscribeFeed(feed.name)"
             >
@@ -490,42 +721,86 @@ onUnmounted(() => observer?.disconnect())
             </button>
           </li>
         </ul>
-
       </aside>
 
       <!-- 메인 -->
       <div class="min-w-0 flex-1">
-
         <!-- 컨트롤 바 -->
         <div class="mb-4 flex flex-col gap-3">
           <!-- 데스크탑 -->
           <div class="hidden items-center gap-2 lg:flex">
             <form class="relative flex-1" @submit.prevent="submitSearch">
-              <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input v-model="searchInput" type="text" placeholder="제목을 검색하세요"
+              <Search
+                class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <input
+                v-model="searchInput"
+                type="text"
+                placeholder="제목을 검색하세요"
                 class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
-              <button v-if="searchInput" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="clearSearch">
+              <button
+                v-if="searchInput"
+                type="button"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                @click="clearSearch"
+              >
                 <X class="size-3.5" />
               </button>
             </form>
-            <div class="flex h-10 shrink-0 overflow-hidden rounded-xl border border-border bg-background">
-              <button type="button" class="px-4 text-xs font-medium transition-colors" :class="selectedSort === 'latest' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('latest')">최신순</button>
-              <button type="button" class="px-4 text-xs font-medium transition-colors" :class="selectedSort === 'trending' ? 'bg-accent text-primary' : 'text-muted-foreground hover:text-foreground'" @click="selectSort('trending')">트렌딩</button>
+            <div
+              class="flex h-10 shrink-0 overflow-hidden rounded-xl border border-border bg-background"
+            >
+              <button
+                type="button"
+                class="px-4 text-xs font-medium transition-colors"
+                :class="
+                  selectedSort === 'latest'
+                    ? 'bg-accent text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                "
+                @click="selectSort('latest')"
+              >
+                최신순
+              </button>
+              <button
+                type="button"
+                class="px-4 text-xs font-medium transition-colors"
+                :class="
+                  selectedSort === 'trending'
+                    ? 'bg-accent text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                "
+                @click="selectSort('trending')"
+              >
+                트렌딩
+              </button>
             </div>
             <button
               type="button"
               class="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-xs font-medium transition-colors"
-              :class="hideRead ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:text-foreground'"
+              :class="
+                hideRead
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border text-muted-foreground hover:text-foreground'
+              "
               @click="hideRead = !hideRead"
-            >읽은 글 숨기기</button>
-            <div class="flex h-10 shrink-0 overflow-hidden rounded-xl border border-border bg-background">
+            >
+              읽은 글 숨기기
+            </button>
+            <div
+              class="flex h-10 shrink-0 overflow-hidden rounded-xl border border-border bg-background"
+            >
               <button
                 v-for="p in periods"
                 :key="p.value"
                 type="button"
                 class="min-w-14 px-3 text-xs font-medium transition-colors"
-                :class="selectedPeriod === p.value ? 'bg-accent text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+                :class="
+                  selectedPeriod === p.value
+                    ? 'bg-accent text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                "
                 @click="selectPeriod(p.value)"
               >
                 {{ p.label }}
@@ -536,34 +811,72 @@ onUnmounted(() => observer?.disconnect())
           <!-- 모바일 검색 -->
           <form class="relative lg:hidden" @submit.prevent="submitSearch">
             <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input v-model="searchInput" type="text" placeholder="제목 검색..."
+            <input
+              v-model="searchInput"
+              type="text"
+              placeholder="제목 검색..."
               class="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
-            <button v-if="searchInput" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="clearSearch">
+            <button
+              v-if="searchInput"
+              type="button"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              @click="clearSearch"
+            >
               <X class="size-3.5" />
             </button>
           </form>
 
           <!-- 모바일 드롭다운 -->
           <div class="grid grid-cols-2 gap-2 pr-1 lg:hidden">
-            <AppDropdown :model-value="selectedFeedValue" :options="[{ label: '출처', value: '' }, ...currentFeedNames.map(n => ({ label: shortName(n), value: n }))]" @update:model-value="selectedFeedValue = $event" />
-            <AppDropdown :model-value="selectedTag ?? ''" :options="[{ label: '주제', value: '' }, ...TAGS.map(t => ({ label: t, value: t }))]" @update:model-value="selectTag($event || null)" />
-            <AppDropdown :model-value="selectedSort" :options="[{ label: '최신순', value: 'latest' }, { label: '트렌딩', value: 'trending' }]" @update:model-value="selectSort($event as Sort)" />
-            <AppDropdown :model-value="selectedPeriod" :options="periods.map(p => ({ label: p.label, value: p.value }))" @update:model-value="selectPeriod($event as Period)" />
+            <AppDropdown
+              :model-value="selectedFeedValue"
+              :options="[
+                { label: '출처', value: '' },
+                ...currentFeedNames.map((n) => ({ label: shortName(n), value: n })),
+              ]"
+              @update:model-value="selectedFeedValue = $event"
+            />
+            <AppDropdown
+              :model-value="selectedTag ?? ''"
+              :options="[
+                { label: '주제', value: '' },
+                ...TAGS.map((t) => ({ label: t, value: t })),
+              ]"
+              @update:model-value="selectTag($event || null)"
+            />
+            <AppDropdown
+              :model-value="selectedSort"
+              :options="[
+                { label: '최신순', value: 'latest' },
+                { label: '트렌딩', value: 'trending' },
+              ]"
+              @update:model-value="selectSort($event as Sort)"
+            />
+            <AppDropdown
+              :model-value="selectedPeriod"
+              :options="periods.map((p) => ({ label: p.label, value: p.value }))"
+              @update:model-value="selectPeriod($event as Period)"
+            />
           </div>
 
-            <!-- 주제 태그 빠른 선택 (데스크탑 — 사이드바 스크롤 없이) -->
+          <!-- 주제 태그 빠른 선택 (데스크탑 — 사이드바 스크롤 없이) -->
           <div class="hidden lg:flex items-center gap-1.5 flex-wrap">
             <button
-              v-for="tag in TAGS" :key="tag" type="button"
+              v-for="tag in TAGS"
+              :key="tag"
+              type="button"
               class="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
-              :class="selectedTag === tag
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'"
+              :class="
+                selectedTag === tag
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+              "
               @click="selectTag(selectedTag === tag ? null : tag)"
-            >{{ tag }}</button>
+            >
+              {{ tag }}
+            </button>
           </div>
-
         </div>
 
         <!-- 로딩 -->
@@ -573,70 +886,128 @@ onUnmounted(() => observer?.disconnect())
 
         <!-- 카드 그리드 -->
         <div v-else-if="articles.length > 0">
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" style="min-height: 600px; align-content: start;">
-            <div v-for="article in visibleArticles" :key="article.id"
+          <div
+            class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+            style="min-height: 600px; align-content: start"
+          >
+            <div
+              v-for="article in visibleArticles"
+              :key="article.id"
               class="group relative flex h-full flex-col rounded-2xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
               :class="{ 'opacity-75': readIds.has(article.id) }"
             >
               <!-- 썸네일 -->
-              <a v-if="article.imageUrl" :href="article.url" target="_blank" rel="noopener noreferrer"
+              <a
+                v-if="article.imageUrl"
+                :href="article.url"
+                target="_blank"
+                rel="noopener noreferrer"
                 class="block overflow-hidden rounded-t-2xl"
                 @click="markAsRead(article)"
               >
-                <img :src="article.imageUrl" :alt="article.title"
+                <img
+                  :src="article.imageUrl"
+                  :alt="article.title"
                   class="aspect-[2/1] w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   loading="lazy"
-                  @error="($event.target as HTMLImageElement).closest('a')!.style.display='none'"
+                  @error="($event.target as HTMLImageElement).closest('a')!.style.display = 'none'"
                 />
               </a>
-              <a :href="article.url" target="_blank" rel="noopener noreferrer"
+              <a
+                :href="article.url"
+                target="_blank"
+                rel="noopener noreferrer"
                 class="flex flex-1 flex-col gap-2 p-4 pr-10 md:p-5"
                 @click="markAsRead(article)"
               >
-                <span class="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground">
-                  <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(article.feedName) }" />
+                <span
+                  class="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium leading-none text-muted-foreground"
+                >
+                  <span
+                    class="size-1.5 shrink-0 rounded-full"
+                    :style="{ backgroundColor: getBrandColor(article.feedName) }"
+                  />
                   <span>{{ shortName(article.feedName) }}</span>
                 </span>
-                <p class="line-clamp-2 text-sm font-bold leading-snug group-hover:text-primary"
+                <p
+                  class="line-clamp-2 text-sm font-bold leading-snug group-hover:text-primary"
                   :class="readIds.has(article.id) ? 'text-muted-foreground' : 'text-foreground'"
-                >{{ article.title }}</p>
-                <p v-if="article.summary" class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{{ article.summary }}</p>
+                >
+                  {{ article.title }}
+                </p>
+                <p
+                  v-if="article.summary"
+                  class="line-clamp-2 text-xs leading-relaxed text-muted-foreground"
+                >
+                  {{ article.summary }}
+                </p>
                 <!-- 태그 배지 -->
                 <div v-if="article.tags?.length" class="mt-1.5 flex flex-wrap gap-1">
                   <button
-                    v-for="tag in article.tags.slice(0, 3)" :key="tag"
+                    v-for="tag in article.tags.slice(0, 3)"
+                    :key="tag"
                     type="button"
                     class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                     @click.prevent.stop="selectTag(selectedTag === tag ? null : tag)"
-                  >{{ tag }}</button>
+                  >
+                    {{ tag }}
+                  </button>
                 </div>
               </a>
-              <div class="flex items-center justify-between border-t border-border px-4 py-3 md:px-5">
-                <span class="text-xs text-muted-foreground">{{ formatDate(article.publishedAt) }}</span>
+              <div
+                class="flex items-center justify-between border-t border-border px-4 py-3 md:px-5"
+              >
+                <span class="text-xs text-muted-foreground">{{
+                  formatDate(article.publishedAt)
+                }}</span>
                 <div class="flex items-center gap-1">
                   <!-- 공유 드롭다운 -->
                   <div class="group/share relative">
-                    <button type="button"
+                    <button
+                      type="button"
                       class="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     >
                       <Share2 class="size-3.5" />
                     </button>
-                    <div class="absolute bottom-8 right-0 hidden w-36 overflow-hidden rounded-xl border border-border bg-popover shadow-lg group-hover/share:block">
-                      <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted" @click.stop="shareArticle(article)">
+                    <div
+                      class="absolute bottom-8 right-0 hidden w-36 overflow-hidden rounded-xl border border-border bg-popover shadow-lg group-hover/share:block"
+                    >
+                      <button
+                        type="button"
+                        class="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted"
+                        @click.stop="shareArticle(article)"
+                      >
                         <Share2 class="size-3 shrink-0" /> 링크 복사
                       </button>
-                      <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted" @click.stop="shareTwitter(article)">
-                        <svg class="size-3 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.734-8.85L1.254 2.25H8.08l4.253 5.622L18.244 2.25z"/></svg>
+                      <button
+                        type="button"
+                        class="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted"
+                        @click.stop="shareTwitter(article)"
+                      >
+                        <svg class="size-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                          <path
+                            d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.734-8.85L1.254 2.25H8.08l4.253 5.622L18.244 2.25z"
+                          />
+                        </svg>
                         X(트위터)
                       </button>
-                      <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted" @click.stop="shareLinkedIn(article)">
-                        <svg class="size-3 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                      <button
+                        type="button"
+                        class="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted"
+                        @click.stop="shareLinkedIn(article)"
+                      >
+                        <svg class="size-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                          <path
+                            d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
+                          />
+                        </svg>
                         LinkedIn
                       </button>
                     </div>
                   </div>
                   <!-- 북마크 버튼 -->
-                  <button type="button"
+                  <button
+                    type="button"
                     class="flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-accent"
                     :class="article.isBookmarked ? 'text-primary' : 'text-muted-foreground'"
                     @click.stop="toggleBookmark(article)"
@@ -656,7 +1027,9 @@ onUnmounted(() => observer?.disconnect())
 
           <div ref="sentinelRef" class="flex justify-center py-4 min-[2000px]:hidden">
             <Loader2 v-if="loadingMore" class="size-5 animate-spin text-muted-foreground" />
-            <span v-else-if="!hasMore" class="text-xs text-muted-foreground">모든 아티클을 불러왔어요</span>
+            <span v-else-if="!hasMore" class="text-xs text-muted-foreground"
+              >모든 아티클을 불러왔어요</span
+            >
           </div>
         </div>
 
@@ -672,7 +1045,9 @@ onUnmounted(() => observer?.disconnect())
       class="fixed bottom-6 z-20 hidden w-64 min-[2000px]:block"
       style="left: calc(50% + 730px)"
     >
-      <div class="max-h-[calc(100vh-120px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-xl scrollbar-none">
+      <div
+        class="max-h-[calc(100vh-120px)] overflow-y-auto rounded-2xl border border-border bg-card shadow-xl scrollbar-none"
+      >
         <div class="bg-primary/5 px-4 py-3.5">
           <div class="flex items-center gap-2">
             <Sparkles class="size-4 text-primary" />
@@ -681,35 +1056,59 @@ onUnmounted(() => observer?.disconnect())
         </div>
         <div class="space-y-5 p-4">
           <div v-if="recBlog.length > 0">
-            <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
+            <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              블로그
+            </p>
             <ul class="space-y-2">
               <li v-for="rec in recBlog" :key="rec.id">
-                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                <a
+                  :href="rec.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                   @click="markAsRead(rec as Article)"
                 >
-                  <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
-                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                  <span
+                    class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground"
+                  >
+                    <span
+                      class="size-1.5 shrink-0 rounded-full"
+                      :style="{ backgroundColor: getBrandColor(rec.feedName) }"
+                    />
                     {{ shortName(rec.feedName) }}
                   </span>
-                  <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                  <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">
+                    {{ rec.title }}
+                  </p>
                 </a>
               </li>
             </ul>
           </div>
           <div v-if="recNews.length > 0">
-            <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
+            <p class="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              해외 뉴스
+            </p>
             <ul class="space-y-2">
               <li v-for="rec in recNews" :key="rec.id">
-                <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                <a
+                  :href="rec.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
                   @click="markAsRead(rec as Article)"
                 >
-                  <span class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
-                    <span class="size-1.5 shrink-0 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                  <span
+                    class="mb-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground"
+                  >
+                    <span
+                      class="size-1.5 shrink-0 rounded-full"
+                      :style="{ backgroundColor: getBrandColor(rec.feedName) }"
+                    />
                     {{ shortName(rec.feedName) }}
                   </span>
-                  <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                  <p class="line-clamp-3 text-xs font-semibold leading-snug text-foreground">
+                    {{ rec.title }}
+                  </p>
                 </a>
               </li>
             </ul>
@@ -733,46 +1132,86 @@ onUnmounted(() => observer?.disconnect())
       >
         <div v-if="recSheetOpen" class="absolute bottom-16 right-0 w-80 origin-bottom-right">
           <div class="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-            <div class="flex items-center justify-between border-b border-border bg-primary/5 px-4 py-3">
+            <div
+              class="flex items-center justify-between border-b border-border bg-primary/5 px-4 py-3"
+            >
               <div class="flex items-center gap-2">
                 <Sparkles class="size-4 text-primary" />
                 <p class="text-sm font-bold text-foreground">{{ recTitle }}</p>
               </div>
-              <button type="button" class="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted" @click="recSheetOpen = false">
+              <button
+                type="button"
+                class="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+                @click="recSheetOpen = false"
+              >
                 <X class="size-4" />
               </button>
             </div>
             <div class="max-h-[60vh] space-y-4 overflow-y-auto p-4 scrollbar-none">
               <div v-if="recBlog.length > 0">
-                <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
+                <p
+                  class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+                >
+                  블로그
+                </p>
                 <ul class="space-y-2">
                   <li v-for="rec in recBlog.slice(0, 2)" :key="rec.id">
-                    <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                    <a
+                      :href="rec.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
-                      @click="markAsRead(rec as Article); recSheetOpen = false"
+                      @click="
+                        markAsRead(rec as Article)
+                        recSheetOpen = false
+                      "
                     >
-                      <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                      <span
+                        class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                      >
+                        <span
+                          class="size-1.5 rounded-full"
+                          :style="{ backgroundColor: getBrandColor(rec.feedName) }"
+                        />
                         {{ shortName(rec.feedName) }}
                       </span>
-                      <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                      <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">
+                        {{ rec.title }}
+                      </p>
                     </a>
                   </li>
                 </ul>
               </div>
               <div v-if="recNews.length > 0">
-                <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
+                <p
+                  class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+                >
+                  해외 뉴스
+                </p>
                 <ul class="space-y-2">
                   <li v-for="rec in recNews.slice(0, 2)" :key="rec.id">
-                    <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                    <a
+                      :href="rec.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
-                      @click="markAsRead(rec as Article); recSheetOpen = false"
+                      @click="
+                        markAsRead(rec as Article)
+                        recSheetOpen = false
+                      "
                     >
-                      <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                      <span
+                        class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                      >
+                        <span
+                          class="size-1.5 rounded-full"
+                          :style="{ backgroundColor: getBrandColor(rec.feedName) }"
+                        />
                         {{ shortName(rec.feedName) }}
                       </span>
-                      <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                      <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">
+                        {{ rec.title }}
+                      </p>
                     </a>
                   </li>
                 </ul>
