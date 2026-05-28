@@ -104,10 +104,13 @@ const isV2 = computed(() => !!(analysis.value?.issues || analysis.value?.afterHt
 const renderedAfterHtml = computed(() => {
   const raw = analysis.value?.afterHtml
   if (!raw) return null
-  // 이미 HTML 태그가 포함된 경우 그대로, 아니면 marked로 변환
   const hasHtmlTags = /<[a-z][\s\S]*>/i.test(raw)
-  if (hasHtmlTags) return raw
-  return marked.parse(raw, { async: false }) as string
+  // HTML이 없으면 marked로 전체 변환, 있으면 인라인 마크다운만 치환
+  const html = hasHtmlTags ? raw : (marked.parse(raw, { async: false }) as string)
+  return html
+    .replace(/\*\*\*(.+?)\*\*\*/gs, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>')
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/gs, '<em>$1</em>')
 })
 
 const issues = computed<AnalysisIssue[]>(() => {
