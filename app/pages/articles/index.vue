@@ -664,5 +664,79 @@ onUnmounted(() => observer?.disconnect())
     </div>
   </div>
 
+  <!-- 모바일/태블릿 추천 플로팅 버튼 (xl 미만에서만, 원형 FAB) -->
+  <Teleport to="body">
+    <div v-if="hasRec" class="fixed bottom-6 right-6 z-30 xl:hidden">
+      <!-- 말풍선 시트 -->
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="opacity-0 scale-95 translate-y-2"
+        enter-to-class="opacity-100 scale-100 translate-y-0"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="opacity-100 scale-100 translate-y-0"
+        leave-to-class="opacity-0 scale-95 translate-y-2"
+      >
+        <div v-if="recSheetOpen" class="absolute bottom-16 right-0 w-80 origin-bottom-right">
+          <div class="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div class="flex items-center justify-between border-b border-border bg-primary/5 px-4 py-3">
+              <div class="flex items-center gap-2">
+                <Sparkles class="size-4 text-primary" />
+                <p class="text-sm font-bold text-foreground">{{ recTitle }}</p>
+              </div>
+              <button type="button" class="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted" @click="recSheetOpen = false">
+                <X class="size-4" />
+              </button>
+            </div>
+            <div class="max-h-[60vh] space-y-4 overflow-y-auto p-4 scrollbar-none">
+              <div v-if="recBlog.length > 0">
+                <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">블로그</p>
+                <ul class="space-y-2">
+                  <li v-for="rec in recBlog.slice(0, 3)" :key="rec.id">
+                    <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                      class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
+                      @click="markAsRead(rec as Article); recSheetOpen = false"
+                    >
+                      <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                        {{ shortName(rec.feedName) }}
+                      </span>
+                      <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+              <div v-if="recNews.length > 0">
+                <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">해외 뉴스</p>
+                <ul class="space-y-2">
+                  <li v-for="rec in recNews.slice(0, 2)" :key="rec.id">
+                    <a :href="rec.url" target="_blank" rel="noopener noreferrer"
+                      class="block rounded-xl border border-border p-3 transition-all hover:border-primary/30 hover:bg-muted"
+                      @click="markAsRead(rec as Article); recSheetOpen = false"
+                    >
+                      <span class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <span class="size-1.5 rounded-full" :style="{ backgroundColor: getBrandColor(rec.feedName) }" />
+                        {{ shortName(rec.feedName) }}
+                      </span>
+                      <p class="line-clamp-2 text-xs font-semibold leading-snug text-foreground">{{ rec.title }}</p>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
+      <!-- 원형 FAB -->
+      <button
+        type="button"
+        class="flex size-14 items-center justify-center rounded-full border border-border bg-card shadow-xl transition-all hover:border-primary/30 hover:shadow-2xl active:scale-95"
+        @click="toggleRecommendationBubble"
+      >
+        <Sparkles class="size-6 text-primary" />
+      </button>
+    </div>
+  </Teleport>
+
   <LoginModal :open="showLoginModal" context="아티클 북마크" @close="showLoginModal = false" />
 </template>
