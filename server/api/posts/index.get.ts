@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, inArray, isNotNull, isNull } from 'drizzle-orm'
+import { and, desc, eq, ilike, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import { getAuthUser } from '../../utils/auth'
 import { db } from '../../db'
 import { bookmarks, comments, likes, posts, users } from '../../db/schema'

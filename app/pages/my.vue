@@ -399,14 +399,10 @@ const NuxtLink = resolveComponent('NuxtLink')
             </div>
           </button>
           <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-center gap-1.5">
-              <p class="font-black text-foreground">{{ profile?.nickname ?? '사용자' }}</p>
-              <span
-                v-if="jobTypeLabel"
-                class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-200"
-                >{{ jobTypeLabel }}</span
-              >
-            </div>
+            <p class="truncate font-black text-foreground">{{ profile?.nickname ?? '사용자' }}</p>
+            <p v-if="jobTypeLabel" class="mt-1 text-xs font-semibold text-primary">
+              {{ jobTypeLabel }}
+            </p>
             <p class="mt-0.5 truncate text-xs text-muted-foreground">{{ profile?.email ?? '' }}</p>
           </div>
           <button
@@ -446,33 +442,33 @@ const NuxtLink = resolveComponent('NuxtLink')
       <aside class="hidden w-56 shrink-0 lg:block">
         <!-- 프로필 카드 -->
         <div class="rounded-2xl border border-border bg-card p-5">
-          <button
-            type="button"
-            class="mx-auto block size-16 overflow-hidden rounded-full bg-primary"
-            @click="openEdit"
-          >
-            <img
-              v-if="profile?.avatarUrl"
-              :src="profile.avatarUrl"
-              alt="프로필"
-              class="h-full w-full object-cover"
-            />
-            <div
-              v-else
-              class="flex h-full w-full items-center justify-center text-xl font-bold text-primary-foreground"
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="size-14 shrink-0 overflow-hidden rounded-full bg-primary"
+              @click="openEdit"
             >
-              {{ userInitial }}
+              <img
+                v-if="profile?.avatarUrl"
+                :src="profile.avatarUrl"
+                alt="프로필"
+                class="h-full w-full object-cover"
+              />
+              <div
+                v-else
+                class="flex h-full w-full items-center justify-center text-lg font-bold text-primary-foreground"
+              >
+                {{ userInitial }}
+              </div>
+            </button>
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-black text-foreground">{{ profile?.nickname ?? '사용자' }}</p>
+              <p v-if="jobTypeLabel" class="mt-1 text-xs font-semibold text-primary">
+                {{ jobTypeLabel }}
+              </p>
             </div>
-          </button>
-          <div class="mt-3 text-center">
-            <p class="font-black text-foreground">{{ profile?.nickname ?? '사용자' }}</p>
-            <span
-              v-if="jobTypeLabel"
-              class="mt-1 inline-block rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-200"
-              >{{ jobTypeLabel }}</span
-            >
-            <p class="mt-1 truncate text-xs text-muted-foreground">{{ profile?.email ?? '' }}</p>
           </div>
+          <p class="mt-3 truncate text-xs text-muted-foreground">{{ profile?.email ?? '' }}</p>
           <div class="mt-4 flex flex-col gap-1.5">
             <AppButton variant="outline" size="sm" class="w-full" @click="openEdit">
               <Pencil class="size-3.5" />
