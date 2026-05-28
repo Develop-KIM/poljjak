@@ -335,7 +335,6 @@ const recTitle = computed(() => {
   const nick = authStore.profile?.nickname
   return nick ? `${nick}님을 위한 추천` : '오늘의 추천'
 })
-const recSubtitle = computed(() => recInsight.value.hasHistory ? '최근 본 글 기반' : '오늘의 추천 기준')
 const hasRec = computed(() => recBlog.value.length > 0 || recNews.value.length > 0)
 watch(hasRec, (value) => {
   if (!value) recSheetOpen.value = false
