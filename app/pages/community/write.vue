@@ -221,36 +221,19 @@ async function handleSubmit() {
 
     <!-- ── 커뮤니티 직접 작성: 2열 레이아웃 (xl 이상) ── -->
     <template v-else>
-      <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_280px] xl:items-start">
-        <!-- 사이드바: 모바일에서 최상단, xl+에서 오른쪽 열 -->
-        <div class="grid gap-4 xl:order-last xl:sticky xl:top-6">
-          <div class="rounded-xl border border-border bg-card p-4">
+      <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_260px] xl:items-start">
+        <!-- 본문: xl+에서 왼쪽 열 -->
+        <div class="grid gap-5">
+          <div>
             <label class="text-sm font-bold text-foreground">카테고리</label>
             <AppSelect
               v-model="category"
               :options="categoryOptions"
               placeholder="카테고리를 선택해주세요"
-              class="mt-2"
+              class="mt-2 xl:hidden"
             />
           </div>
 
-          <div class="flex gap-3 xl:flex-col">
-            <NuxtLink to="/community" class="flex-1">
-              <AppButton variant="outline" class="w-full">취소</AppButton>
-            </NuxtLink>
-            <AppButton
-              class="flex-1"
-              :disabled="!canSubmit"
-              :loading="submitting"
-              @click="handleSubmit"
-            >
-              게시하기
-            </AppButton>
-          </div>
-        </div>
-
-        <!-- 본문: xl+에서 왼쪽 열 -->
-        <div class="grid gap-5 xl:order-first">
           <div>
             <label class="text-sm font-bold text-foreground">제목</label>
             <AppInput v-model="title" placeholder="제목을 입력해주세요" class="mt-2" />
@@ -269,6 +252,46 @@ async function handleSubmit() {
               class="mt-2"
             />
           </div>
+
+          <!-- 모바일 버튼 -->
+          <div class="grid grid-cols-2 gap-3 xl:hidden">
+            <NuxtLink to="/community">
+              <AppButton variant="outline" class="w-full">취소</AppButton>
+            </NuxtLink>
+            <AppButton
+              class="w-full"
+              :disabled="!canSubmit"
+              :loading="submitting"
+              @click="handleSubmit"
+            >
+              게시하기
+            </AppButton>
+          </div>
+        </div>
+
+        <!-- 사이드바: xl+에서만 표시 (오른쪽 열) -->
+        <div class="hidden xl:grid xl:gap-3 xl:sticky xl:top-6">
+          <div class="rounded-xl border border-border bg-card p-4">
+            <p class="text-sm font-bold text-foreground">카테고리</p>
+            <AppSelect
+              v-model="category"
+              :options="categoryOptions"
+              placeholder="카테고리를 선택해주세요"
+              class="mt-2"
+            />
+          </div>
+
+          <AppButton
+            class="w-full"
+            :disabled="!canSubmit"
+            :loading="submitting"
+            @click="handleSubmit"
+          >
+            게시하기
+          </AppButton>
+          <NuxtLink to="/community">
+            <AppButton variant="outline" class="w-full">취소</AppButton>
+          </NuxtLink>
         </div>
       </div>
     </template>
