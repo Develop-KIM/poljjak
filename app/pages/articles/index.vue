@@ -923,16 +923,10 @@ onUnmounted(() => observer?.disconnect())
                     )?.style.setProperty('display', 'none')
                   "
                 />
-                <div
-                  v-else
-                  class="aspect-[2/1] w-full flex items-center justify-center"
-                  :style="{
-                    background: `linear-gradient(135deg, ${getBrandColor(article.feedName)}18 0%, ${getBrandColor(article.feedName)}38 100%)`,
-                  }"
-                >
+                <div v-else class="aspect-[2/1] w-full flex items-center justify-center bg-muted">
                   <span
-                    class="text-4xl font-black select-none opacity-30"
-                    :style="{ color: getBrandColor(article.feedName) }"
+                    class="text-5xl font-black select-none"
+                    :style="{ color: getBrandColor(article.feedName) + 'aa' }"
                     >{{ shortName(article.feedName).charAt(0) }}</span
                   >
                 </div>
