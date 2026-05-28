@@ -11,6 +11,8 @@ import {
   AlertCircle,
   ChevronRight,
   Download,
+  ScanFace,
+  EyeOff,
 } from '@lucide/vue'
 import type { AnalysisResultV2, AnalysisIssue, AnalysisActionItem } from '~~/server/utils/clova'
 
@@ -62,6 +64,9 @@ const linkCopied = ref(false)
 const toggling = ref(false)
 const savingCheck = ref(false)
 const downloadingPdf = ref(false)
+const maskingFaces = ref(false)
+const faceMasked = ref(false)
+const faceOverlays: HTMLCanvasElement[] = []
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let stepTimer: ReturnType<typeof setInterval> | null = null
 
@@ -255,6 +260,110 @@ function scrollToIssue(issueId: string) {
   el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
+async function toggleFaceMask() {
+  if (!beforePanel.value) return
+
+  // 마스킹 해제
+  if (faceMasked.value) {
+    faceOverlays.forEach((el) => el.remove())
+    faceOverlays.length = 0
+    faceMasked.value = false
+    return
+  }
+
+  if (maskingFaces.value) return
+  maskingFaces.value = true
+
+  try {
+    const faceapi = await import('face-api.js')
+
+    if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+      await faceapi.loadTinyFaceDetectorModel(
+        'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'
+      )
+    }
+
+    const canvases = beforePanel.value.querySelectorAll('canvas')
+    if (canvases.length === 0) {
+      toast.error('PDF가 아직 로드되지 않았어요. 잠시 후 다시 시도해주세요.')
+      return
+    }
+
+    let totalFaces = 0
+
+    for (const canvas of canvases) {
+      let detections
+      try {
+        detections = await faceapi.detectAllFaces(
+          canvas,
+          new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.4 })
+        )
+      } catch {
+        // canvas가 tainted인 경우 skip
+        continue
+      }
+
+      if (!detections.length) continue
+      totalFaces += detections.length
+
+      // 오버레이 캔버스 생성
+      const overlay = document.createElement('canvas')
+      overlay.width = canvas.width
+      overlay.height = canvas.height
+      Object.assign(overlay.style, {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: `${canvas.offsetWidth}px`,
+        height: `${canvas.offsetHeight}px`,
+        pointerEvents: 'none',
+      })
+
+      const ctx = overlay.getContext('2d')!
+
+      for (const detection of detections) {
+        const { x, y, width, height } = detection.box
+        const pad = 20
+        const bx = Math.max(0, Math.floor(x - pad))
+        const by = Math.max(0, Math.floor(y - pad))
+        const bw = Math.min(canvas.width - bx, Math.ceil(width + pad * 2))
+        const bh = Math.min(canvas.height - by, Math.ceil(height + pad * 2))
+
+        // 픽셀화로 블러 효과 (다운샘플 → 업샘플)
+        const factor = 12
+        const tmp = document.createElement('canvas')
+        tmp.width = Math.max(1, Math.floor(bw / factor))
+        tmp.height = Math.max(1, Math.floor(bh / factor))
+        tmp.getContext('2d')!.drawImage(canvas, bx, by, bw, bh, 0, 0, tmp.width, tmp.height)
+
+        ctx.imageSmoothingEnabled = false
+        ctx.drawImage(tmp, 0, 0, tmp.width, tmp.height, bx, by, bw, bh)
+        ctx.imageSmoothingEnabled = true
+
+        // 반투명 다크 오버레이
+        ctx.fillStyle = 'rgba(0,0,0,0.15)'
+        ctx.fillRect(bx, by, bw, bh)
+      }
+
+      const parent = canvas.parentElement
+      if (parent) {
+        parent.style.position = 'relative'
+        parent.appendChild(overlay)
+        faceOverlays.push(overlay)
+      }
+    }
+
+    faceMasked.value = true
+    toast.success(
+      totalFaces > 0 ? `얼굴 ${totalFaces}개를 마스킹했어요` : '얼굴을 감지하지 못했어요'
+    )
+  } catch {
+    toast.error('얼굴 감지에 실패했어요')
+  } finally {
+    maskingFaces.value = false
+  }
+}
+
 async function downloadAfterPdf() {
   if (!analysis.value?.afterHtml || downloadingPdf.value) return
   downloadingPdf.value = true
@@ -446,6 +555,19 @@ async function downloadAfterPdf() {
             <div class="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2.5">
               <span class="size-2.5 rounded-full bg-red-400" />
               <span class="text-xs font-bold text-muted-foreground">BEFORE · 원본</span>
+              <button
+                v-if="analysis.pdfUrl"
+                type="button"
+                class="ml-auto flex items-center gap-1.5 text-[11px] font-semibold transition-opacity hover:opacity-70 disabled:opacity-40"
+                :class="faceMasked ? 'text-emerald-600' : 'text-muted-foreground'"
+                :disabled="maskingFaces"
+                @click="toggleFaceMask"
+              >
+                <Loader2 v-if="maskingFaces" class="size-3 animate-spin" />
+                <EyeOff v-else-if="faceMasked" class="size-3" />
+                <ScanFace v-else class="size-3" />
+                {{ faceMasked ? '마스킹 해제' : '얼굴 마스킹' }}
+              </button>
             </div>
             <div ref="beforePanel" class="flex-1 overflow-y-auto p-4" @scroll="onBeforeScroll">
               <ClientOnly>
