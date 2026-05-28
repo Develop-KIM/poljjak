@@ -35,6 +35,7 @@ export const analyses = pgTable('analyses', {
   // v2 필드
   jobRole: jobRoleEnum('job_role'),
   seniority: seniorityEnum('seniority'),
+  pdfUrl: text('pdf_url'),
   issues: jsonb('issues'),
   actionPlan: jsonb('action_plan'),
   checkedItems: text('checked_items').array(),

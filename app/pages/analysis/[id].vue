@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Link,
   Lock,
   Unlock,
   MessageSquare,
-  ChevronDown,
   Check,
-  Download,
   CheckCircle2,
   Loader2,
+  AlertCircle,
+  ChevronRight,
 } from '@lucide/vue'
-import type { AnalysisResult } from '~~/server/utils/clova'
+import type { AnalysisResultV2, AnalysisIssue, AnalysisActionItem } from '~~/server/utils/clova'
+
+definePageMeta({ middleware: 'auth' })
 
 const route = useRoute()
 const id = route.params.id as string
@@ -23,18 +25,59 @@ interface Analysis {
   status: 'pending' | 'processing' | 'completed' | 'failed'
   isPublic: boolean
   shareToken: string | null
-  result: AnalysisResult | null
+  jobRole: string | null
+  seniority: string | null
+  pdfUrl: string | null
+  issues: AnalysisIssue[] | null
+  actionPlan: AnalysisActionItem[] | null
+  checkedItems: string[] | null
+  afterHtml: string | null
+  result: AnalysisResultV2 | null
   createdAt: string
+}
+
+const JOB_ROLE_LABELS: Record<string, string> = {
+  frontend: '프론트엔드',
+  backend: '백엔드',
+  fullstack: '풀스택',
+  devops: 'DevOps',
+  ml: 'ML/AI',
+}
+const SENIORITY_LABELS: Record<string, string> = {
+  junior: '신입',
+  mid: '주니어',
+  senior: '시니어',
+}
+const PRIORITY_STYLES: Record<string, { label: string; cls: string }> = {
+  high: { label: '높음', cls: 'bg-red-50 text-red-600 border-red-200' },
+  medium: { label: '중간', cls: 'bg-amber-50 text-amber-600 border-amber-200' },
+  low: { label: '낮음', cls: 'bg-muted text-muted-foreground border-border' },
 }
 
 const analysis = ref<Analysis | null>(null)
 const pending = ref(true)
 const error = ref<string | null>(null)
-const showScores = ref(false)
 const linkCopied = ref(false)
 const toggling = ref(false)
+const savingCheck = ref(false)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let stepTimer: ReturnType<typeof setInterval> | null = null
+
+// 분할 뷰어
+const beforePanel = ref<HTMLElement | null>(null)
+const afterPanel = ref<HTMLElement | null>(null)
+const syncingScroll = ref(false)
+
+// 이슈 필터
+const issueFilter = ref<'all' | 'high' | 'medium' | 'low'>('all')
+
+// 처리 중 애니메이션
+const processingStep = ref(0)
+const processingSteps = [
+  { label: 'PDF 업로드 중', sublabel: '파일을 서버로 전송하고 있어요' },
+  { label: '텍스트 추출 중', sublabel: 'PDF에서 내용을 읽고 있어요' },
+  { label: 'AI 분석 중', sublabel: '직군·연차 기준으로 꼼꼼히 분석하고 있어요' },
+]
 
 const isProcessing = computed(
   () => analysis.value?.status === 'pending' || analysis.value?.status === 'processing'
@@ -43,15 +86,24 @@ const shouldShowProgress = computed(() => {
   if (pending.value) return true
   if (!analysis.value) return false
   if (analysis.value.status === 'failed') return false
-  return isProcessing.value || !analysis.value.result
+  return isProcessing.value
 })
 
-const processingStep = ref(0)
-const processingSteps = [
-  { label: 'PDF 업로드 중', sublabel: '파일을 서버로 전송하고 있어요' },
-  { label: '텍스트 추출 중', sublabel: 'PDF에서 내용을 읽고 있어요' },
-  { label: 'AI 분석 중', sublabel: 'AI가 포트폴리오를 꼼꼼히 보고 있어요' },
-]
+const isV2 = computed(() => !!(analysis.value?.issues || analysis.value?.afterHtml))
+
+const issues = computed<AnalysisIssue[]>(() => {
+  const raw = analysis.value?.issues ?? []
+  const priority = { high: 0, medium: 1, low: 2 }
+  return [...raw].sort((a, b) => (priority[a.priority] ?? 3) - (priority[b.priority] ?? 3))
+})
+
+const filteredIssues = computed(() =>
+  issueFilter.value === 'all'
+    ? issues.value
+    : issues.value.filter((i) => i.priority === issueFilter.value)
+)
+
+const checkedItems = ref<Set<string>>(new Set())
 
 const createdAtLabel = computed(() => {
   if (!analysis.value?.createdAt) return ''
@@ -62,11 +114,17 @@ const createdAtLabel = computed(() => {
   })
 })
 
+const totalScore = computed(() => analysis.value?.result?.totalScore ?? null)
+
 async function fetchAnalysis() {
   try {
     const res = await $fetch<{ data: Analysis }>(`/api/analyses/${id}`)
     analysis.value = res.data
-    error.value = res.data.status === 'failed' ? '분석에 실패했어요' : null
+    error.value = res.data.status === 'failed' ? '분석에 실패했어요. 다시 시도해주세요.' : null
+
+    if (res.data.checkedItems) {
+      checkedItems.value = new Set(res.data.checkedItems)
+    }
 
     if (shouldShowProgress.value) {
       startProcessingAnimation()
@@ -90,7 +148,7 @@ function startProcessingAnimation() {
   if (stepTimer) return
   stepTimer = setInterval(() => {
     if (processingStep.value < processingSteps.length - 1) processingStep.value++
-  }, 3000)
+  }, 4000)
 }
 
 function stopProcessingAnimation() {
@@ -99,7 +157,36 @@ function stopProcessingAnimation() {
   stepTimer = null
 }
 
-onMounted(fetchAnalysis)
+// 동기 스크롤
+function onBeforeScroll() {
+  if (syncingScroll.value || !afterPanel.value || !beforePanel.value) return
+  syncingScroll.value = true
+  const ratio =
+    beforePanel.value.scrollTop /
+    (beforePanel.value.scrollHeight - beforePanel.value.clientHeight || 1)
+  afterPanel.value.scrollTop =
+    ratio * (afterPanel.value.scrollHeight - afterPanel.value.clientHeight)
+  requestAnimationFrame(() => {
+    syncingScroll.value = false
+  })
+}
+
+function onAfterScroll() {
+  if (syncingScroll.value || !beforePanel.value || !afterPanel.value) return
+  syncingScroll.value = true
+  const ratio =
+    afterPanel.value.scrollTop /
+    (afterPanel.value.scrollHeight - afterPanel.value.clientHeight || 1)
+  beforePanel.value.scrollTop =
+    ratio * (beforePanel.value.scrollHeight - beforePanel.value.clientHeight)
+  requestAnimationFrame(() => {
+    syncingScroll.value = false
+  })
+}
+
+onMounted(async () => {
+  await fetchAnalysis()
+})
 
 onUnmounted(() => {
   if (pollTimer) clearTimeout(pollTimer)
@@ -126,16 +213,12 @@ async function togglePublic() {
 
 async function copyShareLink() {
   if (!analysis.value) return
-
-  // 비공개면 먼저 공개 전환
   if (!analysis.value.isPublic) {
     await togglePublic()
     if (!analysis.value?.isPublic) return
   }
-
   const token = analysis.value.shareToken
   if (!token) return
-
   const url = `${window.location.origin}/analysis/share/${token}`
   await navigator.clipboard.writeText(url)
   linkCopied.value = true
@@ -145,27 +228,37 @@ async function copyShareLink() {
   }, 2000)
 }
 
-function shareToCommunity() {
-  navigateTo(`/community/write?analysisId=${id}`)
+async function toggleCheck(actionId: string) {
+  if (savingCheck.value) return
+  const newSet = new Set(checkedItems.value)
+  if (newSet.has(actionId)) newSet.delete(actionId)
+  else newSet.add(actionId)
+  checkedItems.value = newSet
+  savingCheck.value = true
+  try {
+    await $fetch(`/api/analyses/${id}`, {
+      method: 'PATCH',
+      body: { checkedItems: [...newSet] },
+    })
+  } catch {
+    // 실패해도 UI는 유지
+  } finally {
+    savingCheck.value = false
+  }
 }
 
-function downloadAsPdf() {
-  // 점수 섹션을 열린 상태로 인쇄
-  const wasOpen = showScores.value
-  showScores.value = true
-  nextTick(() => {
-    window.print()
-    if (!wasOpen) showScores.value = false
-  })
+function scrollToIssue(issueId: string) {
+  if (!afterPanel.value) return
+  const el = afterPanel.value.querySelector(`[data-issue-id="${issueId}"]`)
+  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 </script>
 
 <template>
   <div class="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-14">
-    <!-- 분석 진행 중 (analyze.vue와 동일한 UI) -->
+    <!-- 분석 중 -->
     <div v-if="shouldShowProgress" class="flex flex-col items-center justify-center py-24">
-      <p class="text-sm text-muted-foreground">{{ analysis?.title ?? '포트폴리오 분석 결과' }}</p>
-      <div class="relative mt-8">
+      <div class="relative mt-4">
         <div class="size-20 animate-spin rounded-full border-4 border-border border-t-primary" />
         <div class="absolute inset-0 flex items-center justify-center">
           <span class="text-xs font-bold text-primary">AI</span>
@@ -200,28 +293,46 @@ function downloadAsPdf() {
     </div>
 
     <!-- 에러 -->
-    <AppEmptyState v-else-if="error" :title="error" description="잠시 후 다시 시도해주세요." />
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-24 text-center">
+      <AlertCircle class="size-12 text-destructive" />
+      <p class="mt-4 text-lg font-bold text-foreground">{{ error }}</p>
+      <NuxtLink to="/analyze">
+        <AppButton class="mt-6">다시 분석하기</AppButton>
+      </NuxtLink>
+    </div>
 
-    <!-- 결과 -->
-    <template v-else-if="analysis?.result">
-      <!-- ── 헤더 ── -->
-      <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+    <!-- v2 결과 -->
+    <template v-else-if="analysis && isV2">
+      <!-- 헤더 -->
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center gap-2">
             <AppBadge variant="green">분석 완료</AppBadge>
+            <span
+              v-if="analysis.jobRole"
+              class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-semibold text-foreground"
+            >
+              {{ JOB_ROLE_LABELS[analysis.jobRole] ?? analysis.jobRole }}
+            </span>
+            <span
+              v-if="analysis.seniority"
+              class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-semibold text-foreground"
+            >
+              {{ SENIORITY_LABELS[analysis.seniority] ?? analysis.seniority }}
+            </span>
+            <span
+              v-if="totalScore !== null"
+              class="rounded-full border border-primary/30 bg-primary/5 px-2.5 py-0.5 text-xs font-bold text-primary"
+            >
+              {{ totalScore }}점
+            </span>
           </div>
-          <h1 class="mt-4 text-3xl font-black leading-tight text-foreground md:text-4xl">
+          <h1 class="mt-3 text-2xl font-black leading-tight text-foreground md:text-3xl">
             {{ analysis.title }}
           </h1>
-          <p class="mt-2 text-sm text-muted-foreground">
-            {{ createdAtLabel }}
-          </p>
+          <p class="mt-1 text-sm text-muted-foreground">{{ createdAtLabel }}</p>
         </div>
         <div class="flex shrink-0 flex-wrap gap-2">
-          <AppButton variant="outline" size="sm" @click="downloadAsPdf">
-            <Download class="size-4" />
-            PDF 저장
-          </AppButton>
           <AppButton variant="outline" size="sm" @click="copyShareLink">
             <Check v-if="linkCopied" class="size-4 text-emerald-500" />
             <Link v-else class="size-4" />
@@ -232,36 +343,240 @@ function downloadAsPdf() {
             <Lock v-else class="size-4" />
             {{ analysis.isPublic ? '공개' : '비공개' }}
           </AppButton>
-          <AppButton size="sm" @click="shareToCommunity">
+          <AppButton size="sm" @click="navigateTo(`/community/write?analysisId=${id}`)">
             <MessageSquare class="size-4" />
-            커뮤니티에 공유
+            커뮤니티 공유
           </AppButton>
         </div>
       </div>
 
-      <!-- ── 종합 피드백 ── -->
-      <AppCard class="mt-8">
-        <h2 class="text-lg font-black text-foreground">종합 피드백</h2>
-        <p class="mt-3 leading-7 text-muted-foreground">{{ analysis.result.summary }}</p>
+      <!-- 총평 -->
+      <AppCard v-if="analysis.result?.summary" class="mt-6">
+        <h2 class="text-base font-bold text-foreground">AI 총평</h2>
+        <p class="mt-2 leading-7 text-muted-foreground">{{ analysis.result.summary }}</p>
       </AppCard>
 
-      <!-- ── Before / After 개선안 (메인) ── -->
-      <section class="mt-8">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-black text-foreground">
-            개선 포인트
-            <span class="ml-2 text-sm font-semibold text-muted-foreground">
-              {{ analysis.result.suggestions.length }}개
-            </span>
-          </h2>
+      <!-- Before / After 분할 뷰어 -->
+      <div class="mt-6">
+        <div class="mb-3 flex items-center gap-3">
+          <h2 class="text-lg font-black text-foreground">Before / After</h2>
+          <span class="text-sm text-muted-foreground"
+            >좌우 동기 스크롤 · 파란 밑줄에 마우스를 올리면 변경 이유를 확인할 수 있어요</span
+          >
         </div>
-        <p class="mt-1 text-sm text-muted-foreground">
-          아래 개선안을 포트폴리오에 바로 적용해보세요.
-        </p>
 
-        <div class="mt-5 grid gap-4">
+        <div
+          class="grid h-[70vh] grid-cols-2 gap-3 overflow-hidden rounded-2xl border border-border bg-card"
+        >
+          <!-- Before: PDF 원본 -->
+          <div class="flex flex-col overflow-hidden border-r border-border">
+            <div class="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2.5">
+              <span class="size-2.5 rounded-full bg-red-400" />
+              <span class="text-xs font-bold text-muted-foreground">BEFORE · 원본</span>
+            </div>
+            <div ref="beforePanel" class="flex-1 overflow-y-auto p-4" @scroll="onBeforeScroll">
+              <ClientOnly>
+                <vue-pdf-embed v-if="analysis.pdfUrl" :source="analysis.pdfUrl" class="w-full" />
+                <div
+                  v-else
+                  class="flex h-full flex-col items-center justify-center gap-3 py-16 text-center"
+                >
+                  <span class="text-4xl">📄</span>
+                  <p class="text-sm text-muted-foreground">
+                    원본 PDF를 표시할 수 없어요.<br />새로 분석하면 PDF가 저장됩니다.
+                  </p>
+                </div>
+                <template #fallback>
+                  <div class="flex h-32 items-center justify-center">
+                    <Loader2 class="size-6 animate-spin text-muted-foreground" />
+                  </div>
+                </template>
+              </ClientOnly>
+            </div>
+          </div>
+
+          <!-- After: AI 개선본 -->
+          <div class="flex flex-col overflow-hidden">
+            <div class="flex items-center gap-2 border-b border-border bg-primary/5 px-4 py-2.5">
+              <span class="size-2.5 rounded-full bg-emerald-400" />
+              <span class="text-xs font-bold text-primary">AFTER · AI 개선본</span>
+            </div>
+            <div
+              ref="afterPanel"
+              data-after-panel
+              class="after-html-viewer flex-1 overflow-y-auto p-6 text-sm leading-7"
+              @scroll="onAfterScroll"
+            >
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div v-if="analysis.afterHtml" v-html="analysis.afterHtml" />
+              <div
+                v-else
+                class="flex h-full flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground"
+              >
+                <span class="text-4xl">✨</span>
+                <p class="text-sm">AI 개선본을 생성하고 있어요</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 이슈 목록 -->
+      <section v-if="issues.length > 0" class="mt-8">
+        <div class="flex flex-wrap items-center gap-3">
+          <h2 class="text-lg font-black text-foreground">
+            이슈 목록
+            <span class="ml-1 text-base font-semibold text-muted-foreground"
+              >({{ issues.length }}개)</span
+            >
+          </h2>
+          <div class="flex gap-1.5">
+            <button
+              v-for="f in ['all', 'high', 'medium', 'low'] as const"
+              :key="f"
+              type="button"
+              class="rounded-full border px-3 py-1 text-xs font-semibold transition-colors"
+              :class="
+                issueFilter === f
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-muted text-muted-foreground hover:border-primary/40'
+              "
+              @click="issueFilter = f"
+            >
+              {{ f === 'all' ? '전체' : PRIORITY_STYLES[f]?.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4 grid gap-3">
+          <div
+            v-for="issue in filteredIssues"
+            :key="issue.id"
+            class="group rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm"
+          >
+            <div class="flex items-start gap-3">
+              <span
+                class="mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold"
+                :class="PRIORITY_STYLES[issue.priority]?.cls"
+              >
+                {{ PRIORITY_STYLES[issue.priority]?.label }}
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] font-semibold text-muted-foreground">{{
+                    issue.section
+                  }}</span>
+                  <ChevronRight class="size-3 text-muted-foreground/40" />
+                  <span class="text-sm font-bold text-foreground">{{ issue.title }}</span>
+                  <button
+                    type="button"
+                    class="ml-auto shrink-0 text-[10px] text-primary opacity-0 transition-opacity group-hover:opacity-100"
+                    @click="scrollToIssue(issue.id)"
+                  >
+                    After에서 보기 →
+                  </button>
+                </div>
+                <p class="mt-1 text-sm text-muted-foreground">{{ issue.description }}</p>
+                <div class="mt-3 grid gap-2 rounded-xl bg-muted/50 p-3 text-xs">
+                  <div>
+                    <span class="font-semibold text-muted-foreground">Before</span>
+                    <p class="mt-0.5 italic text-foreground/70">"{{ issue.originalText }}"</p>
+                  </div>
+                  <div>
+                    <span class="font-semibold text-primary">After</span>
+                    <p class="mt-0.5 text-foreground">"{{ issue.improvedText }}"</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 액션 플랜 -->
+      <section v-if="analysis.actionPlan && analysis.actionPlan.length > 0" class="mt-8">
+        <h2 class="text-lg font-black text-foreground">액션 플랜</h2>
+        <p class="mt-1 text-sm text-muted-foreground">체크하면 자동으로 저장돼요</p>
+        <div class="mt-4 grid gap-2">
+          <button
+            v-for="action in analysis.actionPlan"
+            :key="action.id"
+            type="button"
+            class="flex items-center gap-3 rounded-xl border p-4 text-left transition-all"
+            :class="
+              checkedItems.has(action.id)
+                ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30'
+                : 'border-border bg-card hover:border-primary/30 hover:bg-muted/30'
+            "
+            @click="toggleCheck(action.id)"
+          >
+            <div
+              class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
+              :class="
+                checkedItems.has(action.id) ? 'border-emerald-500 bg-emerald-500' : 'border-border'
+              "
+            >
+              <Check v-if="checkedItems.has(action.id)" class="size-3 text-white" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <p
+                class="text-sm font-semibold transition-colors"
+                :class="
+                  checkedItems.has(action.id)
+                    ? 'text-muted-foreground line-through'
+                    : 'text-foreground'
+                "
+              >
+                {{ action.task }}
+              </p>
+            </div>
+            <span
+              class="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold"
+              :class="PRIORITY_STYLES[action.priority]?.cls"
+            >
+              {{ PRIORITY_STYLES[action.priority]?.label }}
+            </span>
+          </button>
+        </div>
+        <p class="mt-3 text-xs text-muted-foreground">
+          {{ checkedItems.size }} / {{ analysis.actionPlan.length }}개 완료
+        </p>
+      </section>
+    </template>
+
+    <!-- v1 결과 (하위호환) -->
+    <template v-else-if="analysis?.result">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <AppBadge variant="green">분석 완료</AppBadge>
+          <h1 class="mt-3 text-2xl font-black">{{ analysis.title }}</h1>
+          <p class="mt-1 text-sm text-muted-foreground">{{ createdAtLabel }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <AppButton variant="outline" size="sm" @click="copyShareLink">
+            <Check v-if="linkCopied" class="size-4 text-emerald-500" />
+            <Link v-else class="size-4" />
+            {{ linkCopied ? '복사됐어요' : '링크 복사' }}
+          </AppButton>
+          <AppButton variant="outline" size="sm" :disabled="toggling" @click="togglePublic">
+            <Unlock v-if="analysis.isPublic" class="size-4" />
+            <Lock v-else class="size-4" />
+            {{ analysis.isPublic ? '공개' : '비공개' }}
+          </AppButton>
+          <AppButton size="sm" @click="navigateTo(`/community/write?analysisId=${id}`)">
+            <MessageSquare class="size-4" />커뮤니티 공유
+          </AppButton>
+        </div>
+      </div>
+      <AppCard class="mt-6">
+        <h2 class="font-bold">종합 피드백</h2>
+        <p class="mt-2 leading-7 text-muted-foreground">{{ analysis.result.summary }}</p>
+      </AppCard>
+      <section class="mt-6">
+        <h2 class="text-lg font-black">개선 포인트</h2>
+        <div class="mt-4 grid gap-4">
           <BeforeAfterBlock
-            v-for="(s, i) in analysis.result.suggestions"
+            v-for="(s, i) in (analysis.result as any).suggestions"
             :key="i"
             :category="s.category"
             :context="s.context"
@@ -270,44 +585,47 @@ function downloadAsPdf() {
           />
         </div>
       </section>
-
-      <!-- ── 항목별 점수 (접기/펼치기) ── -->
-      <section class="mt-8">
-        <!-- print 전용 헤더 (화면에서는 숨김) -->
-        <h2 class="hidden text-xl font-black text-foreground print:block">항목별 점수</h2>
-        <button
-          type="button"
-          class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted print:hidden"
-          @click="showScores = !showScores"
-        >
-          <span class="text-base font-bold text-foreground">항목별 점수 보기</span>
-          <ChevronDown
-            class="size-5 text-muted-foreground transition-transform duration-200"
-            :class="{ 'rotate-180': showScores }"
-          />
-        </button>
-
-        <Transition
-          enter-active-class="transition duration-200 ease-out"
-          enter-from-class="opacity-0 -translate-y-2"
-          enter-to-class="opacity-100 translate-y-0"
-        >
-          <div
-            v-if="showScores"
-            data-print-open
-            class="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2 lg:grid-cols-3"
-          >
-            <AnalysisScoreCard
-              v-for="score in analysis.result.scores"
-              :key="score.title"
-              :title="score.title"
-              :score="score.score"
-              :comment="score.comment"
-              :improvement="score.improvement"
-            />
-          </div>
-        </Transition>
-      </section>
     </template>
   </div>
 </template>
+
+<style scoped>
+/* After HTML 내용 스타일 */
+.after-html-viewer :deep(h1),
+.after-html-viewer :deep(h2),
+.after-html-viewer :deep(h3) {
+  font-weight: 800;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.after-html-viewer :deep(h1) {
+  font-size: 1.25rem;
+}
+.after-html-viewer :deep(h2) {
+  font-size: 1.1rem;
+}
+.after-html-viewer :deep(h3) {
+  font-size: 1rem;
+}
+.after-html-viewer :deep(p) {
+  margin-bottom: 0.75rem;
+}
+.after-html-viewer :deep(ul),
+.after-html-viewer :deep(ol) {
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.after-html-viewer :deep(li) {
+  margin-bottom: 0.25rem;
+}
+.after-html-viewer :deep([data-issue-id]) {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: hsl(var(--primary) / 0.6);
+  cursor: pointer;
+}
+.after-html-viewer :deep([data-issue-id]:hover) {
+  background-color: hsl(var(--primary) / 0.08);
+  border-radius: 0.25rem;
+}
+</style>

@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { createClient } from '@supabase/supabase-js'
 import { requireAuth } from '../../utils/auth'
 import { extractPdfText } from '../../utils/pdf'
 import { analyzePortfolio, type AnalysisResultV2 } from '../../utils/clova'
@@ -10,6 +11,21 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024
 
 const VALID_JOB_ROLES: JobRole[] = ['frontend', 'backend', 'fullstack', 'devops', 'ml']
 const VALID_SENIORITIES: Seniority[] = ['junior', 'mid', 'senior']
+
+async function uploadPdfToStorage(userId: string, data: Buffer): Promise<string | null> {
+  try {
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const filename = `${userId}/${Date.now()}.pdf`
+    const { error } = await supabase.storage
+      .from('portfolios')
+      .upload(filename, data, { contentType: 'application/pdf' })
+    if (error) return null
+    const { data: urlData } = supabase.storage.from('portfolios').getPublicUrl(filename)
+    return urlData.publicUrl
+  } catch {
+    return null
+  }
+}
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
@@ -52,6 +68,10 @@ export default defineEventHandler(async (event) => {
 
   const additionalNote = notePart?.data?.toString('utf8')?.trim()
 
+  // 첫 번째 PDF만 Storage에 업로드 (원본 뷰어용)
+  const firstFile = fileParts[0]!
+  const pdfUrl = await uploadPdfToStorage(user.id, firstFile.data)
+
   const texts = await Promise.all(fileParts.map((fp) => extractPdfText(fp.data)))
   const text = texts.join('\n\n--- 다음 파일 ---\n\n')
 
@@ -63,6 +83,7 @@ export default defineEventHandler(async (event) => {
       status: 'processing',
       jobRole,
       seniority,
+      pdfUrl,
     })
     .returning({ id: analyses.id })
 
