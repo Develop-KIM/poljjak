@@ -67,6 +67,7 @@ const downloadingPdf = ref(false)
 const maskingFaces = ref(false)
 const faceMasked = ref(false)
 const faceOverlays: HTMLCanvasElement[] = []
+const piiModalOpen = ref(false)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let stepTimer: ReturnType<typeof setInterval> | null = null
 
@@ -200,14 +201,26 @@ onUnmounted(() => {
   stopProcessingAnimation()
 })
 
-async function togglePublic() {
+function requestTogglePublic() {
+  if (!analysis.value || toggling.value) return
+  // 비공개 → 공개 전환이고 v2 afterHtml 있으면 마스킹 모달 선행
+  if (!analysis.value.isPublic && analysis.value.afterHtml) {
+    piiModalOpen.value = true
+    return
+  }
+  void togglePublic(null)
+}
+
+async function togglePublic(maskedAfterHtml: string | null) {
   if (!analysis.value || toggling.value) return
   toggling.value = true
   try {
     const next = !analysis.value.isPublic
+    const body: Record<string, unknown> = { isPublic: next }
+    if (next && maskedAfterHtml !== null) body.maskedAfterHtml = maskedAfterHtml
     const res = await $fetch<{ data: Analysis }>(`/api/analyses/${id}`, {
       method: 'PATCH',
-      body: { isPublic: next },
+      body,
     })
     analysis.value = res.data
     toast.success(next ? '공개로 전환됐어요' : '비공개로 전환됐어요')
@@ -218,11 +231,17 @@ async function togglePublic() {
   }
 }
 
+async function onPiiConfirm(maskedHtml: string) {
+  piiModalOpen.value = false
+  await togglePublic(maskedHtml)
+}
+
 async function copyShareLink() {
   if (!analysis.value) return
   if (!analysis.value.isPublic) {
-    await togglePublic()
-    if (!analysis.value?.isPublic) return
+    requestTogglePublic()
+    // 모달이 열렸으면 여기서 중단 (모달 확인 후 공개)
+    if (!analysis.value.isPublic) return
   }
   const token = analysis.value.shareToken
   if (!token) return
@@ -520,7 +539,7 @@ async function downloadAfterPdf() {
             <Link v-else class="size-4" />
             {{ linkCopied ? '복사됐어요' : '링크 복사' }}
           </AppButton>
-          <AppButton variant="outline" size="sm" :disabled="toggling" @click="togglePublic">
+          <AppButton variant="outline" size="sm" :disabled="toggling" @click="requestTogglePublic">
             <Unlock v-if="analysis.isPublic" class="size-4" />
             <Lock v-else class="size-4" />
             {{ analysis.isPublic ? '공개' : '비공개' }}
@@ -531,6 +550,14 @@ async function downloadAfterPdf() {
           </AppButton>
         </div>
       </div>
+
+      <!-- PII 마스킹 모달 -->
+      <AnalysisPiiMaskingModal
+        :open="piiModalOpen"
+        :after-html="analysis.afterHtml ?? ''"
+        @confirm="onPiiConfirm"
+        @cancel="piiModalOpen = false"
+      />
 
       <!-- 총평 -->
       <AppCard v-if="analysis.result?.summary" class="mt-6">
@@ -767,7 +794,7 @@ async function downloadAfterPdf() {
             <Link v-else class="size-4" />
             {{ linkCopied ? '복사됐어요' : '링크 복사' }}
           </AppButton>
-          <AppButton variant="outline" size="sm" :disabled="toggling" @click="togglePublic">
+          <AppButton variant="outline" size="sm" :disabled="toggling" @click="requestTogglePublic">
             <Unlock v-if="analysis.isPublic" class="size-4" />
             <Lock v-else class="size-4" />
             {{ analysis.isPublic ? '공개' : '비공개' }}

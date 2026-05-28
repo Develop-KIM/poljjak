@@ -15,5 +15,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return { data: analysis }
+  const { afterHtml, maskedAfterHtml, issues, actionPlan, result, ...rest } = analysis
+  return {
+    data: {
+      ...rest,
+      result,
+      issues,
+      actionPlan,
+      afterHtml,
+      maskedAfterHtml,
+    },
+  }
 })

@@ -40,6 +40,7 @@ export const analyses = pgTable('analyses', {
   actionPlan: jsonb('action_plan'),
   checkedItems: text('checked_items').array(),
   afterHtml: text('after_html'),
+  maskedAfterHtml: text('masked_after_html'),
   jdUrl: text('jd_url'),
   jdComparison: jsonb('jd_comparison'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
