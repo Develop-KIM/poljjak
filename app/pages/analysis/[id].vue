@@ -308,9 +308,7 @@ async function toggleFaceMask() {
     const faceapi = await import('face-api.js')
 
     if (!faceapi.nets.tinyFaceDetector.isLoaded) {
-      await faceapi.loadTinyFaceDetectorModel(
-        'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'
-      )
+      await faceapi.loadTinyFaceDetectorModel('/weights')
     }
 
     const canvases = beforePanel.value.querySelectorAll('canvas')
