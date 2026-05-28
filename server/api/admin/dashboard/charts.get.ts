@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   // 데이터 없는 시간대를 0으로 채워 0~23 전체 24개 반환
   const hourMap = new Map<number, number>()
   for (const row of hourlyRaw) {
-    hourMap.set(row.hour, row.count)
+    hourMap.set(Number(row.hour), Number(row.count))
   }
   const hourlyRequests = Array.from({ length: 24 }, (_, h) => ({
     hour: h,

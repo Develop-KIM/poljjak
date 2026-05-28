@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { ChevronDown, UserRound, LogOut, Menu, X, MessageCircle, Moon, Sun, Settings } from '@lucide/vue'
+import {
+  ChevronDown,
+  UserRound,
+  LogOut,
+  Menu,
+  X,
+  MessageCircle,
+  Moon,
+  Sun,
+  Settings,
+} from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
 
 const route = useRoute()
@@ -38,8 +48,9 @@ onMounted(() => {
 
   // @nuxtjs/supabase 플러그인이 async setup으로 이미 세션 복원을 완료했으므로
   // isLoggedIn은 mount 시점에 이미 정확한 값 — 별도 getSession() 불필요
-  if (authStore.isLoggedIn && !authStore.profile) {
-    authStore.fetchProfile()
+  if (authStore.isLoggedIn) {
+    if (!authStore.profile) authStore.fetchProfile()
+    notifStore.fetch()
   }
 })
 

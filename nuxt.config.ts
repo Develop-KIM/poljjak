@@ -64,6 +64,8 @@ export default defineNuxtConfig({
     vercel: {
       config: {
         functions: {
+          // 포트폴리오 분석: CLOVA 호출이 최대 120s 소요되므로 여유 있게 설정
+          'api/analyses': { maxDuration: 300 },
           'api/cron/articles': { maxDuration: 60 },
         },
       },
