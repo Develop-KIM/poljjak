@@ -62,6 +62,7 @@ const pending = ref(true)
 const error = ref<string | null>(null)
 const linkCopied = ref(false)
 const toggling = ref(false)
+const retrying = ref(false)
 const downloadingPdf = ref(false)
 const maskingFaces = ref(false)
 const faceMasked = ref(false)
@@ -532,6 +533,23 @@ async function applyTextPiiMask() {
   }
 }
 
+async function retryAnalysis() {
+  if (retrying.value) return
+  retrying.value = true
+  try {
+    await $fetch(`/api/analyses/${id}/retry`, { method: 'POST' })
+    error.value = null
+    pending.value = true
+    processingStep.value = 0
+    await fetchAnalysis()
+  } catch (e: unknown) {
+    const err = e as { data?: { statusMessage?: string } }
+    toast.error(err.data?.statusMessage ?? '재시도에 실패했어요')
+  } finally {
+    retrying.value = false
+  }
+}
+
 async function downloadAfterPdf() {
   if (!analysis.value?.afterHtml || downloadingPdf.value) return
   downloadingPdf.value = true
@@ -646,9 +664,15 @@ async function downloadAfterPdf() {
     <div v-else-if="error" class="flex flex-col items-center justify-center py-24 text-center">
       <AlertCircle class="size-12 text-destructive" />
       <p class="mt-4 text-lg font-bold text-foreground">{{ error }}</p>
-      <NuxtLink to="/analyze">
-        <AppButton class="mt-6">다시 분석하기</AppButton>
-      </NuxtLink>
+      <div class="mt-6 flex gap-3">
+        <AppButton v-if="analysis?.pdfUrl" :disabled="retrying" @click="retryAnalysis">
+          <Loader2 v-if="retrying" class="size-4 animate-spin" />
+          재시도
+        </AppButton>
+        <NuxtLink to="/analyze">
+          <AppButton variant="outline">새로 분석하기</AppButton>
+        </NuxtLink>
+      </div>
     </div>
 
     <!-- v2 결과 -->
@@ -957,9 +981,15 @@ async function downloadAfterPdf() {
       <p class="mt-2 text-sm text-muted-foreground">
         AI 응답이 올바르지 않아 결과 저장에 실패했어요
       </p>
-      <NuxtLink to="/analyze">
-        <AppButton class="mt-6">다시 분석하기</AppButton>
-      </NuxtLink>
+      <div class="mt-6 flex gap-3">
+        <AppButton v-if="analysis.pdfUrl" :disabled="retrying" @click="retryAnalysis">
+          <Loader2 v-if="retrying" class="size-4 animate-spin" />
+          재시도
+        </AppButton>
+        <NuxtLink to="/analyze">
+          <AppButton variant="outline">새로 분석하기</AppButton>
+        </NuxtLink>
+      </div>
     </div>
 
     <!-- v1 결과 (하위호환) -->

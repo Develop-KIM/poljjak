@@ -14,8 +14,24 @@ useSeoMeta({
 const authStore = useAuthStore()
 const toast = useToastStore()
 
+const JOB_ROLES = [
+  { value: 'frontend', label: '프론트엔드' },
+  { value: 'backend', label: '백엔드' },
+  { value: 'fullstack', label: '풀스택' },
+  { value: 'devops', label: 'DevOps' },
+  { value: 'ml', label: 'ML/AI' },
+] as const
+
+const SENIORITIES = [
+  { value: 'junior', label: '신입' },
+  { value: 'mid', label: '주니어 (1~3년)' },
+  { value: 'senior', label: '시니어 (5년+)' },
+] as const
+
 const uploadedFiles = ref<File[]>([])
 const additionalNote = ref('')
+const selectedJobRole = ref<string | null>(null)
+const selectedSeniority = ref<string | null>(null)
 const showLoginModal = ref(false)
 const analyzing = ref(false)
 
@@ -65,6 +81,8 @@ async function handleStartAnalysis() {
     if (additionalNote.value.trim()) {
       formData.append('additionalNote', additionalNote.value.trim())
     }
+    if (selectedJobRole.value) formData.append('jobRole', selectedJobRole.value)
+    if (selectedSeniority.value) formData.append('seniority', selectedSeniority.value)
 
     const res = await $fetch<{ data: { id: string; status: string } }>('/api/analyses', {
       method: 'POST',
@@ -149,6 +167,57 @@ async function handleStartAnalysis() {
             <h2 class="text-sm font-bold text-foreground">PDF 업로드</h2>
             <div class="mt-3">
               <PdfUploadDropzone @update:files="uploadedFiles = $event" />
+            </div>
+
+            <!-- 직군 선택 -->
+            <div class="mt-5">
+              <p class="text-sm font-bold text-foreground">
+                직군
+                <span class="ml-1 font-normal text-muted-foreground">(선택)</span>
+              </p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button
+                  v-for="role in JOB_ROLES"
+                  :key="role.value"
+                  type="button"
+                  class="rounded-full border px-3 py-1 text-xs font-semibold transition-colors"
+                  :class="
+                    selectedJobRole === role.value
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-muted text-muted-foreground hover:border-primary/40'
+                  "
+                  @click="selectedJobRole = selectedJobRole === role.value ? null : role.value"
+                >
+                  {{ role.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 연차 선택 -->
+            <div class="mt-4">
+              <p class="text-sm font-bold text-foreground">
+                연차
+                <span class="ml-1 font-normal text-muted-foreground">(선택)</span>
+              </p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button
+                  v-for="seniority in SENIORITIES"
+                  :key="seniority.value"
+                  type="button"
+                  class="rounded-full border px-3 py-1 text-xs font-semibold transition-colors"
+                  :class="
+                    selectedSeniority === seniority.value
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-muted text-muted-foreground hover:border-primary/40'
+                  "
+                  @click="
+                    selectedSeniority =
+                      selectedSeniority === seniority.value ? null : seniority.value
+                  "
+                >
+                  {{ seniority.label }}
+                </button>
+              </div>
             </div>
 
             <div class="mt-5">
