@@ -67,52 +67,73 @@ export default defineEventHandler(async (event) => {
     .as('clc')
   const trendingScore = sql<number>`COALESCE(${clickCountSq.cnt}, 0) + COALESCE(${bookmarkCountSq.cnt}, 0) * 3`
 
-  const [rows, totalRows] = await Promise.all([
-    sort === 'trending'
-      ? db
-          .select({
-            id: articles.id,
-            feedName: articles.feedName,
-            category: articles.category,
-            title: articles.title,
-            url: articles.url,
-            summary: articles.summary,
-            imageUrl: articles.imageUrl,
-            tags: articles.tags,
-            publishedAt: articles.publishedAt,
-            bookmarkCount: sql<number>`COALESCE(${bookmarkCountSq.cnt}, 0)`,
-            clickCount: sql<number>`COALESCE(${clickCountSq.cnt}, 0)`,
-            trendingScore,
-          })
-          .from(articles)
-          .leftJoin(bookmarkCountSq, eq(articles.id, bookmarkCountSq.articleId))
-          .leftJoin(clickCountSq, eq(articles.id, clickCountSq.articleId))
-          .where(whereClause)
-          .orderBy(desc(trendingScore), desc(articles.publishedAt))
-          .limit(limit)
-          .offset(offset)
-      : db
-          .select({
-            id: articles.id,
-            feedName: articles.feedName,
-            category: articles.category,
-            title: articles.title,
-            url: articles.url,
-            summary: articles.summary,
-            imageUrl: articles.imageUrl,
-            tags: articles.tags,
-            publishedAt: articles.publishedAt,
-            bookmarkCount: sql<number>`0`,
-            clickCount: sql<number>`0`,
-            trendingScore: sql<number>`0`,
-          })
-          .from(articles)
-          .where(whereClause)
-          .orderBy(desc(articles.publishedAt))
-          .limit(limit)
-          .offset(offset),
-    db.select({ total: count() }).from(articles).where(whereClause),
-  ])
+  let rows: {
+    id: string
+    feedName: string
+    category: string
+    title: string
+    url: string
+    summary: string | null
+    imageUrl: string | null
+    tags: string[] | null
+    publishedAt: Date
+    bookmarkCount: number
+    clickCount: number
+    trendingScore: number
+  }[]
+  let totalRows: { total: number }[]
+  try {
+    ;[rows, totalRows] = await Promise.all([
+      sort === 'trending'
+        ? db
+            .select({
+              id: articles.id,
+              feedName: articles.feedName,
+              category: articles.category,
+              title: articles.title,
+              url: articles.url,
+              summary: articles.summary,
+              imageUrl: articles.imageUrl,
+              tags: articles.tags,
+              publishedAt: articles.publishedAt,
+              bookmarkCount: sql<number>`COALESCE(${bookmarkCountSq.cnt}, 0)`,
+              clickCount: sql<number>`COALESCE(${clickCountSq.cnt}, 0)`,
+              trendingScore,
+            })
+            .from(articles)
+            .leftJoin(bookmarkCountSq, eq(articles.id, bookmarkCountSq.articleId))
+            .leftJoin(clickCountSq, eq(articles.id, clickCountSq.articleId))
+            .where(whereClause)
+            .orderBy(desc(trendingScore), desc(articles.publishedAt))
+            .limit(limit)
+            .offset(offset)
+        : db
+            .select({
+              id: articles.id,
+              feedName: articles.feedName,
+              category: articles.category,
+              title: articles.title,
+              url: articles.url,
+              summary: articles.summary,
+              imageUrl: articles.imageUrl,
+              tags: articles.tags,
+              publishedAt: articles.publishedAt,
+              bookmarkCount: sql<number>`0`,
+              clickCount: sql<number>`0`,
+              trendingScore: sql<number>`0`,
+            })
+            .from(articles)
+            .where(whereClause)
+            .orderBy(desc(articles.publishedAt))
+            .limit(limit)
+            .offset(offset),
+      db.select({ total: count() }).from(articles).where(whereClause),
+    ])
+  } catch (err) {
+    console.error('[articles] query error', { category, sort, period, err })
+    throw createError({ statusCode: 500, statusMessage: '아티클 목록을 불러오지 못했어요' })
+  }
+
   const total = totalRows[0]?.total ?? 0
 
   let bookmarkedIds = new Set<string>()
@@ -121,7 +142,9 @@ export default defineEventHandler(async (event) => {
     const bookmarked = await db
       .select({ articleId: articleBookmarks.articleId })
       .from(articleBookmarks)
-      .where(and(eq(articleBookmarks.userId, user.id), inArray(articleBookmarks.articleId, articleIds)))
+      .where(
+        and(eq(articleBookmarks.userId, user.id), inArray(articleBookmarks.articleId, articleIds))
+      )
     bookmarkedIds = new Set(bookmarked.map((b) => b.articleId))
   }
 
