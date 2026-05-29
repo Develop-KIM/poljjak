@@ -366,8 +366,8 @@ onUnmounted(() => {
               <div class="mt-5 rounded-xl border border-border bg-card p-5">
                 <h4 class="text-base font-black text-foreground">종합 피드백</h4>
                 <p class="mt-2.5 text-sm leading-7 text-muted-foreground">
-                  프로젝트 설명의 구체성은 양호하나 성과 수치 표현이 부족합니다. "개선했다" 대신
-                  "응답 속도를 40% 단축했다"처럼 수치를 넣으면 설득력이 크게 높아져요.
+                  프로젝트 설명의 구체성은 양호하나 성과 수치 표현이 부족합니다. 막연한 표현 대신
+                  실제 수치와 맥락을 함께 제시하면 설득력이 크게 높아져요.
                 </p>
               </div>
 
@@ -399,7 +399,7 @@ onUnmounted(() => {
                       <p
                         class="mt-2.5 text-sm leading-6 text-muted-foreground line-through decoration-slate-300"
                       >
-                        "성능을 크게 개선했습니다."
+                        "API 성능을 크게 개선했습니다."
                       </p>
                     </div>
                     <div class="bg-primary/[0.03] p-4">
@@ -407,7 +407,7 @@ onUnmounted(() => {
                         >After</span
                       >
                       <p class="mt-2.5 text-sm font-semibold leading-6 text-foreground">
-                        "쿼리 최적화로 응답 속도를 40% 단축했습니다."
+                        "N+1 쿼리를 제거해 <strong>응답 속도를 [실제 수치] 단축</strong>했습니다."
                       </p>
                     </div>
                   </div>
