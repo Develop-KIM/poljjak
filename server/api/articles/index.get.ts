@@ -45,27 +45,19 @@ export default defineEventHandler(async (event) => {
   ]
   const whereClause = conditions.length === 1 ? conditions[0]! : and(...conditions)
 
-  // 트렌딩: 최근 7일 클릭 수 + 북마크 가중치 기준
+  // 트렌딩: 최근 7일 클릭 수 + 북마크 가중치 (상관 서브쿼리)
   const trendingCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  const bookmarkCountSq = db
-    .select({
-      articleId: articleBookmarks.articleId,
-      cnt: count(articleBookmarks.id).as('cnt'),
-    })
-    .from(articleBookmarks)
-    .where(gte(articleBookmarks.createdAt, trendingCutoff))
-    .groupBy(articleBookmarks.articleId)
-    .as('bmc')
-  const clickCountSq = db
-    .select({
-      articleId: articleClicks.articleId,
-      cnt: count(articleClicks.id).as('cnt'),
-    })
-    .from(articleClicks)
-    .where(gte(articleClicks.createdAt, trendingCutoff))
-    .groupBy(articleClicks.articleId)
-    .as('clc')
-  const trendingScore = sql<number>`COALESCE(${clickCountSq.cnt}, 0) + COALESCE(${bookmarkCountSq.cnt}, 0) * 3`
+  const clickExpr = sql<number>`(
+    SELECT COUNT(*) FROM ${articleClicks}
+    WHERE ${articleClicks.articleId} = ${articles.id}
+      AND ${articleClicks.createdAt} >= ${trendingCutoff}
+  )`
+  const bookmarkExpr = sql<number>`(
+    SELECT COUNT(*) FROM ${articleBookmarks}
+    WHERE ${articleBookmarks.articleId} = ${articles.id}
+      AND ${articleBookmarks.createdAt} >= ${trendingCutoff}
+  )`
+  const trendingExpr = sql<number>`(${clickExpr}) + (${bookmarkExpr}) * 3`
 
   let rows: {
     id: string
@@ -96,15 +88,13 @@ export default defineEventHandler(async (event) => {
               imageUrl: articles.imageUrl,
               tags: articles.tags,
               publishedAt: articles.publishedAt,
-              bookmarkCount: sql<number>`COALESCE(${bookmarkCountSq.cnt}, 0)`,
-              clickCount: sql<number>`COALESCE(${clickCountSq.cnt}, 0)`,
-              trendingScore,
+              bookmarkCount: bookmarkExpr,
+              clickCount: clickExpr,
+              trendingScore: trendingExpr,
             })
             .from(articles)
-            .leftJoin(bookmarkCountSq, eq(articles.id, bookmarkCountSq.articleId))
-            .leftJoin(clickCountSq, eq(articles.id, clickCountSq.articleId))
             .where(whereClause)
-            .orderBy(desc(trendingScore), desc(articles.publishedAt))
+            .orderBy(desc(trendingExpr), desc(articles.publishedAt))
             .limit(limit)
             .offset(offset)
         : db
