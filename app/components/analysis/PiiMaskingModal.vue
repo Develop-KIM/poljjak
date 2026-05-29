@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { X, ShieldCheck, Eye, Mail, Phone, Link } from '@lucide/vue'
+import { X, ShieldCheck, Eye, Mail, Phone, Link, GraduationCap, Hash } from '@lucide/vue'
 import { detectPii, applyMasking, type DetectedPii } from '~/utils/piiMasker'
 
 const props = defineProps<{
@@ -35,6 +35,8 @@ const TYPE_ICONS: Record<string, typeof Mail> = {
   email: Mail,
   phone: Phone,
   url: Link,
+  school: GraduationCap,
+  gpa: Hash,
 }
 
 function toggle(id: string) {
