@@ -109,17 +109,23 @@ async function applyMasking() {
     const lines: TItem[][] = []
     for (const item of items) {
       const y = item.transform[5]!
-      const line = lines.find((l) => Math.abs(l[0]!.transform[5]! - y) <= 8)
+      const line = lines.find((l) => Math.abs(l[0]!.transform[5]! - y) <= 25)
       if (line) line.push(item)
       else lines.push([item])
     }
 
     const toBlur = new Set<TItem>()
     for (const line of lines) {
+      const lineText = line.map((it) => it.str).join('')
       const hasLabel = LABEL_KEYWORDS.some((kw) => line.some((it) => it.str.includes(kw)))
       if (hasLabel) {
         for (const it of line) {
           if (!LABEL_KEYWORDS.some((kw) => it.str.includes(kw)) && it.str.trim()) toBlur.add(it)
+        }
+      }
+      if (!hasLabel && PII_PATTERNS.some((r) => r.test(lineText))) {
+        for (const it of line) {
+          if (it.str.trim()) toBlur.add(it)
         }
       }
       for (let i = 0; i < line.length; i++) {

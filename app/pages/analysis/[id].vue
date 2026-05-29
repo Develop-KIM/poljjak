@@ -454,11 +454,11 @@ async function applyTextPiiMask() {
       }
     }
 
-    // y좌표 기준으로 같은 라인 묶기 (허용 오차 ±8 PDF 단위 — 폰트 크기 차이 대응)
+    // y좌표 기준으로 같은 라인 묶기 (허용 오차 ±25 — 테이블 레이아웃 대응)
     const lines: TItem[][] = []
     for (const item of items) {
       const y = item.transform[5]!
-      const line = lines.find((l) => Math.abs(l[0]!.transform[5]! - y) <= 8)
+      const line = lines.find((l) => Math.abs(l[0]!.transform[5]! - y) <= 25)
       if (line) line.push(item)
       else lines.push([item])
     }
@@ -466,6 +466,9 @@ async function applyTextPiiMask() {
     const toBlur = new Set<TItem>()
 
     for (const line of lines) {
+      // 같은 라인 텍스트를 합쳐서 PII 패턴 검사 (분할된 토큰 대응)
+      const lineText = line.map((it) => it.str).join('')
+
       // 라벨 키워드가 있는 줄 → 라벨이 아닌 항목 전부 블러
       const hasLabel = LABEL_KEYWORDS.some((kw) => line.some((it) => it.str.includes(kw)))
       if (hasLabel) {
@@ -473,6 +476,13 @@ async function applyTextPiiMask() {
           if (!LABEL_KEYWORDS.some((kw) => it.str.includes(kw)) && it.str.trim()) {
             toBlur.add(it)
           }
+        }
+      }
+
+      // 합친 라인 텍스트에 PII 패턴이 있으면 해당 라인 비-라벨 항목 전부 블러
+      if (!hasLabel && PII_PATTERNS.some((r) => r.test(lineText))) {
+        for (const it of line) {
+          if (it.str.trim()) toBlur.add(it)
         }
       }
 
@@ -484,7 +494,7 @@ async function applyTextPiiMask() {
           const next = line[i + 1]
           if (next?.str.trim()) toBlur.add(next)
         }
-        // 정규식 패턴 직접 매칭
+        // 개별 항목 PII 패턴 직접 매칭
         if (PII_PATTERNS.some((r) => r.test(it.str))) toBlur.add(it)
       }
     }
