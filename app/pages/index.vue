@@ -88,7 +88,6 @@ const steps = [
 function schedulNext() {
   const durations = [4000, 5000, 7000]
   demoTimer = setTimeout(() => {
-    showScores.value = false
     analysisStep.value = 0
     if (analysisStepTimer) clearInterval(analysisStepTimer)
     demoStep.value = (demoStep.value + 1) % 3
