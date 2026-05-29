@@ -42,12 +42,20 @@ export interface AfterHtmlSection {
   changes: Array<{ issueId: string; tooltip: string }>
 }
 
+export interface StructureAnalysis {
+  overallFlow: string
+  sectionOrder: string
+  missingSections: string[]
+  suggestions: string[]
+}
+
 export interface AnalysisResultV2 {
   summary: string
   totalScore: number
   issues: AnalysisIssue[]
   actionPlan: AnalysisActionItem[]
   afterHtmlSections: AfterHtmlSection[]
+  structureAnalysis?: StructureAnalysis
 }
 
 export type JobType = 'developer' | 'designer'

@@ -119,7 +119,13 @@ JSON 이외의 텍스트는 절대 출력하지 마세요.
         }
       ]
     }
-  ]
+  ],
+  "structureAnalysis": {
+    "overallFlow": "전체 흐름·가독성 1~2문장 평가",
+    "sectionOrder": "섹션 순서 적절성 1문장",
+    "missingSections": ["누락된 섹션명"],
+    "suggestions": ["구조 개선 제안 1", "구조 개선 제안 2"]
+  }
 }
 
 [afterHtmlSections 작성 규칙 — 반드시 준수]
@@ -129,6 +135,12 @@ JSON 이외의 텍스트는 절대 출력하지 마세요.
 - 이슈가 있는 섹션은 개선된 내용을 반영하고, 바뀐 문장·단어에만 data-issue-id='issue_X' 속성을 인라인 span 태그로 추가하세요.
 - 사용 가능한 태그: h1~h3, p, ul, ol, li, strong, em, span, section, div
 - html 필드에 변경 이유 설명을 쓰지 마세요. 개선된 본문 텍스트만 작성하세요.
+
+[structureAnalysis 작성 규칙]
+- overallFlow: 섹션 간 흐름, 전체 가독성, 분량 밸런스를 1~2문장으로 평가
+- sectionOrder: 이름→자기소개→기술스택→경력→프로젝트→수상/자격증 순서가 적절한지 1문장 평가
+- missingSections: 채용 서류에서 일반적으로 기대되나 포트폴리오에 없는 섹션 목록 (없으면 빈 배열)
+- suggestions: 구조 개선 제안 1~3개 (표현 개선이 아닌 구조·순서·분량에 관한 것만)
 
 [우선순위 기준]
 - high: 채용 합격 여부에 직접 영향을 주는 문제

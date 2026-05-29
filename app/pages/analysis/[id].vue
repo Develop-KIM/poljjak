@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import {
   Check,
   Link,
@@ -9,9 +9,11 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
+  ChevronLeft,
   ChevronRight,
   Download,
   EyeOff,
+  LayoutTemplate,
 } from '@lucide/vue'
 import { marked } from 'marked'
 import type { AnalysisResultV2, AnalysisIssue } from '~~/server/utils/clova'
@@ -72,6 +74,19 @@ let stepTimer: ReturnType<typeof setInterval> | null = null
 const beforePanel = ref<HTMLElement | null>(null)
 const afterPanel = ref<HTMLElement | null>(null)
 
+// AFTER 섹션 페이지네이션
+const afterSectionIdx = ref(0)
+const afterSections = computed(() => analysis.value?.result?.afterHtmlSections ?? [])
+const currentAfterSection = computed(() => afterSections.value[afterSectionIdx.value] ?? null)
+const hasSectionPagination = computed(() => afterSections.value.length > 0)
+
+function prevAfterSection() {
+  if (afterSectionIdx.value > 0) afterSectionIdx.value--
+}
+function nextAfterSection() {
+  if (afterSectionIdx.value < afterSections.value.length - 1) afterSectionIdx.value++
+}
+
 // 이슈 필터
 const issueFilter = ref<'all' | 'high' | 'medium' | 'low'>('all')
 
@@ -95,18 +110,21 @@ const shouldShowProgress = computed(() => {
 
 const isV2 = computed(() => !!(analysis.value?.issues || analysis.value?.afterHtml))
 
-// CLOVA가 마크다운으로 반환하는 경우를 대비해 HTML로 변환
-const renderedAfterHtml = computed(() => {
-  const raw = analysis.value?.afterHtml
+function processHtml(raw: string | null | undefined): string | null {
   if (!raw) return null
   const hasHtmlTags = /<[a-z][\s\S]*>/i.test(raw)
-  // HTML이 없으면 marked로 전체 변환, 있으면 인라인 마크다운만 치환
   const html = hasHtmlTags ? raw : (marked.parse(raw, { async: false }) as string)
   return html
     .replace(/\*\*\*(.+?)\*\*\*/gs, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>')
     .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/gs, '<em>$1</em>')
-})
+}
+
+// 현재 섹션 HTML (페이지네이션용)
+const currentAfterHtml = computed(() => processHtml(currentAfterSection.value?.html))
+
+// 전체 합산 HTML (다운로드·fallback용)
+const renderedAfterHtml = computed(() => processHtml(analysis.value?.afterHtml))
 
 const issues = computed<AnalysisIssue[]>(() => {
   const raw = analysis.value?.issues ?? []
@@ -234,9 +252,16 @@ async function copyShareLink() {
 }
 
 function scrollToIssue(issueId: string) {
-  if (!afterPanel.value) return
-  const el = afterPanel.value.querySelector(`[data-issue-id="${issueId}"]`)
-  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  // 해당 이슈를 포함하는 섹션으로 먼저 이동
+  if (hasSectionPagination.value) {
+    const idx = afterSections.value.findIndex((s) => s.changes.some((c) => c.issueId === issueId))
+    if (idx !== -1) afterSectionIdx.value = idx
+  }
+  nextTick(() => {
+    if (!afterPanel.value) return
+    const el = afterPanel.value.querySelector(`[data-issue-id="${issueId}"]`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  })
 }
 
 async function toggleFaceMask() {
@@ -667,6 +692,43 @@ async function downloadAfterPdf() {
         <p class="mt-2 leading-7 text-muted-foreground">{{ analysis.result.summary }}</p>
       </AppCard>
 
+      <!-- 포트폴리오 구조 분석 -->
+      <AppCard v-if="analysis.result?.structureAnalysis" class="mt-4">
+        <div class="flex items-center gap-2">
+          <LayoutTemplate class="size-4 text-primary" />
+          <h2 class="text-base font-bold text-foreground">구조 분석</h2>
+        </div>
+        <p class="mt-2 leading-7 text-muted-foreground">
+          {{ analysis.result.structureAnalysis.overallFlow }}
+        </p>
+        <p class="mt-1 text-sm text-muted-foreground">
+          {{ analysis.result.structureAnalysis.sectionOrder }}
+        </p>
+        <div
+          v-if="analysis.result.structureAnalysis.missingSections?.length"
+          class="mt-3 flex flex-wrap gap-2"
+        >
+          <span class="text-xs font-semibold text-muted-foreground">누락 섹션</span>
+          <span
+            v-for="s in analysis.result.structureAnalysis.missingSections"
+            :key="s"
+            class="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700"
+          >
+            {{ s }}
+          </span>
+        </div>
+        <ul v-if="analysis.result.structureAnalysis.suggestions?.length" class="mt-3 space-y-1.5">
+          <li
+            v-for="(sg, i) in analysis.result.structureAnalysis.suggestions"
+            :key="i"
+            class="flex items-start gap-2 text-sm text-muted-foreground"
+          >
+            <span class="mt-0.5 shrink-0 text-primary">•</span>
+            {{ sg }}
+          </li>
+        </ul>
+      </AppCard>
+
       <!-- Before / After 분할 뷰어 -->
       <div class="mt-6">
         <div class="mb-3 flex items-center gap-3">
@@ -724,6 +786,7 @@ async function downloadAfterPdf() {
 
           <!-- After: AI 개선본 -->
           <div class="flex flex-col">
+            <!-- 헤더 -->
             <div class="flex items-center gap-2 border-b border-border bg-primary/5 px-4 py-2.5">
               <span class="size-2.5 rounded-full bg-emerald-400" />
               <span class="text-xs font-bold text-primary">AFTER · AI 개선본</span>
@@ -738,10 +801,49 @@ async function downloadAfterPdf() {
                 PDF 저장
               </button>
             </div>
+            <!-- 섹션 페이지네이션 바 -->
+            <div
+              v-if="hasSectionPagination && afterSections.length > 1"
+              class="flex items-center justify-between border-b border-border px-4 py-2"
+            >
+              <button
+                type="button"
+                :disabled="afterSectionIdx === 0"
+                class="flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+                @click="prevAfterSection"
+              >
+                <ChevronLeft class="size-3.5" />
+                이전
+              </button>
+              <span class="text-[11px] font-bold text-foreground">
+                {{ currentAfterSection?.sectionName }}
+                <span class="ml-1 font-normal text-muted-foreground"
+                  >({{ afterSectionIdx + 1 }} / {{ afterSections.length }})</span
+                >
+              </span>
+              <button
+                type="button"
+                :disabled="afterSectionIdx === afterSections.length - 1"
+                class="flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+                @click="nextAfterSection"
+              >
+                다음
+                <ChevronRight class="size-3.5" />
+              </button>
+            </div>
+            <!-- 콘텐츠 -->
             <div ref="afterPanel" data-after-panel class="bg-muted/30 p-4">
+              <!-- 섹션 페이지네이션 모드 -->
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
-                v-if="renderedAfterHtml"
+                v-if="hasSectionPagination && currentAfterHtml"
+                class="after-html-viewer mx-auto rounded-lg bg-white px-10 py-10 shadow-sm"
+                v-html="currentAfterHtml"
+              />
+              <!-- fallback: 구버전 afterHtml 단일 뷰 -->
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div
+                v-else-if="renderedAfterHtml"
                 class="after-html-viewer mx-auto rounded-lg bg-white px-10 py-10 shadow-sm"
                 v-html="renderedAfterHtml"
               />
