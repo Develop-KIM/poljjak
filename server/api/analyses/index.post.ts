@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { createClient } from '@supabase/supabase-js'
 import { requireAuth } from '../../utils/auth'
-import { extractPdfText } from '../../utils/pdf'
+import { extractPdfText, mergePdfs } from '../../utils/pdf'
 import { analyzePortfolio, type AnalysisResultV2 } from '../../utils/clova'
 import type { JobRole, Seniority } from '../../utils/prompts'
 import { db } from '../../db'
@@ -72,9 +72,9 @@ export default defineEventHandler(async (event) => {
 
   const additionalNote = notePart?.data?.toString('utf8')?.trim()
 
-  // 첫 번째 PDF만 Storage에 업로드 (원본 뷰어용)
-  const firstFile = fileParts[0]!
-  const pdfUrl = await uploadPdfToStorage(user.id, firstFile.data)
+  // 여러 파일이면 병합해서 Storage에 업로드 (원본 뷰어용)
+  const mergedBuffer = await mergePdfs(fileParts.map((fp) => fp.data))
+  const pdfUrl = await uploadPdfToStorage(user.id, mergedBuffer)
 
   const texts = await Promise.all(fileParts.map((fp) => extractPdfText(fp.data)))
   const text = texts.join('\n\n--- 다음 파일 ---\n\n')

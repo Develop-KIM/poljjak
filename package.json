@@ -63,6 +63,7 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "marked": "^15.0.12",
+    "pdf-lib": "^1.17.1",
     "pinia": "^3.0.4",
     "postgres": "^3.4.9",
     "radix-vue": "^1.9.17",

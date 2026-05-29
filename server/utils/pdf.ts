@@ -1,4 +1,17 @@
 import { extractText, getDocumentProxy } from 'unpdf'
+import { PDFDocument } from 'pdf-lib'
+
+export async function mergePdfs(buffers: Buffer[]): Promise<Buffer> {
+  if (buffers.length === 1) return buffers[0]!
+  const merged = await PDFDocument.create()
+  for (const buf of buffers) {
+    const src = await PDFDocument.load(buf)
+    const pages = await merged.copyPages(src, src.getPageIndices())
+    pages.forEach((p) => merged.addPage(p))
+  }
+  const bytes = await merged.save()
+  return Buffer.from(bytes)
+}
 
 export async function extractPdfText(buffer: Buffer): Promise<string> {
   const pdf = await getDocumentProxy(new Uint8Array(buffer))
