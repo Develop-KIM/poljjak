@@ -316,6 +316,15 @@ onMounted(async () => {
   }
 })
 
+function shortFeedName(feedName: string) {
+  return feedName
+    .replace(' 기술 블로그', '')
+    .replace(' Tech Blog', '')
+    .replace(' Engineering', '')
+    .replace(' Developers', '')
+    .replace(' Blog', '')
+}
+
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -804,7 +813,9 @@ const NuxtLink = resolveComponent('NuxtLink')
               >
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2 flex-wrap">
-                    <AppBadge variant="blue" class="shrink-0">{{ article.feedName }}</AppBadge>
+                    <AppBadge variant="blue" class="shrink-0">{{
+                      shortFeedName(article.feedName)
+                    }}</AppBadge>
                     <p class="truncate text-sm font-semibold text-foreground">
                       {{ article.title }}
                     </p>
@@ -860,7 +871,9 @@ const NuxtLink = resolveComponent('NuxtLink')
                 >
                   <NuxtLink :to="`/articles/${article.id}`" class="min-w-0 flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <AppBadge variant="blue" class="shrink-0">{{ article.feedName }}</AppBadge>
+                      <AppBadge variant="blue" class="shrink-0">{{
+                        shortFeedName(article.feedName)
+                      }}</AppBadge>
                       <p class="truncate text-sm font-semibold text-foreground">
                         {{ article.title }}
                       </p>

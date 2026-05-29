@@ -848,7 +848,12 @@ onUnmounted(() => observer?.disconnect())
             />
             <AppDropdown
               :model-value="selectedPeriod"
-              :options="periods.map((p) => ({ label: p.label, value: p.value }))"
+              :options="
+                periods.map((p) => ({
+                  label: p.value === 'all' ? '기간' : p.label,
+                  value: p.value,
+                }))
+              "
               @update:model-value="selectPeriod($event as Period)"
             />
           </div>
