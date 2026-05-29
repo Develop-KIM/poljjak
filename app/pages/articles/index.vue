@@ -581,48 +581,74 @@ async function fetchRecommended() {
   const insight = analyzeHistory()
   recInsight.value = insight
 
-  const tag = insight.topTag
-  const feed = insight.topFeed
+  const { topTag: tag, topFeed: feed, hasHistory } = insight
 
-  const [blogPersonalRes, blogFallbackRes, newsPersonalRes, newsFallbackRes] =
-    await Promise.allSettled([
-      // 국내 블로그 — 개인화 (tag 또는 feed 기반, 최신순)
-      tag || feed
-        ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
-            query: {
-              category: 'domestic',
-              sort: 'latest',
-              limit: 6,
-              ...(tag ? { tag } : { feedName: feed }),
-            },
-          })
-        : Promise.resolve(null),
-      // 국내 블로그 — fallback (이번 주 트렌딩)
+  // 방문 기록 없으면 트렌딩 fallback만 호출 (2 calls)
+  if (!hasHistory) {
+    const [blogRes, newsRes] = await Promise.allSettled([
       $fetch<{ data: RecommendArticle[] }>('/api/articles', {
         query: { category: 'domestic', sort: 'trending', period: 'week', limit: 6 },
       }),
-      // 해외 뉴스 — 개인화
-      tag
-        ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
-            query: { category: 'international', sort: 'latest', limit: 5, tag },
-          })
-        : Promise.resolve(null),
-      // 해외 뉴스 — fallback
       $fetch<{ data: RecommendArticle[] }>('/api/articles', {
         query: { category: 'international', sort: 'trending', period: 'week', limit: 5 },
       }),
     ])
+    recBlog.value = blogRes.status === 'fulfilled' ? blogRes.value.data.slice(0, 4) : []
+    recNews.value = newsRes.status === 'fulfilled' ? newsRes.value.data.slice(0, 3) : []
+    return
+  }
 
-  // 국내: 개인화 결과 우선, 없으면 fallback
+  // 방문 기록 있으면 개인화 먼저 (2 calls)
+  const [blogPersonalRes, newsPersonalRes] = await Promise.allSettled([
+    tag || feed
+      ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+          query: {
+            category: 'domestic',
+            sort: 'latest',
+            limit: 6,
+            ...(tag ? { tag } : { feedName: feed }),
+          },
+        })
+      : Promise.resolve(null),
+    tag
+      ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+          query: { category: 'international', sort: 'latest', limit: 5, tag },
+        })
+      : Promise.resolve(null),
+  ])
+
   const blogPersonal =
     blogPersonalRes.status === 'fulfilled' ? (blogPersonalRes.value?.data ?? []) : []
-  const blogFallback = blogFallbackRes.status === 'fulfilled' ? blogFallbackRes.value.data : []
-  recBlog.value = (blogPersonal.length >= 3 ? blogPersonal : blogFallback).slice(0, 4)
-
-  // 해외: 개인화 결과 우선, 없으면 fallback
   const newsPersonal =
     newsPersonalRes.status === 'fulfilled' ? (newsPersonalRes.value?.data ?? []) : []
-  const newsFallback = newsFallbackRes.status === 'fulfilled' ? newsFallbackRes.value.data : []
+
+  // 개인화 결과가 충분하면 fallback 불필요
+  if (blogPersonal.length >= 3 && newsPersonal.length >= 2) {
+    recBlog.value = blogPersonal.slice(0, 4)
+    recNews.value = newsPersonal.slice(0, 3)
+    return
+  }
+
+  // 부족한 쪽만 fallback (최대 2 calls)
+  const [blogFallbackRes, newsFallbackRes] = await Promise.allSettled([
+    blogPersonal.length < 3
+      ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+          query: { category: 'domestic', sort: 'trending', period: 'week', limit: 6 },
+        })
+      : Promise.resolve(null),
+    newsPersonal.length < 2
+      ? $fetch<{ data: RecommendArticle[] }>('/api/articles', {
+          query: { category: 'international', sort: 'trending', period: 'week', limit: 5 },
+        })
+      : Promise.resolve(null),
+  ])
+
+  const blogFallback =
+    blogFallbackRes.status === 'fulfilled' ? (blogFallbackRes.value?.data ?? []) : []
+  const newsFallback =
+    newsFallbackRes.status === 'fulfilled' ? (newsFallbackRes.value?.data ?? []) : []
+
+  recBlog.value = (blogPersonal.length >= 3 ? blogPersonal : blogFallback).slice(0, 4)
   recNews.value = (newsPersonal.length >= 2 ? newsPersonal : newsFallback).slice(0, 3)
 }
 
