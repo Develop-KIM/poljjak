@@ -120,8 +120,9 @@ export default defineEventHandler(async (event) => {
       db.select({ total: count() }).from(articles).where(whereClause),
     ])
   } catch (err) {
-    console.error('[articles] query error', { category, sort, period, err })
-    throw createError({ statusCode: 500, statusMessage: '아티클 목록을 불러오지 못했어요' })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[articles] query error', { category, sort, period, msg, err })
+    throw createError({ statusCode: 500, statusMessage: `[디버그] ${msg}` })
   }
 
   const total = totalRows[0]?.total ?? 0
