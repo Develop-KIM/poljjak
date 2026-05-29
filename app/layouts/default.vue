@@ -155,6 +155,17 @@ function toggleProfileMenu() {
             커뮤니티
           </NuxtLink>
           <NuxtLink
+            to="/gallery"
+            class="rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
+            :class="
+              isActive('/gallery')
+                ? 'bg-accent text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            "
+          >
+            갤러리
+          </NuxtLink>
+          <NuxtLink
             to="/articles"
             class="rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
             :class="
@@ -357,6 +368,16 @@ function toggleProfileMenu() {
                 @click="mobileMenuOpen = false"
               >
                 커뮤니티
+              </NuxtLink>
+              <NuxtLink
+                to="/gallery"
+                class="flex items-center rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
+                :class="
+                  isActive('/gallery') ? 'bg-accent text-primary' : 'text-foreground hover:bg-muted'
+                "
+                @click="mobileMenuOpen = false"
+              >
+                갤러리
               </NuxtLink>
               <NuxtLink
                 to="/articles"

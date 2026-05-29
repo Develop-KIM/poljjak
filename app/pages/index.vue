@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   ArrowRight,
   Sparkles,
@@ -85,6 +85,24 @@ const steps = [
   { label: '텍스트 추출 중', sublabel: 'PDF에서 내용을 읽고 있어요' },
   { label: 'AI 분석 중', sublabel: 'AI가 포트폴리오를 꼼꼼히 보고 있어요' },
 ]
+
+interface GalleryItem {
+  id: string
+  shareToken: string
+  jobRole: string | null
+  seniority: string | null
+  pdfUrl: string | null
+  issueCount: number
+  summary: string | null
+  createdAt: string
+}
+
+const { data: galleryData } = await useAsyncData('gallery-preview', () =>
+  $fetch<{ data: GalleryItem[]; nextCursor: string | null }>('/api/gallery', {
+    query: { limit: 6 },
+  })
+)
+const galleryItems = computed(() => galleryData.value?.data ?? [])
 
 function schedulNext() {
   const durations = [4000, 5000, 7000]
@@ -615,6 +633,37 @@ onUnmounted(() => {
               카카오 또는 구글 계정으로 로그인하면 바로 분석을 시작할 수 있어요.
             </p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 갤러리 프리뷰 ──────────────────────────────────── -->
+    <section v-if="galleryItems.length > 0" class="border-t border-border px-5 py-20 md:px-8">
+      <div class="mx-auto max-w-[1440px]">
+        <div class="flex items-end justify-between">
+          <div>
+            <AppBadge variant="blue">갤러리</AppBadge>
+            <h2 class="mt-4 text-2xl font-black text-foreground md:text-3xl">
+              실제 분석 결과 둘러보기
+            </h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+              다른 개발자들이 받은 AI 포트폴리오 피드백을 직접 확인해보세요.
+            </p>
+          </div>
+          <NuxtLink
+            to="/gallery"
+            class="hidden shrink-0 text-sm font-semibold text-primary transition-opacity hover:opacity-70 sm:block"
+          >
+            전체 보기 →
+          </NuxtLink>
+        </div>
+        <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <GalleryCard v-for="item in galleryItems" :key="item.id" :item="item" />
+        </div>
+        <div class="mt-6 text-center sm:hidden">
+          <NuxtLink to="/gallery" class="text-sm font-semibold text-primary">
+            전체 보기 →
+          </NuxtLink>
         </div>
       </div>
     </section>
