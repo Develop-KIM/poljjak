@@ -119,8 +119,9 @@ useSeoMeta({
         있도록 비독점적·무상·전 세계적 이용 권한을 서비스에 부여합니다.
       </p>
       <p class="mt-3 text-sm leading-7 text-muted-foreground">
-        서비스가 이용자의 포트폴리오 PDF를 분석하는 과정에서 생성된 AI 분석 결과물의 저작권은
-        서비스에 귀속됩니다.
+        서비스가 이용자의 포트폴리오 PDF를 분석하는 과정에서 생성된 AI 분석 결과물은 해당 이용자가
+        자유롭게 활용할 수 있습니다. 다만, 서비스는 서비스 품질 개선 목적으로 해당 결과물을
+        익명화하여 활용할 수 있습니다.
       </p>
     </section>
 
@@ -150,7 +151,7 @@ useSeoMeta({
           <span class="mt-1 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
           아티클 섹션에서 제공되는 콘텐츠는 외부 RSS 피드를 통해 수집된 제3자 저작물입니다. 해당
           콘텐츠의 정확성·적법성에 대한 책임은 원출처에 있으며, 서비스는 이에 대해 책임을 지지
-          않습니다. 저작권 관련 문제 발생 시 kimdonghwan913@gmail.com으로 신고해 주시면 즉시
+          않습니다. 저작권 관련 문제 발생 시 폴짝팀(kimdonghwan913@gmail.com)으로 신고해 주시면 즉시
           조치합니다.
         </li>
         <li class="flex gap-2">
