@@ -77,7 +77,20 @@ const afterPanel = ref<HTMLElement | null>(null)
 
 // AFTER 섹션 페이지네이션
 const afterSectionIdx = ref(0)
-const afterSections = computed(() => analysis.value?.result?.afterHtmlSections ?? [])
+
+// 개인정보 플레이스홀더·HTML 태그 제거 후 30자 미만 섹션은 필터링
+function hasMeaningfulContent(html: string): boolean {
+  const text = html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\[[^\]]+\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return text.length >= 30
+}
+
+const afterSections = computed(() =>
+  (analysis.value?.result?.afterHtmlSections ?? []).filter((s) => hasMeaningfulContent(s.html))
+)
 const currentAfterSection = computed(() => afterSections.value[afterSectionIdx.value] ?? null)
 const hasSectionPagination = computed(() => afterSections.value.length > 0)
 
