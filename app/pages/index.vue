@@ -11,9 +11,8 @@ import {
   CheckCircle2,
   Loader2,
   Lock,
-  ChevronDown,
+  ChevronRight,
   FileUp,
-  Download,
 } from '@lucide/vue'
 
 useHead({ titleTemplate: '%s' })
@@ -49,25 +48,34 @@ useHead({
 
 const demoStep = ref(0)
 const analysisStep = ref(0)
-const showScores = ref(false)
 let demoTimer: ReturnType<typeof setTimeout> | null = null
 let analysisStepTimer: ReturnType<typeof setInterval> | null = null
 
 const demoIssues = [
   {
     priority: 'high',
+    section: '프로젝트',
     title: '성과 수치 미기재',
-    desc: '구체적인 수치 없이 개선했다로만 표현되어 설득력이 낮아요.',
+    desc: '구체적인 수치 없이 막연한 표현만 있어 설득력이 낮아요.',
+    before: '"API 성능을 크게 개선했습니다."',
+    after: '"N+1 쿼리를 제거해 응답 속도를 [실제 수치] 단축했습니다."',
   },
   {
     priority: 'medium',
+    section: '기술스택',
     title: '선택 근거 부재',
-    desc: '사용한 기술을 나열만 했고 왜 골랐는지 이유가 없어요.',
+    desc: '사용한 기술을 나열만 했고 왜 그 기술을 골랐는지 이유가 없어요.',
+    before: '"기술 스택: React, TypeScript, PostgreSQL"',
+    after:
+      '"실시간 상태 동기화가 필요해 React Query를 도입했고, 타입 안정성을 위해 TypeScript를 적용했습니다."',
   },
   {
     priority: 'low',
-    title: '자기소개 분량 과다',
+    section: '자기소개',
+    title: '분량 과다',
     desc: '자기소개가 너무 길어 핵심 메시지가 희석되고 있어요.',
+    before: '"저는 항상 노력하는 개발자로서..."',
+    after: '"문제를 발견하면 끝까지 파고드는 백엔드 개발자입니다."',
   },
 ]
 
@@ -330,20 +338,24 @@ onUnmounted(() => {
           <Transition name="demo">
             <div v-if="demoStep === 2" class="p-6 md:p-8">
               <!-- 헤더 -->
-              <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <AppBadge variant="green">분석 완료</AppBadge>
-                  <h3 class="mt-3 text-xl font-black leading-tight text-foreground">
+                  <div class="flex flex-wrap gap-1.5">
+                    <span
+                      class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-semibold text-foreground"
+                      >풀스택</span
+                    >
+                    <span
+                      class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-semibold text-foreground"
+                      >주니어</span
+                    >
+                  </div>
+                  <h3 class="mt-2 text-lg font-black leading-tight text-foreground">
                     포트폴리오 분석 결과
                   </h3>
-                  <p class="mt-1 text-sm text-muted-foreground">2026년 5월 21일</p>
+                  <p class="mt-0.5 text-sm text-muted-foreground">2026년 5월 21일</p>
                 </div>
                 <div class="flex shrink-0 flex-wrap gap-2">
-                  <div
-                    class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground"
-                  >
-                    <Download class="size-3.5" /> PDF 저장
-                  </div>
                   <div
                     class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground"
                   >
@@ -357,95 +369,57 @@ onUnmounted(() => {
                   <div
                     class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white"
                   >
-                    <MessageSquare class="size-3.5" /> 커뮤니티에 공유
+                    <MessageSquare class="size-3.5" /> 커뮤니티 공유
                   </div>
                 </div>
               </div>
 
-              <!-- 종합 피드백 -->
-              <div class="mt-5 rounded-xl border border-border bg-card p-5">
-                <h4 class="text-base font-black text-foreground">종합 피드백</h4>
-                <p class="mt-2.5 text-sm leading-7 text-muted-foreground">
-                  프로젝트 설명의 구체성은 양호하나 성과 수치 표현이 부족합니다. 막연한 표현 대신
-                  실제 수치와 맥락을 함께 제시하면 설득력이 크게 높아져요.
+              <!-- AI 총평 -->
+              <div class="mt-4 rounded-xl border border-border bg-card p-4">
+                <h4 class="text-sm font-bold text-foreground">AI 총평</h4>
+                <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                  프로젝트 구현 경험은 충분하나 성과 표현이 막연하고 기술 선택 근거가 부족합니다.
+                  수치와 맥락을 보완하면 설득력이 크게 높아질 수 있어요.
                 </p>
-              </div>
-
-              <!-- 개선 포인트 -->
-              <div class="mt-5">
-                <h4 class="text-base font-black text-foreground">
-                  개선 포인트
-                  <span class="ml-1 text-sm font-semibold text-muted-foreground">3개</span>
-                </h4>
-                <p class="mt-1 text-sm text-muted-foreground">
-                  아래 개선안을 포트폴리오에 바로 적용해보세요.
-                </p>
-                <div class="mt-3 overflow-hidden rounded-xl border border-border bg-card">
-                  <div class="border-b border-border bg-accent/40 px-4 py-2.5">
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary"
-                        >성과 표현</span
-                      >
-                      <p class="text-xs text-muted-foreground">프로젝트 성과 수치화</p>
-                    </div>
-                  </div>
-                  <div class="grid divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0">
-                    <div class="p-4">
-                      <span
-                        class="rounded bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground"
-                        >Before</span
-                      >
-                      <p
-                        class="mt-2.5 text-sm leading-6 text-muted-foreground line-through decoration-slate-300"
-                      >
-                        "API 성능을 크게 개선했습니다."
-                      </p>
-                    </div>
-                    <div class="bg-primary/[0.03] p-4">
-                      <span class="rounded bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary"
-                        >After</span
-                      >
-                      <p class="mt-2.5 text-sm font-semibold leading-6 text-foreground">
-                        "N+1 쿼리를 제거해 <strong>응답 속도를 [실제 수치] 단축</strong>했습니다."
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <!-- 이슈 목록 -->
               <div class="mt-4">
-                <button
-                  type="button"
-                  class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3.5 text-sm font-bold text-foreground hover:bg-muted"
-                  @click="showScores = !showScores"
-                >
-                  우선순위별 이슈 보기
-                  <ChevronDown
-                    class="size-4 text-muted-foreground transition-transform"
-                    :class="{ 'rotate-180': showScores }"
-                  />
-                </button>
-                <Transition
-                  enter-active-class="transition duration-200 ease-out"
-                  enter-from-class="opacity-0 -translate-y-2"
-                  enter-to-class="opacity-100 translate-y-0"
-                >
-                  <div v-if="showScores" class="mt-3 grid gap-2">
-                    <div
-                      v-for="issue in demoIssues"
-                      :key="issue.title"
-                      class="flex items-start gap-3 rounded-xl border border-border bg-card p-3"
+                <div class="flex items-center gap-2">
+                  <h4 class="text-sm font-black text-foreground">
+                    이슈 목록
+                    <span class="font-semibold text-muted-foreground">(3개)</span>
+                  </h4>
+                  <div class="flex gap-1">
+                    <span
+                      class="rounded-full border border-primary bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-white"
+                      >전체</span
                     >
+                    <span
+                      class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                      >높음</span
+                    >
+                    <span
+                      class="rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                      >중간</span
+                    >
+                  </div>
+                </div>
+
+                <div class="mt-3 grid gap-2">
+                  <div
+                    v-for="issue in demoIssues"
+                    :key="issue.title"
+                    class="rounded-xl border border-border bg-card p-3"
+                  >
+                    <div class="flex items-start gap-2.5">
                       <span
-                        class="mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-xs font-bold"
+                        class="mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold"
                         :class="{
-                          'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400':
-                            issue.priority === 'high',
-                          'bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400':
+                          'border-red-200 bg-red-50 text-red-600': issue.priority === 'high',
+                          'border-amber-200 bg-amber-50 text-amber-600':
                             issue.priority === 'medium',
-                          'bg-muted text-muted-foreground': issue.priority === 'low',
+                          'border-border bg-muted text-muted-foreground': issue.priority === 'low',
                         }"
                         >{{
                           issue.priority === 'high'
@@ -455,13 +429,29 @@ onUnmounted(() => {
                               : '낮음'
                         }}</span
                       >
-                      <div>
-                        <p class="text-xs font-bold text-foreground">{{ issue.title }}</p>
-                        <p class="mt-0.5 text-xs text-muted-foreground">{{ issue.desc }}</p>
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5">
+                          <span class="text-[11px] font-semibold text-muted-foreground">{{
+                            issue.section
+                          }}</span>
+                          <ChevronRight class="size-3 text-muted-foreground/40" />
+                          <span class="text-xs font-bold text-foreground">{{ issue.title }}</span>
+                        </div>
+                        <p class="mt-1 text-xs text-muted-foreground">{{ issue.desc }}</p>
+                        <div class="mt-2 grid gap-1.5 rounded-lg bg-muted/50 p-2.5 text-xs">
+                          <div>
+                            <span class="font-semibold text-muted-foreground">Before</span>
+                            <p class="mt-0.5 italic text-foreground/60">{{ issue.before }}</p>
+                          </div>
+                          <div>
+                            <span class="font-semibold text-primary">After</span>
+                            <p class="mt-0.5 text-foreground">{{ issue.after }}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </Transition>
+                </div>
               </div>
             </div>
           </Transition>
