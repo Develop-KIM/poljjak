@@ -197,74 +197,145 @@ onMounted(fetchContents)
       검색 결과가 없어요
     </div>
 
-    <!-- 콘텐츠 테이블 -->
-    <div v-else class="overflow-x-auto rounded-xl border border-border">
-      <table class="w-full min-w-[700px] border-collapse text-sm">
-        <thead>
-          <tr class="bg-muted">
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground w-20">종류</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">내용</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">작성자</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">작성일</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">상태</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">삭제</th>
-          </tr>
-        </thead>
-        <tbody class="bg-background">
-          <tr
-            v-for="item in items"
-            :key="item.id"
-            class="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
-            :class="{ 'opacity-50': item.isDeleted }"
-          >
-            <td class="px-4 py-3 text-center">
+    <!-- 콘텐츠 목록 -->
+    <template v-else>
+      <!-- 테이블 (xl+) -->
+      <div class="hidden xl:block overflow-x-auto rounded-xl border border-border">
+        <table class="w-full min-w-[700px] border-collapse text-sm">
+          <thead>
+            <tr class="bg-muted">
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground w-20">
+                종류
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">내용</th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                작성자
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                작성일
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                상태
+              </th>
+              <th class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">
+                삭제
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-background">
+            <tr
+              v-for="item in items"
+              :key="item.id"
+              class="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
+              :class="{ 'opacity-50': item.isDeleted }"
+            >
+              <td class="px-4 py-3 text-center">
+                <span
+                  class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                  :class="
+                    item.type === 'post'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'bg-purple-50 text-purple-700'
+                  "
+                >
+                  {{ item.type === 'post' ? '게시글' : '댓글' }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-foreground">
+                <p class="line-clamp-2 text-xs">{{ item.content }}</p>
+              </td>
+              <td class="px-4 py-3 text-center text-xs text-muted-foreground">
+                {{ item.authorNickname }}
+              </td>
+              <td class="px-4 py-3 text-center text-xs text-muted-foreground whitespace-nowrap">
+                {{ item.createdAt }}
+              </td>
+              <td class="px-4 py-3 text-center">
+                <AppBadge :variant="item.isDeleted ? 'gray' : 'green'">{{
+                  item.isDeleted ? '삭제됨' : '정상'
+                }}</AppBadge>
+              </td>
+              <td class="px-4 py-3 text-center">
+                <div class="flex items-center justify-center gap-1.5">
+                  <AppButton
+                    v-if="item.isDeleted"
+                    variant="outline"
+                    size="sm"
+                    :loading="restoringIds.has(item.id)"
+                    @click="restoreContent(item.type, item.id)"
+                    >복구</AppButton
+                  >
+                  <AppButton
+                    v-else
+                    variant="destructive"
+                    size="sm"
+                    :disabled="deletingIds.has(item.id)"
+                    @click="requestDelete(item.type, item.id)"
+                    >삭제</AppButton
+                  >
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 카드 (xl 미만) -->
+      <div class="grid gap-3 xl:hidden">
+        <div
+          v-for="item in items"
+          :key="item.id"
+          class="rounded-xl border border-border bg-card p-4"
+          :class="{ 'opacity-60': item.isDeleted }"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-1.5">
               <span
                 class="rounded-full px-2 py-0.5 text-xs font-semibold"
-                :class="item.type === 'post' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'"
+                :class="
+                  item.type === 'post' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                "
               >
                 {{ item.type === 'post' ? '게시글' : '댓글' }}
               </span>
-            </td>
-            <td class="px-4 py-3 text-foreground">
-              <p class="line-clamp-2 text-xs">{{ item.content }}</p>
-            </td>
-            <td class="px-4 py-3 text-center text-xs text-muted-foreground">{{ item.authorNickname }}</td>
-            <td class="px-4 py-3 text-center text-xs text-muted-foreground whitespace-nowrap">{{ item.createdAt }}</td>
-            <td class="px-4 py-3 text-center">
-              <AppBadge :variant="item.isDeleted ? 'gray' : 'green'">
-                {{ item.isDeleted ? '삭제됨' : '정상' }}
-              </AppBadge>
-            </td>
-            <td class="px-4 py-3 text-center">
-              <div class="flex items-center justify-center gap-1.5">
-                <AppButton
-                  v-if="item.isDeleted"
-                  variant="outline"
-                  size="sm"
-                  :loading="restoringIds.has(item.id)"
-                  @click="restoreContent(item.type, item.id)"
-                >
-                  복구
-                </AppButton>
-                <AppButton
-                  v-else
-                  variant="destructive"
-                  size="sm"
-                  :disabled="deletingIds.has(item.id)"
-                  @click="requestDelete(item.type, item.id)"
-                >
-                  삭제
-                </AppButton>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+              <AppBadge :variant="item.isDeleted ? 'gray' : 'green'">{{
+                item.isDeleted ? '삭제됨' : '정상'
+              }}</AppBadge>
+            </div>
+            <span class="shrink-0 text-xs text-muted-foreground">{{ item.createdAt }}</span>
+          </div>
+          <p class="mt-3 line-clamp-3 text-xs text-foreground">{{ item.content }}</p>
+          <div class="mt-2 text-xs text-muted-foreground">
+            작성자 <span class="ml-1 font-medium text-foreground">{{ item.authorNickname }}</span>
+          </div>
+          <div class="mt-3">
+            <AppButton
+              v-if="item.isDeleted"
+              variant="outline"
+              size="sm"
+              class="w-full"
+              :loading="restoringIds.has(item.id)"
+              @click="restoreContent(item.type, item.id)"
+              >복구</AppButton
+            >
+            <AppButton
+              v-else
+              variant="destructive"
+              size="sm"
+              class="w-full"
+              :disabled="deletingIds.has(item.id)"
+              @click="requestDelete(item.type, item.id)"
+              >삭제</AppButton
+            >
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- 결과 요약 -->
     <p v-if="!pending && total > 0" class="mt-3 text-xs text-muted-foreground">
-      전체 <span class="font-semibold text-foreground">{{ total }}</span>건
+      전체 <span class="font-semibold text-foreground">{{ total }}</span
+      >건
     </p>
 
     <!-- 페이지네이션 -->
