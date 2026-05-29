@@ -127,7 +127,18 @@ export async function summarizeArticle(title: string, content: string): Promise<
   try {
     const jsonMatch = raw.match(/```json\s*([\s\S]*?)\s*```/) ?? raw.match(/({[\s\S]*})/)
     const jsonStr = jsonMatch ? (jsonMatch[1] ?? jsonMatch[0]) : raw
-    return JSON.parse(jsonStr) as ArticleAIResult
+    const parsed = JSON.parse(jsonStr) as ArticleAIResult
+
+    // 빈 개념 항목 제거
+    if (Array.isArray(parsed.concepts)) {
+      parsed.concepts = parsed.concepts.filter((c) => c.name?.trim())
+    }
+    // 개념이 없으면 핵심 포인트에서 자동 생성
+    if (!parsed.concepts?.length && parsed.keyPoints?.length) {
+      parsed.concepts = parsed.keyPoints.slice(0, 4).map((p) => ({ name: p, desc: '' }))
+    }
+
+    return parsed
   } catch {
     throw createError({ statusCode: 502, statusMessage: 'AI 응답을 파싱할 수 없어요' })
   }
