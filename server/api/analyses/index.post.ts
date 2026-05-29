@@ -134,15 +134,28 @@ async function runAnalysis(
   } catch (e) {
     const err = e as { statusMessage?: string; message?: string; statusCode?: number }
     const errorMessage = err.statusMessage ?? err.message ?? String(e)
-    console.error('[runAnalysis 실패] statusCode:', err.statusCode, '/ message:', errorMessage)
-    await db
-      .update(analyses)
-      .set({
-        status: 'failed',
-        result: { _error: errorMessage } as unknown as AnalysisResultV2,
-        updatedAt: new Date(),
-      })
-      .where(eq(analyses.id, analysisId))
+    console.error(
+      '[runAnalysis 실패] analysisId:',
+      analysisId,
+      '/ statusCode:',
+      err.statusCode,
+      '/ message:',
+      errorMessage,
+      '/ full:',
+      e
+    )
+    try {
+      await db
+        .update(analyses)
+        .set({
+          status: 'failed',
+          result: { _error: errorMessage } as unknown as AnalysisResultV2,
+          updatedAt: new Date(),
+        })
+        .where(eq(analyses.id, analysisId))
+    } catch (dbErr) {
+      console.error('[runAnalysis DB 업데이트 실패] analysisId:', analysisId, '/ error:', dbErr)
+    }
     return
   }
 

@@ -830,6 +830,21 @@ async function downloadAfterPdf() {
       </section>
     </template>
 
+    <!-- 완료됐지만 결과 없는 경우 -->
+    <div
+      v-else-if="analysis && analysis.status === 'completed'"
+      class="flex flex-col items-center justify-center py-24 text-center"
+    >
+      <AlertCircle class="size-12 text-destructive" />
+      <p class="mt-4 text-lg font-bold text-foreground">분석 결과를 표시할 수 없어요</p>
+      <p class="mt-2 text-sm text-muted-foreground">
+        AI 응답이 올바르지 않아 결과 저장에 실패했어요
+      </p>
+      <NuxtLink to="/analyze">
+        <AppButton class="mt-6">다시 분석하기</AppButton>
+      </NuxtLink>
+    </div>
+
     <!-- v1 결과 (하위호환) -->
     <template v-else-if="analysis?.result">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
