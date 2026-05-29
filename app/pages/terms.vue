@@ -33,7 +33,7 @@ useSeoMeta({
       <ul class="mt-3 space-y-2 text-sm leading-7 text-muted-foreground">
         <li class="flex gap-2">
           <span class="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-          PDF 포트폴리오 업로드 및 AI 기반 분석 (항목별 점수, Before/After 개선안)
+          PDF 포트폴리오 업로드 및 AI 기반 분석 (이슈 우선순위 분석, Before/After 개선안, 총점)
         </li>
         <li class="flex gap-2">
           <span class="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
@@ -68,8 +68,8 @@ useSeoMeta({
       <p class="mt-3 text-sm leading-7 text-muted-foreground">
         회원은 마이페이지에서 탈퇴 신청을 할 수 있습니다. 탈퇴 시 이메일, 프로필 이미지 등
         개인정보성 필드는 익명화되며, 30일 이내 같은 OAuth 계정으로 재로그인하면 기존 활동 기록과
-        연결된 계정을 복구할 수 있습니다. 30일이 지나면 계정 정보와 분석 PDF, 프로필 이미지는
-        영구 삭제됩니다.
+        연결된 계정을 복구할 수 있습니다. 30일이 지나면 계정 정보와 분석 PDF, 프로필 이미지는 영구
+        삭제됩니다.
       </p>
     </section>
 
@@ -148,10 +148,10 @@ useSeoMeta({
         </li>
         <li class="flex gap-2">
           <span class="mt-1 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
-          아티클 섹션에서 제공되는 콘텐츠는 외부 RSS 피드를 통해 수집된 제3자 저작물입니다.
-          해당 콘텐츠의 정확성·적법성에 대한 책임은 원출처에 있으며, 서비스는 이에 대해 책임을
-          지지 않습니다. 저작권 관련 문제 발생 시 kimdonghwan913@gmail.com으로 신고해 주시면
-          즉시 조치합니다.
+          아티클 섹션에서 제공되는 콘텐츠는 외부 RSS 피드를 통해 수집된 제3자 저작물입니다. 해당
+          콘텐츠의 정확성·적법성에 대한 책임은 원출처에 있으며, 서비스는 이에 대해 책임을 지지
+          않습니다. 저작권 관련 문제 발생 시 kimdonghwan913@gmail.com으로 신고해 주시면 즉시
+          조치합니다.
         </li>
         <li class="flex gap-2">
           <span class="mt-1 size-1.5 shrink-0 rounded-full bg-muted-foreground" />

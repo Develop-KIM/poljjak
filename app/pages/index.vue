@@ -20,10 +20,10 @@ useHead({ titleTemplate: '%s' })
 useSeoMeta({
   title: '폴짝 - AI 포트폴리오 분석 서비스',
   description:
-    'PDF 하나로 포트폴리오의 약점을 파악하세요. AI가 10가지 항목을 점수와 코멘트로 분석하고 Before/After 개선안을 제시해드려요.',
+    'PDF 하나로 포트폴리오의 약점을 파악하세요. AI가 이슈를 우선순위별로 분석하고 Before/After 개선안을 제시해드려요.',
   ogTitle: '폴짝 - AI 포트폴리오 분석 서비스',
   ogDescription:
-    'PDF 하나로 포트폴리오의 약점을 파악하세요. AI가 10가지 항목을 분석하고 Before/After 개선안을 제시해드려요.',
+    'PDF 하나로 포트폴리오의 약점을 파악하세요. AI가 이슈를 우선순위별로 분석하고 Before/After 개선안을 제시해드려요.',
   ogUrl: 'https://poljjak.kr',
   twitterTitle: '폴짝 - AI 포트폴리오 분석 서비스',
   twitterDescription: 'PDF 하나로 포트폴리오의 약점을 파악하세요.',
@@ -52,6 +52,24 @@ const analysisStep = ref(0)
 const showScores = ref(false)
 let demoTimer: ReturnType<typeof setTimeout> | null = null
 let analysisStepTimer: ReturnType<typeof setInterval> | null = null
+
+const demoIssues = [
+  {
+    priority: 'high',
+    title: '성과 수치 미기재',
+    desc: '구체적인 수치 없이 개선했다로만 표현되어 설득력이 낮아요.',
+  },
+  {
+    priority: 'medium',
+    title: '선택 근거 부재',
+    desc: '사용한 기술을 나열만 했고 왜 골랐는지 이유가 없어요.',
+  },
+  {
+    priority: 'low',
+    title: '자기소개 분량 과다',
+    desc: '자기소개가 너무 길어 핵심 메시지가 희석되고 있어요.',
+  },
+]
 
 const steps = [
   { label: 'PDF 업로드 중', sublabel: '파일을 서버로 전송하고 있어요' },
@@ -100,7 +118,7 @@ onUnmounted(() => {
         </h1>
 
         <p class="mx-auto mt-6 max-w-xl text-base leading-8 text-muted-foreground md:text-lg">
-          AI가 10가지 항목을 점수와 코멘트로 분석하고,<br class="hidden sm:block" />
+          AI가 이슈를 우선순위별로 짚어주고,<br class="hidden sm:block" />
           구체적인 Before/After 개선안까지 제시해드려요.
         </p>
 
@@ -127,8 +145,8 @@ onUnmounted(() => {
       <div class="mx-auto max-w-[1440px]">
         <div class="grid grid-cols-2 divide-x divide-y divide-border md:grid-cols-4 md:divide-y-0">
           <div class="px-8 py-6 text-center">
-            <p class="text-2xl font-black text-foreground">10종</p>
-            <p class="mt-1 text-sm text-muted-foreground">핵심 분석 항목</p>
+            <p class="text-2xl font-black text-foreground">총점 100</p>
+            <p class="mt-1 text-sm text-muted-foreground">AI 종합 점수</p>
           </div>
           <div class="px-8 py-6 text-center">
             <p class="text-2xl font-black text-foreground">1분</p>
@@ -396,14 +414,14 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- 항목별 점수 -->
+              <!-- 이슈 목록 -->
               <div class="mt-4">
                 <button
                   type="button"
                   class="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3.5 text-sm font-bold text-foreground hover:bg-muted"
                   @click="showScores = !showScores"
                 >
-                  항목별 점수 보기
+                  우선순위별 이슈 보기
                   <ChevronDown
                     class="size-4 text-muted-foreground transition-transform"
                     :class="{ 'rotate-180': showScores }"
@@ -414,22 +432,32 @@ onUnmounted(() => {
                   enter-from-class="opacity-0 -translate-y-2"
                   enter-to-class="opacity-100 translate-y-0"
                 >
-                  <div v-if="showScores" class="mt-3 grid gap-2 md:grid-cols-3">
+                  <div v-if="showScores" class="mt-3 grid gap-2">
                     <div
-                      v-for="s in [
-                        { title: '프로젝트 설명', score: 70 },
-                        { title: '성과 표현', score: 60 },
-                        { title: '구조와 흐름', score: 80 },
-                      ]"
-                      :key="s.title"
-                      class="rounded-xl border border-border bg-card p-3"
+                      v-for="issue in demoIssues"
+                      :key="issue.title"
+                      class="flex items-start gap-3 rounded-xl border border-border bg-card p-3"
                     >
-                      <div class="flex justify-between text-xs">
-                        <span class="font-semibold text-foreground">{{ s.title }}</span>
-                        <span class="font-bold text-primary">{{ s.score }}</span>
-                      </div>
-                      <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div class="h-full rounded-full bg-primary" :style="`width:${s.score}%`" />
+                      <span
+                        class="mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-xs font-bold"
+                        :class="{
+                          'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400':
+                            issue.priority === 'high',
+                          'bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400':
+                            issue.priority === 'medium',
+                          'bg-muted text-muted-foreground': issue.priority === 'low',
+                        }"
+                        >{{
+                          issue.priority === 'high'
+                            ? '높음'
+                            : issue.priority === 'medium'
+                              ? '중간'
+                              : '낮음'
+                        }}</span
+                      >
+                      <div>
+                        <p class="text-xs font-bold text-foreground">{{ issue.title }}</p>
+                        <p class="mt-0.5 text-xs text-muted-foreground">{{ issue.desc }}</p>
                       </div>
                     </div>
                   </div>
@@ -456,10 +484,10 @@ onUnmounted(() => {
             <div class="flex size-10 items-center justify-center rounded-lg bg-accent">
               <Sparkles class="size-5 text-primary" />
             </div>
-            <h3 class="mt-4 font-black text-foreground">항목별 AI 분석</h3>
+            <h3 class="mt-4 font-black text-foreground">우선순위별 이슈 분석</h3>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
-              구성, 임팩트, 기술 스택 등 10가지 항목을 점수와 이유와 함께 알려드려요. 무엇이
-              부족한지 바로 파악할 수 있어요.
+              구성, 성과 표현, 기술 스택 등 발견된 이슈를 높음·중간·낮음으로 분류해 알려드려요.
+              무엇부터 고쳐야 할지 바로 파악할 수 있어요.
             </p>
           </div>
           <div class="rounded-xl border border-border bg-card p-6">
