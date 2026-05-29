@@ -13,6 +13,7 @@ import {
   Lock,
   ChevronRight,
   FileUp,
+  Download,
 } from '@lucide/vue'
 
 useHead({ titleTemplate: '%s' })
@@ -380,6 +381,92 @@ onUnmounted(() => {
                   프로젝트 구현 경험은 충분하나 성과 표현이 막연하고 기술 선택 근거가 부족합니다.
                   수치와 맥락을 보완하면 설득력이 크게 높아질 수 있어요.
                 </p>
+              </div>
+
+              <!-- Before / After 분할 뷰어 -->
+              <div class="mt-4">
+                <div class="mb-2 flex items-center gap-2">
+                  <h4 class="text-sm font-black text-foreground">Before / After</h4>
+                  <span class="text-xs text-muted-foreground"
+                    >파란 밑줄에 마우스를 올리면 변경 이유를 확인할 수 있어요</span
+                  >
+                </div>
+                <div
+                  class="grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card"
+                >
+                  <!-- Before: 원본 PDF 목 -->
+                  <div class="flex flex-col border-r border-border">
+                    <div
+                      class="flex items-center gap-1.5 border-b border-border bg-muted/50 px-3 py-2"
+                    >
+                      <span class="size-2 rounded-full bg-red-400" />
+                      <span class="text-[11px] font-bold text-muted-foreground">BEFORE · 원본</span>
+                    </div>
+                    <div class="bg-muted/20 p-3">
+                      <div
+                        class="rounded-md bg-white px-4 py-4 text-[11px] leading-6 text-gray-800 shadow-sm"
+                      >
+                        <p class="font-bold">쇼핑몰 웹 서비스 프로젝트</p>
+                        <p class="mt-2 font-semibold text-gray-500">기술 스택</p>
+                        <p class="text-gray-700">React, Node.js, PostgreSQL</p>
+                        <p class="mt-2 font-semibold text-gray-500">주요 역할</p>
+                        <ul class="list-disc pl-4 text-gray-700">
+                          <li>프론트엔드 개발</li>
+                          <li>API 성능을 크게 개선했습니다.</li>
+                          <li>팀원들과 협업하여 서비스를 완성했습니다.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- After: AI 개선본 -->
+                  <div class="flex flex-col">
+                    <div
+                      class="flex items-center gap-1.5 border-b border-border bg-primary/5 px-3 py-2"
+                    >
+                      <span class="size-2 rounded-full bg-emerald-400" />
+                      <span class="text-[11px] font-bold text-primary">AFTER · AI 개선본</span>
+                      <div
+                        class="ml-auto flex items-center gap-1 text-[11px] font-semibold text-primary"
+                      >
+                        <Download class="size-3" /> PDF 저장
+                      </div>
+                    </div>
+                    <div class="bg-muted/30 p-3">
+                      <div
+                        class="rounded-md bg-white px-4 py-4 text-[11px] leading-6 text-gray-800 shadow-sm"
+                      >
+                        <p class="font-bold">쇼핑몰 웹 서비스 프로젝트</p>
+                        <p class="mt-2 font-semibold text-gray-500">기술 스택</p>
+                        <p class="text-gray-700">
+                          <span
+                            class="cursor-help border-b-2 border-blue-400 text-blue-700"
+                            title="기술 선택 근거를 추가했어요"
+                            >실시간 상태 동기화를 위해 React Query 도입, 타입 안정성을 위해
+                            TypeScript 적용</span
+                          >
+                        </p>
+                        <p class="mt-2 font-semibold text-gray-500">주요 역할</p>
+                        <ul class="list-disc pl-4 text-gray-700">
+                          <li>프론트엔드 개발 전담 (컴포넌트 설계 · 상태 관리)</li>
+                          <li>
+                            <span
+                              class="cursor-help border-b-2 border-blue-400 text-blue-700"
+                              title="수치를 추가해 설득력을 높였어요"
+                              >N+1 쿼리 제거로 응답 속도를 [실제 수치] 단축</span
+                            >
+                          </li>
+                          <li>
+                            <span
+                              class="cursor-help border-b-2 border-blue-400 text-blue-700"
+                              title="기여도를 구체적으로 드러냈어요"
+                              >3인 팀에서 백엔드 API 설계 전담, 코드 리뷰 주도</span
+                            >
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- 이슈 목록 -->
