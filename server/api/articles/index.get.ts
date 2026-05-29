@@ -1,7 +1,7 @@
 import { and, count, desc, eq, gte, ilike, inArray, or, sql, arrayContains } from 'drizzle-orm'
 import { getAuthUser } from '../../utils/auth'
 import { db } from '../../db'
-import { articleBookmarks, articleClicks, articles } from '../../db/schema'
+import { articleBookmarks, articles } from '../../db/schema'
 import { getArticleSourceNames } from '../../utils/article-sources'
 
 export default defineEventHandler(async (event) => {
@@ -46,16 +46,17 @@ export default defineEventHandler(async (event) => {
   const whereClause = conditions.length === 1 ? conditions[0]! : and(...conditions)
 
   // 트렌딩: 최근 7일 클릭 수 + 북마크 가중치 (상관 서브쿼리)
-  const trendingCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  // Date 객체는 postgres.js가 직렬화 못하므로 ISO 문자열로 변환
+  const trendingCutoffStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const clickExpr = sql<number>`(
-    SELECT COUNT(*) FROM ${articleClicks}
-    WHERE ${articleClicks.articleId} = ${articles.id}
-      AND ${articleClicks.createdAt} >= ${trendingCutoff}
+    SELECT COUNT(*) FROM "article_clicks"
+    WHERE "article_clicks"."article_id" = "articles"."id"
+      AND "article_clicks"."created_at" >= ${trendingCutoffStr}::timestamptz
   )`
   const bookmarkExpr = sql<number>`(
-    SELECT COUNT(*) FROM ${articleBookmarks}
-    WHERE ${articleBookmarks.articleId} = ${articles.id}
-      AND ${articleBookmarks.createdAt} >= ${trendingCutoff}
+    SELECT COUNT(*) FROM "article_bookmarks"
+    WHERE "article_bookmarks"."article_id" = "articles"."id"
+      AND "article_bookmarks"."created_at" >= ${trendingCutoffStr}::timestamptz
   )`
   const trendingExpr = sql<number>`(${clickExpr}) + (${bookmarkExpr}) * 3`
 
@@ -120,9 +121,8 @@ export default defineEventHandler(async (event) => {
       db.select({ total: count() }).from(articles).where(whereClause),
     ])
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[articles] query error', { category, sort, period, msg, err })
-    throw createError({ statusCode: 500, statusMessage: `[디버그] ${msg}` })
+    console.error('[articles] query error', { category, sort, period, err })
+    throw createError({ statusCode: 500, statusMessage: '아티클 목록을 불러오지 못했어요' })
   }
 
   const total = totalRows[0]?.total ?? 0
