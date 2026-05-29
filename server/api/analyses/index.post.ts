@@ -61,8 +61,14 @@ export default defineEventHandler(async (event) => {
 
   const jobRoleRaw = jobRolePart?.data?.toString('utf8')?.trim() as JobRole | undefined
   const seniorityRaw = seniorityPart?.data?.toString('utf8')?.trim() as Seniority | undefined
-  const jobRole = jobRoleRaw && VALID_JOB_ROLES.includes(jobRoleRaw) ? jobRoleRaw : null
   const seniority = seniorityRaw && VALID_SENIORITIES.includes(seniorityRaw) ? seniorityRaw : null
+
+  // 폼에서 직접 넘기면 우선 사용, 없으면 사용자 프로필에서 fallback
+  let jobRole: JobRole | null =
+    jobRoleRaw && VALID_JOB_ROLES.includes(jobRoleRaw) ? jobRoleRaw : null
+  if (!jobRole && user.jobType === 'developer') {
+    jobRole = 'fullstack'
+  }
 
   const additionalNote = notePart?.data?.toString('utf8')?.trim()
 

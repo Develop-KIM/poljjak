@@ -196,6 +196,7 @@ ${text}`
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
         ],
+        maxTokens: 4096,
         temperature: 0.3,
         topP: 0.8,
         stream: false,
