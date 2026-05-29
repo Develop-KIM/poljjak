@@ -110,14 +110,29 @@ const shouldShowProgress = computed(() => {
 
 const isV2 = computed(() => !!(analysis.value?.issues || analysis.value?.afterHtml))
 
+// HTML 태그 밖의 텍스트에만 regex를 적용 (태그 속성 훼손 방지)
+function maskPiiInHtml(html: string): string {
+  return html.replace(/>([^<]*)</g, (match, text: string) => {
+    const masked = text
+      // 이메일
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[이메일]')
+      // 한국 휴대폰 번호 (010-xxxx-xxxx, 010 xxxx xxxx, 01012345678 등)
+      .replace(/\b01\d[-.\s]?\d{3,4}[-.\s]?\d{4}\b/g, '[연락처]')
+      // GitHub·GitLab 사용자 아이디 (URL 경로 첫 번째 세그먼트)
+      .replace(/(github\.com|gitlab\.com)\/([A-Za-z0-9_.-]+)/gi, '$1/[아이디]')
+    return `>${masked}<`
+  })
+}
+
 function processHtml(raw: string | null | undefined): string | null {
   if (!raw) return null
   const hasHtmlTags = /<[a-z][\s\S]*>/i.test(raw)
   const html = hasHtmlTags ? raw : (marked.parse(raw, { async: false }) as string)
-  return html
+  const withMarkdown = html
     .replace(/\*\*\*(.+?)\*\*\*/gs, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>')
     .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/gs, '<em>$1</em>')
+  return maskPiiInHtml(withMarkdown)
 }
 
 // 현재 섹션 HTML (페이지네이션용)
